@@ -1,4 +1,3 @@
-import "server-only";
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Material } from "@/types/material";

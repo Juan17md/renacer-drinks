@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { InventarioCliente } from "@/components/admin/inventario/InventarioCliente";
 
-const { materialesMock } = vi.hoisted(() => ({
-  materialesMock: [
+const { obtenerMaterialesMock } = vi.hoisted(() => ({
+  obtenerMaterialesMock: vi.fn().mockResolvedValue([
     {
       id: "mat_1",
       nombre: "Leche entera",
@@ -18,7 +18,11 @@ const { materialesMock } = vi.hoisted(() => ({
       cantidad: 3.5,
       updatedAt: "2026-08-13T10:00:00Z",
     },
-  ],
+  ]),
+}));
+
+vi.mock("@/services/materials", () => ({
+  obtenerMateriales: obtenerMaterialesMock,
 }));
 
 vi.mock("@/actions/materials", () => ({
@@ -31,34 +35,39 @@ vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
+vi.mock("sonner", () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
+}));
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
 describe("InventarioCliente (materiales)", () => {
-  it("muestra los materiales con su unidad y cantidad", () => {
-    render(<InventarioCliente materiales={materialesMock} />);
+  it("muestra los materiales con su unidad y cantidad", async () => {
+    render(<InventarioCliente />);
 
-    expect(screen.getByText("Leche entera")).toBeInTheDocument();
+    expect(await screen.findByText("Leche entera")).toBeInTheDocument();
     expect(screen.getByText("Café en grano")).toBeInTheDocument();
     expect(screen.getByText("L")).toBeInTheDocument();
     expect(screen.getByText("kg")).toBeInTheDocument();
     expect(screen.getByText(/2 materiales registrados/i)).toBeInTheDocument();
   });
 
-  it("muestra el estado vacío cuando no hay materiales", () => {
-    render(<InventarioCliente materiales={[]} />);
+  it("muestra el estado vacío cuando no hay materiales", async () => {
+    obtenerMaterialesMock.mockResolvedValueOnce([]);
+    render(<InventarioCliente />);
 
     expect(
-      screen.getByText(/no hay materiales registrados todavía/i)
+      await screen.findByText(/no hay materiales registrados todavía/i)
     ).toBeInTheDocument();
   });
 
-  it("abre el modal de creación al hacer clic en agregar material", () => {
-    render(<InventarioCliente materiales={materialesMock} />);
+  it("abre el modal de creación al hacer clic en agregar material", async () => {
+    render(<InventarioCliente />);
 
     fireEvent.click(
-      screen.getByRole("button", { name: /agregar material/i })
+      await screen.findByRole("button", { name: /agregar material/i })
     );
 
     expect(
@@ -67,7 +76,8 @@ describe("InventarioCliente (materiales)", () => {
   });
 
   it("abre el modal de edición con los datos del material", async () => {
-    render(<InventarioCliente materiales={materialesMock} />);
+    render(<InventarioCliente />);
+    await screen.findByRole("button", { name: /editar leche entera/i });
 
     fireEvent.click(
       screen.getByRole("button", { name: /editar leche entera/i })
@@ -82,10 +92,10 @@ describe("InventarioCliente (materiales)", () => {
   });
 
   it("valida que el nombre sea obligatorio al crear", async () => {
-    render(<InventarioCliente materiales={materialesMock} />);
+    render(<InventarioCliente />);
 
     fireEvent.click(
-      screen.getByRole("button", { name: /agregar material/i })
+      await screen.findByRole("button", { name: /agregar material/i })
     );
     fireEvent.click(screen.getByRole("button", { name: /crear material/i }));
 
@@ -95,10 +105,10 @@ describe("InventarioCliente (materiales)", () => {
   });
 
   it("permite escribir una unidad personalizada con la opción Otra", async () => {
-    render(<InventarioCliente materiales={materialesMock} />);
+    render(<InventarioCliente />);
 
     fireEvent.click(
-      screen.getByRole("button", { name: /agregar material/i })
+      await screen.findByRole("button", { name: /agregar material/i })
     );
 
     fireEvent.click(

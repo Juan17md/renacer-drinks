@@ -2,40 +2,34 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { DashboardCliente } from "@/components/admin/dashboard/DashboardCliente";
 
-const { registrarVentaMock } = vi.hoisted(() => ({
-  registrarVentaMock: vi.fn().mockResolvedValue({ id: "tx_1" }),
-}));
+const { obtenerResumenDiarioMock, obtenerProductosCompletosMock } =
+  vi.hoisted(() => ({
+    obtenerResumenDiarioMock: vi.fn().mockResolvedValue({
+      id: "2026-08-13",
+      totalIncome: 100,
+      totalExpense: 0,
+      netProfit: 100,
+      totalSales: 12,
+      totalProfit: 25,
+    }),
+    obtenerProductosCompletosMock: vi.fn().mockResolvedValue([]),
+  }));
 
 vi.mock("@/services/transactions", () => ({
-  registrarVenta: registrarVentaMock,
+  obtenerResumenDiario: obtenerResumenDiarioMock,
 }));
 
-const productosMock = [
-  {
-    id: "prod_1",
-    name: "Café Mocca Helado",
-    description: "Espresso doble con chocolate",
-    price: 4.5,
-    costo: 3.5,
-    category: "bebidas-frias",
-    isAvailable: true,
-    imageUrl: "",
-    imageId: "",
-    updatedAt: "2026-08-13T10:00:00Z",
-  },
-];
+vi.mock("@/services/products", () => ({
+  obtenerProductosCompletos: obtenerProductosCompletosMock,
+}));
 
 describe("DashboardCliente", () => {
-  it("muestra las tarjetas del día: monto vendido, monto ganado y ventas", () => {
-    render(
-      <DashboardCliente
-        tasaBCV={80}
-        resumen={{ totalIncome: 100, totalProfit: 25, totalSales: 12 }}
-        productos={productosMock}
-      />
-    );
+  it("carga el resumen del día y muestra las tarjetas: monto vendido, ganado y ventas", async () => {
+    render(<DashboardCliente tasaBCVInicial={80} />);
 
-    expect(screen.getByText(/monto vendido hoy/i)).toBeInTheDocument();
+    expect(obtenerResumenDiarioMock).toHaveBeenCalledWith("2026-08-13");
+
+    expect(await screen.findByText(/monto vendido hoy/i)).toBeInTheDocument();
     expect(screen.getByText(/monto ganado hoy/i)).toBeInTheDocument();
     expect(screen.getByText(/ventas del día/i)).toBeInTheDocument();
     expect(screen.getByText("$100.00")).toBeInTheDocument();
@@ -43,15 +37,10 @@ describe("DashboardCliente", () => {
     expect(screen.getByText("$12.00")).toBeInTheDocument();
   });
 
-  it("muestra los accesos rápidos incluyendo registrar venta", () => {
-    render(
-      <DashboardCliente
-        tasaBCV={80}
-        resumen={null}
-        productos={productosMock}
-      />
-    );
+  it("muestra la tasa BCV inicial y los accesos rápidos", async () => {
+    render(<DashboardCliente tasaBCVInicial={80} />);
 
+    expect(await screen.findByText("Bs. 80,00")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /registrar venta/i })
     ).toBeInTheDocument();
@@ -63,17 +52,11 @@ describe("DashboardCliente", () => {
     ).toBeInTheDocument();
   });
 
-  it("abre el modal de registrar venta desde el acceso rápido", () => {
-    render(
-      <DashboardCliente
-        tasaBCV={80}
-        resumen={null}
-        productos={productosMock}
-      />
-    );
+  it("abre el modal de registrar venta desde el acceso rápido", async () => {
+    render(<DashboardCliente tasaBCVInicial={80} />);
 
     fireEvent.click(
-      screen.getByRole("button", { name: /registrar venta/i })
+      await screen.findByRole("button", { name: /registrar venta/i })
     );
 
     expect(

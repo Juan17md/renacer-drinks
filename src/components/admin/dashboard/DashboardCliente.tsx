@@ -1,29 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { DollarSign, TrendingUp, ReceiptText, ShoppingCart, Coffee, Package, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RegistrarVentaModal } from "@/components/admin/ventas/RegistrarVentaModal";
-import { formatearUSD, formatearBs } from "@/lib/utils";
+import { obtenerResumenDiario } from "@/services/transactions";
+import { obtenerProductosCompletos } from "@/services/products";
+import { obtenerFechaLocalISO, formatearUSD, formatearBs } from "@/lib/utils";
 import type { Producto } from "@/types/product";
+import type { ResumenDiario } from "@/types/transaction";
 
 interface DashboardClienteProps {
-  tasaBCV: number;
-  resumen: {
-    totalIncome: number;
-    totalProfit: number;
-    totalSales: number;
-  } | null;
-  productos: Producto[];
+  tasaBCVInicial: number;
 }
 
 export function DashboardCliente({
-  tasaBCV,
-  resumen,
-  productos,
+  tasaBCVInicial,
 }: DashboardClienteProps) {
   const [ventaAbierta, setVentaAbierta] = useState(false);
+  const [tasaBCV, setTasaBCV] = useState(tasaBCVInicial);
+  const [resumen, setResumen] = useState<ResumenDiario | null>(null);
+  const [productos, setProductos] = useState<Producto[]>([]);
+
+  useEffect(() => {
+    const hoy = obtenerFechaLocalISO().slice(0, 10);
+    obtenerResumenDiario(hoy).then(setResumen);
+    obtenerProductosCompletos().then(setProductos);
+  }, []);
 
   const tarjetas = [
     {

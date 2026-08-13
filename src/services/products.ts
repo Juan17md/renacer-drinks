@@ -1,4 +1,3 @@
-import "server-only";
 import { collection, getDocs, doc, getDoc, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Producto, ProductoPublico } from "@/types/product";

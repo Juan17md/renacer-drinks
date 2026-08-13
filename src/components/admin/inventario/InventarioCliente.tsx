@@ -1,21 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MaterialsDataTable } from "@/components/admin/inventario/MaterialsDataTable";
 import { MaterialFormModal } from "@/components/admin/inventario/MaterialFormModal";
+import { obtenerMateriales } from "@/services/materials";
 import type { Material } from "@/types/material";
 
-interface InventarioClienteProps {
-  materiales: Material[];
-}
-
-export function InventarioCliente({ materiales }: InventarioClienteProps) {
+export function InventarioCliente() {
+  const [materiales, setMateriales] = useState<Material[]>([]);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [materialEditando, setMaterialEditando] = useState<Material | null>(
     null
   );
+
+  useEffect(() => {
+    obtenerMateriales().then(setMateriales);
+  }, []);
 
   const abrirCrear = () => {
     setMaterialEditando(null);
