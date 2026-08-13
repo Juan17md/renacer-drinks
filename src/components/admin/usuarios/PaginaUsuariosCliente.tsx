@@ -160,7 +160,7 @@ export function PaginaUsuariosCliente() {
             <Users className="h-6 w-6 text-brand-rose-deep" aria-hidden="true" />
             Usuarios
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-base text-muted-foreground">
             Gestiona los usuarios activos del panel administrativo.
           </p>
         </div>
@@ -173,15 +173,15 @@ export function PaginaUsuariosCliente() {
       {cargando ? (
         <div className="flex items-center justify-center gap-3 rounded-2xl border border-border/60 bg-white py-16">
           <Loader2 className="h-6 w-6 animate-spin text-brand-rose-deep" aria-hidden="true" />
-          <p className="text-sm text-muted-foreground">Cargando usuarios...</p>
+          <p className="text-base text-muted-foreground">Cargando usuarios...</p>
         </div>
       ) : usuarios.length === 0 ? (
         <div className="rounded-2xl border border-border/60 bg-white py-16 text-center">
-          <p className="text-sm text-muted-foreground">Aún no hay usuarios registrados.</p>
+          <p className="text-base text-muted-foreground">Aún no hay usuarios registrados.</p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-border/60 bg-white">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-left text-base">
             <thead>
               <tr className="border-b border-border/60 bg-brand-cream/60">
                 <th scope="col" className="px-4 py-3 font-semibold text-brand-coffee">Nombre</th>

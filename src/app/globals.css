@@ -95,6 +95,12 @@
   --sidebar-ring: var(--brand-rose);
 }
 
+.admin-panel {
+  --muted-foreground: #57534e;
+  --border: #d9cfc6;
+  --input: #d9cfc6;
+}
+
 .dark {
   --background: #1c1716;
   --foreground: #fdf6f2;

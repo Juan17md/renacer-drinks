@@ -184,7 +184,7 @@ export function ProductsDataTable({
           onChange={(evento) => setFiltroGlobal(evento.target.value)}
           placeholder="Buscar producto..."
           aria-label="Buscar producto en el inventario"
-          className="h-11 w-full rounded-lg border border-input bg-white pl-10 pr-3 text-sm text-brand-coffee placeholder:text-muted-foreground focus:border-brand-rose focus:outline-none focus:ring-2 focus:ring-brand-rose/40"
+          className="h-11 w-full rounded-lg border border-input bg-white pl-10 pr-3 text-base text-brand-coffee placeholder:text-muted-foreground focus:border-brand-rose focus:outline-none focus:ring-2 focus:ring-brand-rose/40"
         />
       </div>
 

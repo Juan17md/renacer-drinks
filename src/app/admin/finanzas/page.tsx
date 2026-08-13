@@ -3,7 +3,7 @@ import { PaginaFinanzasCliente } from "@/components/admin/finanzas/PaginaFinanza
 
 export default function PaginaFinanzas() {
   return (
-    <Suspense fallback={<p className="text-sm text-muted-foreground">Cargando...</p>}>
+    <Suspense fallback={<p className="text-base text-muted-foreground">Cargando...</p>}>
       <PaginaFinanzasCliente />
     </Suspense>
   );

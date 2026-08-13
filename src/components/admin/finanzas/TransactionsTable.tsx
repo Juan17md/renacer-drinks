@@ -41,7 +41,7 @@ export function TransactionsTable({ transacciones }: TransactionsTableProps) {
   return (
     <div className="rounded-2xl border border-border/60 bg-white p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="font-heading text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+        <h3 className="font-heading text-base font-semibold uppercase tracking-wider text-muted-foreground">
           Historial de transacciones
         </h3>
         <div className="flex rounded-full bg-brand-cream p-1" role="group" aria-label="Filtrar por tipo">
@@ -50,7 +50,7 @@ export function TransactionsTable({ transacciones }: TransactionsTableProps) {
               key={opcion.valor}
               type="button"
               onClick={() => setFiltro(opcion.valor)}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+              className={`rounded-full px-3 py-1.5 text-base font-semibold transition-colors ${
                 filtro === opcion.valor
                   ? "bg-brand-rose text-white"
                   : "text-muted-foreground hover:text-brand-coffee"
@@ -64,7 +64,7 @@ export function TransactionsTable({ transacciones }: TransactionsTableProps) {
       </div>
 
       {filtradas.length === 0 ? (
-        <p className="mt-6 text-center text-sm text-muted-foreground">
+        <p className="mt-6 text-center text-base text-muted-foreground">
           No hay transacciones registradas.
         </p>
       ) : (
@@ -89,10 +89,10 @@ export function TransactionsTable({ transacciones }: TransactionsTableProps) {
               </span>
 
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-brand-coffee">
+                <p className="truncate text-base font-semibold text-brand-coffee">
                   {transaccion.concept || "Sin concepto"}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-base text-muted-foreground">
                   {formatearFechaHora(transaccion.date)}
                   {transaccion.paymentMethod ? ` · ${transaccion.paymentMethod.replaceAll("_", " ")}` : ""}
                 </p>
@@ -100,7 +100,7 @@ export function TransactionsTable({ transacciones }: TransactionsTableProps) {
 
               <div className="text-right">
                 <p
-                  className={`text-sm font-bold ${
+                  className={`text-base font-bold ${
                     transaccion.type === "INGRESO"
                       ? "text-emerald-600"
                       : "text-red-600"
@@ -109,7 +109,7 @@ export function TransactionsTable({ transacciones }: TransactionsTableProps) {
                   {transaccion.type === "INGRESO" ? "+" : "−"}
                   {formatearUSD(transaccion.amount)}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-base text-muted-foreground">
                   {transaccion.amountBs > 0
                     ? `Bs. ${transaccion.amountBs.toLocaleString("es-VE", {
                         minimumFractionDigits: 2,

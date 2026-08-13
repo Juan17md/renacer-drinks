@@ -3,7 +3,7 @@ import { PaginaUsuariosCliente } from "@/components/admin/usuarios/PaginaUsuario
 
 export default function PaginaUsuarios() {
   return (
-    <Suspense fallback={<p className="text-sm text-muted-foreground">Cargando...</p>}>
+    <Suspense fallback={<p className="text-base text-muted-foreground">Cargando...</p>}>
       <PaginaUsuariosCliente />
     </Suspense>
   );

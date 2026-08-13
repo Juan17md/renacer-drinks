@@ -25,7 +25,7 @@ interface SalesChartProps {
 export function SalesChart({ datos }: SalesChartProps) {
   if (datos.length === 0) {
     return (
-      <div className="flex h-72 items-center justify-center rounded-2xl border border-border/60 bg-white text-sm text-muted-foreground">
+      <div className="flex h-72 items-center justify-center rounded-2xl border border-border/60 bg-white text-base text-muted-foreground">
         Aún no hay datos suficientes para mostrar el gráfico.
       </div>
     );
@@ -33,7 +33,7 @@ export function SalesChart({ datos }: SalesChartProps) {
 
   return (
     <div className="rounded-2xl border border-border/60 bg-white p-5">
-      <h3 className="font-heading text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+      <h3 className="font-heading text-base font-semibold uppercase tracking-wider text-muted-foreground">
         Ingresos vs Egresos (últimos 14 días)
       </h3>
       <div className="mt-4 h-72 w-full">

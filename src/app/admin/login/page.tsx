@@ -64,7 +64,7 @@ export default function PaginaLogin() {
             <h1 className="font-heading text-2xl font-bold text-brand-coffee">
               Panel de administración
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-base text-muted-foreground">
               Renacer Drinks & Coffe
             </p>
           </div>
@@ -120,7 +120,7 @@ export default function PaginaLogin() {
           {error && (
             <p
               role="alert"
-              className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              className="rounded-lg bg-destructive/10 px-3 py-2 text-base text-destructive"
             >
               {error}
             </p>
@@ -144,7 +144,7 @@ export default function PaginaLogin() {
         <p className="mt-6 text-center">
           <Link
             href="/"
-            className="inline-flex min-h-10 items-center text-sm text-muted-foreground transition-colors hover:text-brand-rose-deep"
+            className="inline-flex min-h-10 items-center text-base text-muted-foreground transition-colors hover:text-brand-rose-deep"
           >
             ← Volver a la página principal
           </Link>

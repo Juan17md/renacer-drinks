@@ -40,7 +40,7 @@ export function CategoryManager({ categorias }: { categorias: Categoria[] }) {
 
   return (
     <div className="rounded-2xl border border-border/60 bg-white p-5">
-      <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+      <h2 className="font-heading text-base font-semibold uppercase tracking-wider text-muted-foreground">
         Categorías
       </h2>
 
@@ -68,7 +68,7 @@ export function CategoryManager({ categorias }: { categorias: Categoria[] }) {
           <li key={categoria.id}>
             <Badge
               variant="secondary"
-              className="gap-2 px-3 py-2 text-sm"
+              className="gap-2 px-3 py-2 text-base"
             >
               {categoria.name}
               <button

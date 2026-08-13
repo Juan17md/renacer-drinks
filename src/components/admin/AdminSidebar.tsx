@@ -80,13 +80,13 @@ function ContenidoNavegacion({
           className="h-9 w-9 object-contain"
         />
         <div className="min-w-0">
-          <p className="truncate font-heading text-sm font-bold text-brand-coffee">
+          <p className="truncate font-heading text-base font-bold text-brand-coffee">
             Renacer Admin
           </p>
-          <p className="truncate text-xs text-muted-foreground">
+          <p className="truncate text-base text-muted-foreground">
             {usuario?.email}
             {datosUsuario && (
-              <span className="ml-1 rounded-full bg-brand-rose-light px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-rose-deep">
+              <span className="ml-1 rounded-full bg-brand-rose-light px-2 py-0.5 text-sm font-semibold uppercase tracking-wide text-brand-rose-deep">
                 {datosUsuario.rol}
               </span>
             )}
@@ -107,7 +107,7 @@ function ContenidoNavegacion({
               onClick={onNavegar}
               aria-current={activo ? "page" : undefined}
               className={cn(
-                "flex min-h-12 items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
+                "flex min-h-12 items-center gap-3 rounded-xl px-4 py-3 text-base font-medium transition-colors",
                 activo
                   ? "bg-brand-rose-deep text-white"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -156,7 +156,7 @@ export function AdminSidebar() {
             height={32}
             className="h-8 w-8 object-contain"
           />
-          <span className="font-heading text-sm font-bold text-brand-coffee">
+          <span className="font-heading text-base font-bold text-brand-coffee">
             Renacer Admin
           </span>
         </Link>

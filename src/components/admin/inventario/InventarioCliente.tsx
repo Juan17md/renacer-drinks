@@ -40,7 +40,7 @@ export function InventarioCliente({
           <h1 className="font-heading text-2xl font-bold text-brand-coffee sm:text-3xl">
             Inventario
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-base text-muted-foreground">
             {productos.length} producto{productos.length === 1 ? "" : "s"} en
             el menú
           </p>

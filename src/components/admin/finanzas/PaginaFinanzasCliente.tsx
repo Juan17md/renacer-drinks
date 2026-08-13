@@ -85,7 +85,7 @@ export function PaginaFinanzasCliente() {
           <h1 className="font-heading text-2xl font-bold text-brand-coffee sm:text-3xl">
             Finanzas
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-base text-muted-foreground">
             Control de ingresos y egresos del día a día.
           </p>
         </div>
@@ -93,7 +93,7 @@ export function PaginaFinanzasCliente() {
       </div>
 
       {cargando ? (
-        <p className="text-sm text-muted-foreground">Cargando datos financieros...</p>
+        <p className="text-base text-muted-foreground">Cargando datos financieros...</p>
       ) : (
         <>
           <FinancialKPIs

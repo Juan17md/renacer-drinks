@@ -58,7 +58,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             className="h-8 w-8 animate-spin text-brand-rose-deep"
             aria-hidden="true"
           />
-          <p className="text-sm text-muted-foreground" aria-live="polite">
+          <p className="text-base text-muted-foreground" aria-live="polite">
             Verificando sesión...
           </p>
         </div>

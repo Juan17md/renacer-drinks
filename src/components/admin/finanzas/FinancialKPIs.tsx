@@ -45,14 +45,14 @@ export function FinancialKPIs({ ingresos, egresos, balance, tasaBCV }: DatosKPIs
             >
               <tarjeta.icono className="h-5 w-5" aria-hidden="true" />
             </span>
-            <h3 className="font-heading text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            <h3 className="font-heading text-base font-semibold uppercase tracking-wider text-muted-foreground">
               {tarjeta.titulo}
             </h3>
           </div>
           <p className="mt-3 font-heading text-2xl font-bold text-brand-coffee">
             {formatearUSD(tarjeta.valorUSD)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-base text-muted-foreground">
             {formatearBs(tarjeta.valorUSD * tasaBCV)}
           </p>
         </div>

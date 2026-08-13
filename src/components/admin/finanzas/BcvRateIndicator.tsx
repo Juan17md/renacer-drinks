@@ -16,7 +16,7 @@ export function BcvRateIndicator({ tasaBCV }: BcvRateIndicatorProps) {
         <RefreshCw className="h-5 w-5 text-brand-rose-deep" aria-hidden="true" />
       </span>
       <div>
-        <h3 className="font-heading text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+        <h3 className="font-heading text-base font-semibold uppercase tracking-wider text-muted-foreground">
           Tasa BCV del día
         </h3>
         {disponible ? (
@@ -24,7 +24,7 @@ export function BcvRateIndicator({ tasaBCV }: BcvRateIndicatorProps) {
             {formatearBs(tasaBCV)}
           </p>
         ) : (
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-base text-muted-foreground">
             No disponible en este momento
           </p>
         )}

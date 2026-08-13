@@ -130,7 +130,7 @@ export function PanelOrdenes() {
           <h1 className="font-heading text-2xl font-bold text-brand-coffee sm:text-3xl">
             Órdenes en vivo
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-base text-muted-foreground">
             {pendientes === 0
               ? "No hay órdenes pendientes."
               : `${pendientes} órdenes pendiente${pendientes === 1 ? "" : "s"} en la barra.`}
@@ -158,7 +158,7 @@ export function PanelOrdenes() {
       {cargando ? (
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-border/60 bg-white py-16">
           <Loader2 className="h-8 w-8 animate-spin text-brand-rose-deep" aria-hidden="true" />
-          <p className="text-sm text-muted-foreground">Conectando en tiempo real...</p>
+          <p className="text-base text-muted-foreground">Conectando en tiempo real...</p>
         </div>
       ) : ordenesVisibles.length === 0 ? (
         <div className="flex flex-col items-center gap-4 rounded-2xl border border-border/60 bg-white px-6 py-16 text-center">
@@ -169,7 +169,7 @@ export function PanelOrdenes() {
             <p className="font-medium text-brand-coffee">
               Sin órdenes en esta vista
             </p>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-base text-muted-foreground">
               Cuando un cliente envíe un pedido desde su celular, aparecerá aquí
               al instante.
             </p>
@@ -203,7 +203,7 @@ export function PanelOrdenes() {
                         <User className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                         {orden.nombreCliente}
                       </p>
-                      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <p className="flex items-center gap-1.5 text-base text-muted-foreground">
                         <Clock className="h-3.5 w-3.5" aria-hidden="true" />
                         {esDeHoy ? `Hoy ${hora}` : hora}
                       </p>
@@ -218,7 +218,7 @@ export function PanelOrdenes() {
                   {orden.items.map((item, indice) => (
                     <li
                       key={indice}
-                      className="flex items-baseline justify-between gap-3 text-sm"
+                      className="flex items-baseline justify-between gap-3 text-base"
                     >
                       <span className="text-brand-coffee">
                         <span className="font-semibold">{item.cantidad}×</span>{" "}
@@ -236,7 +236,7 @@ export function PanelOrdenes() {
                     <p className="font-heading text-lg font-bold text-brand-coffee">
                       {formatearUSD(orden.totalUSD)}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-base text-muted-foreground">
                       {formatearBs(orden.totalBs)}
                     </p>
                   </div>

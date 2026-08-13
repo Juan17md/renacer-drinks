@@ -239,7 +239,7 @@ export function ProductFormModal({
                     ) : (
                       <Upload className="h-6 w-6" aria-hidden="true" />
                     )}
-                    <span className="text-sm font-medium">
+                    <span className="text-base font-medium">
                       {subiendo ? "Subiendo imagen..." : "Toca para subir imagen"}
                     </span>
                   </label>
@@ -262,8 +262,8 @@ export function ProductFormModal({
 
           <div className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/30 px-4 py-3">
             <div>
-              <p className="text-sm font-medium text-brand-coffee">Disponible</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-base font-medium text-brand-coffee">Disponible</p>
+              <p className="text-base text-muted-foreground">
                 Los clientes podrán ver y pedir este producto
               </p>
             </div>
@@ -277,7 +277,7 @@ export function ProductFormModal({
           {error && (
             <p
               role="alert"
-              className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              className="rounded-lg bg-destructive/10 px-3 py-2 text-base text-destructive"
             >
               {error}
             </p>

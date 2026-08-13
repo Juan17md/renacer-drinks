@@ -15,9 +15,9 @@ export default function LayoutAdmin({
   children: React.ReactNode;
 }>) {
   return (
-    <>
+    <div className="admin-panel">
       <AdminShell>{children}</AdminShell>
       <Toaster position="top-center" />
-    </>
+    </div>
   );
 }
