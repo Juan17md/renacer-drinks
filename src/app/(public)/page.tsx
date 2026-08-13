@@ -1,8 +1,9 @@
 import { HeroSection } from "@/components/public/HeroSection";
 import { PromosSection } from "@/components/public/PromosSection";
+import { FeaturedProducts } from "@/components/public/FeaturedProducts";
+import { GymEnergySection } from "@/components/public/GymEnergySection";
 import { AboutSection } from "@/components/public/AboutSection";
 import { LocationHoursSection } from "@/components/public/LocationHoursSection";
-import { FeaturedProducts } from "@/components/public/FeaturedProducts";
 
 export const revalidate = 3600;
 
@@ -12,6 +13,7 @@ export default function PaginaInicio() {
       <HeroSection />
       <PromosSection />
       <FeaturedProducts />
+      <GymEnergySection />
       <AboutSection />
       <LocationHoursSection />
     </>

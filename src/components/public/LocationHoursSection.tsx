@@ -3,8 +3,13 @@ import { MapPin, Clock, CalendarDays } from "lucide-react";
 const DIRECCION =
   "Dentro de Zona Gym, Ruezga Sur Sector 7 Calle 8, Barquisimeto, Lara";
 
+const URL_MAPA = "https://maps.app.goo.gl/3Bi6iZRkv2ej18he9";
+
+const LATITUD = 10.0876488;
+const LONGITUD = -69.3056495;
+
 export function LocationHoursSection() {
-  const urlMapa = `https://www.google.com/maps?q=${encodeURIComponent(DIRECCION)}&output=embed`;
+  const urlMapa = `https://www.google.com/maps?q=${LATITUD},${LONGITUD}&output=embed`;
 
   return (
     <section id="ubicacion" className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 md:py-24 lg:px-8">
@@ -30,6 +35,15 @@ export function LocationHoursSection() {
               <p className="mt-1 text-sm leading-relaxed text-muted-foreground sm:text-base">
                 {DIRECCION}
               </p>
+              <a
+                href={URL_MAPA}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex items-center gap-2 rounded-full bg-brand-rose-deep px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-rose-deep/90"
+              >
+                <MapPin className="h-4 w-4" aria-hidden="true" />
+                Cómo llegar
+              </a>
             </div>
           </div>
 

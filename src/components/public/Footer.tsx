@@ -5,12 +5,13 @@ import { IconoInstagram } from "@/components/icons/IconoInstagram";
 
 const DATOS_CAFETERIA = {
   direccion: "Dentro de Zona Gym, Ruezga Sur Sector 7 Calle 8, Barquisimeto, Lara",
+  urlMapa: "https://maps.app.goo.gl/3Bi6iZRkv2ej18he9",
   instagram: process.env.NEXT_PUBLIC_CAFE_INSTAGRAM || "https://www.instagram.com/renacer.drinks",
 };
 
 export function Footer() {
   return (
-    <footer className="border-t border-border/60 bg-[#f8f1ec]">
+    <footer className="border-t border-border/60 bg-[#f8f1ec]/85">
       <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-3 lg:px-8">
         <div className="space-y-3">
           <div className="flex items-center gap-2">
@@ -54,7 +55,7 @@ export function Footer() {
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li>
               <Link
-                href={`https://maps.google.com/?q=${encodeURIComponent(DATOS_CAFETERIA.direccion)}`}
+                href={DATOS_CAFETERIA.urlMapa}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex min-h-9 items-start gap-2 transition-colors hover:text-brand-rose-deep"

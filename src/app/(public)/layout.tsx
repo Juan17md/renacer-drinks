@@ -4,6 +4,7 @@ import { Footer } from "@/components/public/Footer";
 import { Toaster } from "@/components/ui/sonner";
 import { obtenerTasaBCV } from "@/lib/bcv";
 import { RegistroServiceWorker } from "@/components/public/RegistroServiceWorker";
+import { FondoAnimado } from "@/components/public/FondoAnimado";
 
 export const revalidate = 3600;
 
@@ -27,7 +28,8 @@ export default async function LayoutPublico({
   const tasa = await obtenerTasaBCV();
 
   return (
-    <div className="flex min-h-[100dvh] flex-col">
+    <div className="relative flex min-h-[100dvh] flex-col">
+      <FondoAnimado />
       <Navbar tasaBCV={tasa.promedio} />
       <main className="flex-1">{children}</main>
       <Footer />

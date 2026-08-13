@@ -23,7 +23,7 @@ const VALORES = [
 
 export function AboutSection() {
   return (
-    <section id="historia" className="border-y border-border/60 bg-white">
+    <section id="historia" className="border-y border-border/60 bg-white/85">
       <div className="mx-auto grid w-full max-w-6xl gap-12 px-4 py-16 sm:px-6 md:grid-cols-2 md:py-24 lg:px-8">
         <div className="flex flex-col items-start gap-6">
           <span className="font-heading text-sm font-semibold uppercase tracking-wider text-brand-rose-deep">
@@ -40,8 +40,10 @@ export function AboutSection() {
             </p>
             <p>
               Ubicados dentro de Zona Gym, somos el punto de encuentro
-              perfecto después del entrenamiento: batidos, cafés, frappés y
-              bebidas energizantes preparados al momento.
+              perfecto después del entrenamiento: batidos con proteína,
+              cafés, frappés y bebidas energizantes preparados al momento,
+              además de una selección de suplementos para complementar tu
+              rutina.
             </p>
           </div>
         </div>
