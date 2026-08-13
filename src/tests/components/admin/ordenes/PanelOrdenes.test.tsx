@@ -22,6 +22,10 @@ vi.mock("@/services/orders", () => ({
   actualizarEstadoOrden: actualizarEstadoMock,
 }));
 
+vi.mock("@/services/transactions", () => ({
+  registrarIngresoPorOrden: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));

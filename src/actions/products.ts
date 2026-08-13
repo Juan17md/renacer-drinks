@@ -1,17 +1,10 @@
 "use server";
 
 import "server-only";
-import {
-  collection,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { FieldValue } from "firebase-admin/firestore";
 import { revalidatePath } from "next/cache";
 import * as Sentry from "@sentry/nextjs";
-import { db } from "@/lib/firebase";
+import { getAdminFirestore } from "@/lib/firebaseAdmin";
 import { imagekit } from "@/lib/imagekit";
 import { generarSlug } from "@/lib/utils";
 
@@ -27,9 +20,10 @@ export interface DatosProducto {
 
 export async function crearProducto(datos: DatosProducto) {
   try {
-    const referencia = await addDoc(collection(db, "products"), {
+    const db = getAdminFirestore();
+    const referencia = await db.collection("products").add({
       ...datos,
-      updatedAt: serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     });
     revalidatePath("/catalogo");
     revalidatePath("/");
@@ -43,9 +37,10 @@ export async function crearProducto(datos: DatosProducto) {
 
 export async function actualizarProducto(id: string, datos: DatosProducto) {
   try {
-    await updateDoc(doc(db, "products", id), {
+    const db = getAdminFirestore();
+    await db.doc(`products/${id}`).update({
       ...datos,
-      updatedAt: serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     });
     revalidatePath("/catalogo");
     revalidatePath("/");
@@ -59,7 +54,8 @@ export async function actualizarProducto(id: string, datos: DatosProducto) {
 
 export async function eliminarProducto(id: string, imageId: string) {
   try {
-    await deleteDoc(doc(db, "products", id));
+    const db = getAdminFirestore();
+    await db.doc(`products/${id}`).delete();
 
     if (imageId) {
       try {
@@ -86,7 +82,8 @@ export async function crearCategoria(datos: { name: string }) {
       return { ok: false as const, error: "El nombre es obligatorio" };
     }
     const slug = generarSlug(nombre);
-    const referencia = await addDoc(collection(db, "categories"), {
+    const db = getAdminFirestore();
+    const referencia = await db.collection("categories").add({
       name: nombre,
       slug,
     });
@@ -102,7 +99,8 @@ export async function crearCategoria(datos: { name: string }) {
 
 export async function eliminarCategoria(id: string) {
   try {
-    await deleteDoc(doc(db, "categories", id));
+    const db = getAdminFirestore();
+    await db.doc(`categories/${id}`).delete();
     revalidatePath("/catalogo");
     revalidatePath("/admin/inventario");
     return { ok: true as const };

@@ -1,6 +1,7 @@
 /**
  * Migración del catálogo actual (menu.json del sitio GitHub Pages)
- * hacia Firestore. Crea las categorías y los productos de Renacer.
+ * hacia Firestore usando Admin SDK (ignora reglas de seguridad).
+ * Crea las categorías y los productos de Renacer.
  *
  * Uso:
  *   node scripts/migrar-catalogo.mjs [--prod]
@@ -11,14 +12,8 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { initializeApp, deleteApp } from "firebase/app";
-import {
-  getFirestore,
-  collection,
-  doc,
-  setDoc,
-  writeBatch,
-} from "firebase/firestore";
+import { initializeApp, cert, deleteApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const usarProd = process.argv.includes("--prod");
@@ -34,11 +29,6 @@ function generarSlug(texto) {
     .replace(/-+/g, "-");
 }
 
-function obtenerFechaLocalISO(fecha = new Date()) {
-  const desplazamiento = fecha.getTimezoneOffset();
-  return new Date(fecha.getTime() - desplazamiento * 60000).toISOString();
-}
-
 function cargarVariablesEnv() {
   const archivo = join(__dirname, "..", ".env.local");
   const contenido = readFileSync(archivo, "utf-8");
@@ -52,42 +42,30 @@ function cargarVariablesEnv() {
   return variables;
 }
 
-function configuracionFirebase(env) {
-  if (usarProd) {
-    return {
-      apiKey: env.NEXT_PUBLIC_FIREBASE_API_KEY_PROD,
-      authDomain: env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN_PROD,
-      projectId: env.NEXT_PUBLIC_FIREBASE_PROJECT_ID_PROD,
-      storageBucket: env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET_PROD,
-      messagingSenderId: env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID_PROD,
-      appId: env.NEXT_PUBLIC_FIREBASE_APP_ID_PROD,
-    };
-  }
-  return {
-    apiKey: env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  };
-}
-
 async function main() {
   const env = cargarVariablesEnv();
-  const config = configuracionFirebase(env);
   const proyecto = usarProd ? "PROD (renacer-drinks)" : "DEV (renacer-drinks-dev)";
   console.log(`\n🚀 Migrando catálogo a Firestore → ${proyecto}\n`);
 
-  const app = initializeApp(config);
+  const rutaCredenciales = usarProd
+    ? "secrets/renacer-drinks-service-account.json"
+    : "secrets/renacer-drinks-dev-service-account.json";
+  const credenciales = JSON.parse(readFileSync(join(__dirname, "..", rutaCredenciales), "utf-8"));
+
+  const app = initializeApp(
+    {
+      credential: cert(credenciales),
+      projectId: usarProd ? env.NEXT_PUBLIC_FIREBASE_PROJECT_ID_PROD : env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    },
+    `migracion-${usarProd ? "prod" : "dev"}`
+  );
   const db = getFirestore(app);
 
   const menu = JSON.parse(
     readFileSync(join(__dirname, "..", "scripts", "menu.json"), "utf-8")
   );
 
-  const ahora = obtenerFechaLocalISO();
-  const lote = writeBatch(db);
+  const lote = db.batch();
 
   let totalProductos = 0;
 
@@ -96,7 +74,7 @@ async function main() {
     const idCategoria = `cat_${slug}`;
 
     lote.set(
-      doc(collection(db, "categories"), idCategoria),
+      db.doc(`categories/${idCategoria}`),
       {
         name: categoria.nombre,
         slug,
@@ -108,7 +86,7 @@ async function main() {
     for (const producto of categoria.productos) {
       totalProductos += 1;
       lote.set(
-        doc(collection(db, "products")),
+        db.collection("products").doc(),
         {
           name: producto.nombre,
           description: producto.descripcion ?? "",
@@ -117,7 +95,6 @@ async function main() {
           isAvailable: true,
           imageUrl: "",
           imageId: "",
-          updatedAt: ahora,
         },
         { merge: true }
       );

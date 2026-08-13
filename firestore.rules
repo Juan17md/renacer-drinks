@@ -1,0 +1,275 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: products
+// Document ID: auto
+// Fields:
+//   - name: string (required, 1-80 chars) - nombre del producto
+//   - description: string (required, 0-500 chars)
+//   - price: number (required, >= 0)
+//   - category: string (required, 1-60 chars)
+//   - isAvailable: bool (required)
+//   - imageUrl: string (optional, URL https) - campo inmutable del cliente
+//   - imageId: string (optional, 0-200 chars) - ID en ImageKit
+//   - updatedAt: timestamp (required)
+//
+// Collection: categories
+// Document ID: auto
+// Fields:
+//   - name: string (required, 1-60 chars)
+//   - slug: string (required, 1-80 chars)
+//
+// Collection: ordenes
+// Document ID: auto (excepto contador_ordenes)
+// Fields:
+//   - numero: int (required, >= 1)
+//   - nombreCliente: string (required, 1-60 chars)
+//   - items: list (required, 1-20 items) cada item:
+//       { nombre: string 1-80, precio: number >= 0,
+//         cantidad: int 1-99, subtotal: number >= 0 }
+//   - totalUSD: number (required, >= 0)
+//   - totalBs: number (required, >= 0)
+//   - tasaBCV: number (required, >= 0)
+//   - estado: string (required, solo "recibida" | "lista" | "entregada")
+//   - createdAt: string ISO (required, inmutable)
+//   - updatedAt: string ISO (required)
+//   - registradoEnFinanzas: bool (optional, lo escribe el admin)
+//
+// Documento especial: ordenes/contador_ordenes
+//   - numero: int - contador secuencial de órdenes (solo +1)
+//
+// Collection: financial_transactions
+// Document ID: auto
+// Fields:
+//   - type: string (required, solo "INGRESO" | "EGRESO")
+//   - amount: number (required, > 0)
+//   - amountBs: number (required, >= 0)
+//   - bcvRate: number (required, >= 0)
+//   - concept: string (required, 1-200 chars)
+//   - paymentMethod: string (required, 1-30 chars)
+//   - date: string ISO (required)
+//   - createdBy: string (required, 1-60 chars)
+//   - ordenId: string (optional)
+//
+// Collection: daily_summaries
+// Document ID: fecha YYYY-MM-DD
+// Fields:
+//   - totalIncome: number (required, >= 0)
+//   - totalExpense: number (required, >= 0)
+//   - netProfit: number (required)
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===========================================================
+    // Helper Functions
+    // ===========================================================
+
+    function esAutenticado() {
+      return request.auth != null;
+    }
+
+    function esAdmin() {
+      // Cualquier usuario autenticado por email/contraseña es admin.
+      return esAutenticado() && request.auth.token.email != null;
+    }
+
+    function esCadenaValida(campo, minLen, maxLen) {
+      return campo is string &&
+        campo.size() >= minLen &&
+        campo.size() <= maxLen;
+    }
+
+    function esNumeroPositivo(campo) {
+      return campo is number && campo >= 0;
+    }
+
+    function soloCamposPermitidos(campos) {
+      return request.resource.data.keys().hasOnly(campos);
+    }
+
+    // ===========================================================
+    // Domain Validators
+    // ===========================================================
+
+    function esItemOrdenValido(item) {
+      return item is map &&
+        item.keys().hasOnly(['nombre', 'precio', 'cantidad', 'subtotal']) &&
+        esCadenaValida(item.nombre, 1, 80) &&
+        item.precio is number && item.precio >= 0 &&
+        item.cantidad is int && item.cantidad >= 1 && item.cantidad <= 99 &&
+        item.subtotal is number && item.subtotal >= 0;
+    }
+
+    // Firestore rules no permite iterar listas; se valida por índice
+    // con un límite máximo de 20 items por orden.
+    function esListaItemsValida(items) {
+      return items.size() >= 1 &&
+        items.size() <= 20 &&
+        esItemOrdenValido(items[0]) &&
+        (items.size() < 2 || esItemOrdenValido(items[1])) &&
+        (items.size() < 3 || esItemOrdenValido(items[2])) &&
+        (items.size() < 4 || esItemOrdenValido(items[3])) &&
+        (items.size() < 5 || esItemOrdenValido(items[4])) &&
+        (items.size() < 6 || esItemOrdenValido(items[5])) &&
+        (items.size() < 7 || esItemOrdenValido(items[6])) &&
+        (items.size() < 8 || esItemOrdenValido(items[7])) &&
+        (items.size() < 9 || esItemOrdenValido(items[8])) &&
+        (items.size() < 10 || esItemOrdenValido(items[9])) &&
+        (items.size() < 11 || esItemOrdenValido(items[10])) &&
+        (items.size() < 12 || esItemOrdenValido(items[11])) &&
+        (items.size() < 13 || esItemOrdenValido(items[12])) &&
+        (items.size() < 14 || esItemOrdenValido(items[13])) &&
+        (items.size() < 15 || esItemOrdenValido(items[14])) &&
+        (items.size() < 16 || esItemOrdenValido(items[15])) &&
+        (items.size() < 17 || esItemOrdenValido(items[16])) &&
+        (items.size() < 18 || esItemOrdenValido(items[17])) &&
+        (items.size() < 19 || esItemOrdenValido(items[18])) &&
+        (items.size() < 20 || esItemOrdenValido(items[19]));
+    }
+
+    function esOrdenValida() {
+      let data = request.resource.data;
+      let items = data.items;
+
+      return soloCamposPermitidos([
+            'numero', 'nombreCliente', 'items', 'totalUSD', 'totalBs',
+            'tasaBCV', 'estado', 'createdAt', 'updatedAt'
+          ]) &&
+          data.numero is int && data.numero >= 1 &&
+          esCadenaValida(data.nombreCliente, 1, 60) &&
+          items is list && esListaItemsValida(items) &&
+          data.totalUSD is number && data.totalUSD > 0 &&
+          esNumeroPositivo(data.totalBs) &&
+          esNumeroPositivo(data.tasaBCV) &&
+          data.estado == 'recibida' &&
+          esFechaValida(data.createdAt) &&
+          esFechaValida(data.updatedAt);
+    }
+
+    function esFechaValida(campo) {
+      // Acepta YYYY-MM-DD o YYYY-MM-DDTHH:MM:SS
+      return campo is string &&
+        campo.matches("^\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2}:\\d{2})?$");
+    }
+
+    function esTransicionEstadoValida() {
+      let anterior = resource.data.estado;
+      let nuevo = request.resource.data.estado;
+      let camposModificados = request.resource.data.diff(resource.data).affectedKeys();
+
+      return camposModificados.hasOnly(['estado', 'updatedAt']) &&
+        ((anterior == 'recibida' && nuevo == 'lista') ||
+         (anterior == 'lista' && nuevo == 'entregada') ||
+         (anterior == 'lista' && nuevo == 'recibida') ||
+         (anterior == 'entregada' && nuevo == 'lista'));
+    }
+
+    // Actualización solo del flag de registro en finanzas (sin cambiar estado)
+    function esSoloRegistroFinanzas() {
+      let camposModificados = request.resource.data.diff(resource.data).affectedKeys();
+      return camposModificados.hasOnly(['registradoEnFinanzas']) &&
+        resource.data.estado == request.resource.data.estado &&
+        request.resource.data.registradoEnFinanzas == true &&
+        resource.data.registradoEnFinanzas != true;
+    }
+
+    function esTransaccionValida() {
+      let data = request.resource.data;
+
+      return soloCamposPermitidos([
+            'type', 'amount', 'amountBs', 'bcvRate', 'concept',
+            'paymentMethod', 'date', 'createdBy', 'ordenId'
+          ]) &&
+          data.type in ['INGRESO', 'EGRESO'] &&
+          data.amount is number && data.amount > 0 &&
+          esNumeroPositivo(data.amountBs) &&
+          esNumeroPositivo(data.bcvRate) &&
+          esCadenaValida(data.concept, 1, 200) &&
+          esCadenaValida(data.paymentMethod, 1, 30) &&
+          esCadenaValida(data.date, 8, 40) &&
+          esCadenaValida(data.createdBy, 1, 60) &&
+          (!('ordenId' in data) || esCadenaValida(data.ordenId, 1, 100));
+    }
+
+    function esResumenValido() {
+      let data = request.resource.data;
+
+      return soloCamposPermitidos(['totalIncome', 'totalExpense', 'netProfit']) &&
+          esNumeroPositivo(data.totalIncome) &&
+          esNumeroPositivo(data.totalExpense) &&
+          data.netProfit is number;
+    }
+
+    // ===========================================================
+    // Products (lectura pública, escritura solo Admin SDK)
+    // ===========================================================
+    match /products/{productId} {
+      allow read: if true;
+      // Las escrituras se realizan únicamente desde el servidor
+      // (Server Actions con Admin SDK, que ignora estas reglas).
+      allow create, update, delete: if false;
+    }
+
+    // ===========================================================
+    // Categories (lectura pública, escritura solo Admin SDK)
+    // ===========================================================
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create, update, delete: if false;
+    }
+
+    // ===========================================================
+    // Ordenes
+    // ===========================================================
+    match /ordenes/{ordenId} {
+      // Lectura: solo admin (panel en tiempo real)
+      allow read: if esAdmin();
+
+      // Creación: cualquier cliente sin login, con datos validados
+      allow create: if esOrdenValida();
+
+      // Actualización: solo admin, con transiciones de estado válidas
+      // o el flag de registro en finanzas
+      allow update: if esAdmin() &&
+        (esTransicionEstadoValida() || esSoloRegistroFinanzas());
+
+      allow delete: if false;
+
+      // Contador secuencial: incremento estricto de +1, sin otros campos
+      match /contador_ordenes {
+        allow read: if esAdmin();
+        allow create: if request.resource.data.keys().hasOnly(['numero']) &&
+                          request.resource.data.numero == 1;
+        allow update: if request.resource.data.diff(resource.data)
+                          .affectedKeys().hasOnly(['numero']) &&
+                          request.resource.data.numero == resource.data.numero + 1;
+        allow delete: if false;
+      }
+    }
+
+    // ===========================================================
+    // Financial Transactions (solo admin)
+    // ===========================================================
+    match /financial_transactions/{transactionId} {
+      allow read: if esAdmin();
+      allow create: if esAdmin() && esTransaccionValida();
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ===========================================================
+    // Daily Summaries (solo admin)
+    // ===========================================================
+    match /daily_summaries/{fecha} {
+      allow read: if esAdmin();
+      allow create: if esAdmin() && esResumenValido();
+      allow update: if esAdmin() && esResumenValido();
+      allow delete: if false;
+    }
+  }
+}

@@ -18,6 +18,7 @@ import {
   escucharOrdenes,
   actualizarEstadoOrden,
 } from "@/services/orders";
+import { registrarIngresoPorOrden } from "@/services/transactions";
 import { ESTADOS_ORDEN, type Orden, type EstadoOrden } from "@/types/order";
 import { formatearUSD, formatearBs, obtenerFechaLocalISO } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -81,6 +82,21 @@ export function PanelOrdenes() {
       toast.success(
         `Orden #${orden.numero} → ${ESTADOS_ORDEN[estadoActual.siguiente].label}`
       );
+
+      if (estadoActual.siguiente === "entregada") {
+        try {
+          await registrarIngresoPorOrden(
+            orden.id,
+            orden.totalUSD,
+            `Venta orden #${orden.numero}`
+          );
+          toast.success(
+            `Ingreso de ${formatearUSD(orden.totalUSD)} registrado en finanzas`
+          );
+        } catch {
+          toast.error("La orden se entregó pero no se registró el ingreso");
+        }
+      }
     } catch (error) {
       avisarError(error);
     } finally {

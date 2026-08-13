@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 
@@ -11,6 +11,13 @@ const outfit = Outfit({
   variable: "--font-heading",
   subsets: ["latin"],
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#e6396e",
+};
 
 export const metadata: Metadata = {
   title: "Renacer Drinks & Coffe | Cafetería en Barquisimeto",

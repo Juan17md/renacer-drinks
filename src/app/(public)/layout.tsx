@@ -3,6 +3,7 @@ import { Navbar } from "@/components/public/Navbar";
 import { Footer } from "@/components/public/Footer";
 import { Toaster } from "@/components/ui/sonner";
 import { obtenerTasaBCV } from "@/lib/bcv";
+import { RegistroServiceWorker } from "@/components/public/RegistroServiceWorker";
 
 export const revalidate = 3600;
 
@@ -31,6 +32,7 @@ export default async function LayoutPublico({
       <main className="flex-1">{children}</main>
       <Footer />
       <Toaster position="top-center" />
+      <RegistroServiceWorker />
     </div>
   );
 }
