@@ -12,7 +12,7 @@ export function CartSummary({ totalUSD, totalBs, tasaBCV }: CartSummaryProps) {
       <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-brand-coffee">
         Resumen del pedido
       </h2>
-      <dl className="space-y-2 text-sm">
+      <dl className="space-y-2 text-sm font-small">
         <div className="flex items-center justify-between">
           <dt className="text-muted-foreground">Total (USD)</dt>
           <dd className="font-bold text-brand-coffee">{formatearUSD(totalUSD)}</dd>

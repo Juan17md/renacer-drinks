@@ -13,7 +13,7 @@ export function ProductGrid({ productos, tasaBCV }: ProductGridProps) {
         <p className="text-lg font-medium text-brand-coffee">
           No encontramos productos
         </p>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mt-2 text-sm font-small text-muted-foreground">
           Prueba con otra búsqueda o categoría.
         </p>
       </div>

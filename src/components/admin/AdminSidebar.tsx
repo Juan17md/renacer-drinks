@@ -86,7 +86,7 @@ function ContenidoNavegacion({
           <p className="truncate text-base text-muted-foreground">
             {usuario?.email}
             {datosUsuario && (
-              <span className="ml-1 rounded-full bg-brand-rose-light px-2 py-0.5 text-sm font-semibold uppercase tracking-wide text-brand-rose-deep">
+              <span className="ml-1 rounded-full bg-brand-rose-light px-2 py-0.5 text-sm font-small font-semibold uppercase tracking-wide text-brand-rose-deep">
                 {datosUsuario.rol}
               </span>
             )}

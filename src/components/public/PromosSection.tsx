@@ -38,7 +38,7 @@ export function PromosSection() {
 
       <div className="relative mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="mb-10 text-center" data-reveal>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-white">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-1.5 text-xs font-small font-semibold uppercase tracking-wider text-white">
             <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
             Solo por tiempo limitado
           </span>
@@ -67,14 +67,14 @@ export function PromosSection() {
                   <h3 className="font-heading text-xl font-bold text-brand-coffee">
                     {promo.titulo}
                   </h3>
-                  <p className="mt-1 flex items-center gap-1.5 text-sm font-medium text-brand-rose-deep">
+                  <p className="mt-1 flex items-center gap-1.5 text-sm font-small font-medium text-brand-rose-deep">
                     <Clock className="h-4 w-4" aria-hidden="true" />
                     {promo.horario}
                   </p>
                 </div>
               </div>
 
-              <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+              <p className="mt-4 text-sm font-small leading-relaxed text-muted-foreground">
                 {promo.descripcion}
               </p>
 

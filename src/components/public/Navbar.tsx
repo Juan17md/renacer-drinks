@@ -55,7 +55,7 @@ export function Navbar({ tasaBCV }: NavbarProps) {
             <Link
               key={enlace.href}
               href={enlace.href}
-              className="min-h-12 rounded-md px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              className="min-h-12 rounded-md px-4 py-3 text-sm font-small font-small font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
             >
               {enlace.label}
             </Link>
@@ -65,7 +65,7 @@ export function Navbar({ tasaBCV }: NavbarProps) {
         <div className="flex items-center gap-2">
           <Link
             href="/admin/login"
-            className="hidden items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground lg:inline-flex"
+            className="hidden items-center gap-1.5 rounded-md px-3 py-2 text-sm font-small font-small font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground lg:inline-flex"
           >
             <UserCog className="h-4 w-4" aria-hidden="true" />
             Panel
@@ -80,7 +80,7 @@ export function Navbar({ tasaBCV }: NavbarProps) {
             <ShoppingBag className="h-5 w-5" />
             {cantidadItems > 0 && (
               <Badge
-                className="absolute -right-0.5 -top-0.5 h-5 min-w-5 rounded-full px-1 text-xs"
+                className="absolute -right-0.5 -top-0.5 h-5 min-w-5 rounded-full px-1 text-xs font-small font-small"
                 aria-hidden="true"
               >
                 {cantidadItems}
@@ -117,7 +117,7 @@ export function Navbar({ tasaBCV }: NavbarProps) {
                 <Link
                   href={enlace.href}
                   onClick={() => setMenuAbierto(false)}
-                  className="flex min-h-12 items-center rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                  className="flex min-h-12 items-center rounded-md px-3 text-sm font-small font-small font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                 >
                   {enlace.label}
                 </Link>
@@ -127,7 +127,7 @@ export function Navbar({ tasaBCV }: NavbarProps) {
               <Link
                 href="/admin/login"
                 onClick={() => setMenuAbierto(false)}
-                className="flex min-h-12 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                className="flex min-h-12 items-center gap-2 rounded-md px-3 text-sm font-small font-small font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
               >
                 <UserCog className="h-4 w-4" aria-hidden="true" />
                 Panel admin

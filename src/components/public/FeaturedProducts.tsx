@@ -43,7 +43,7 @@ export async function FeaturedProducts() {
           </div>
           <Link
             href="/catalogo"
-            className="inline-flex min-h-12 items-center gap-2 rounded-md px-4 text-sm font-medium text-brand-rose-deep transition-colors hover:bg-accent hover:text-accent-foreground"
+            className="inline-flex min-h-12 items-center gap-2 rounded-md px-4 text-sm font-small font-medium text-brand-rose-deep transition-colors hover:bg-accent hover:text-accent-foreground"
           >
             Ver menú completo
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -82,7 +82,7 @@ export async function FeaturedProducts() {
                       {formatearUSD(producto.price)}
                     </span>
                     {tasa.promedio > 0 && (
-                      <span className="text-sm text-muted-foreground">
+                      <span className="text-sm font-small text-muted-foreground">
                         {formatearBs(precioBs)}
                       </span>
                     )}

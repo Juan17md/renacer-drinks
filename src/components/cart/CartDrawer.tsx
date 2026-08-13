@@ -101,7 +101,7 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
               <p className="font-medium text-brand-coffee">
                 Tu carrito está vacío
               </p>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-1 text-sm font-small text-muted-foreground">
                 Agrega tus bebidas favoritas desde el menú.
               </p>
             </div>
@@ -135,7 +135,7 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                 className="h-12 text-base"
                 maxLength={40}
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs font-small text-muted-foreground">
                 Lo usamos para avisarte cuando tu pedido esté listo.
               </p>
             </div>
@@ -143,7 +143,7 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
             {error && (
               <p
                 role="alert"
-                className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                className="rounded-lg bg-destructive/10 px-3 py-2 text-sm font-small text-destructive"
               >
                 {error}
               </p>

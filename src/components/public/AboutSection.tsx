@@ -64,7 +64,7 @@ export function AboutSection() {
                 <h3 className="font-heading text-lg font-semibold text-brand-coffee">
                   {valor.titulo}
                 </h3>
-                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                <p className="mt-1 text-sm font-small leading-relaxed text-muted-foreground">
                   {valor.descripcion}
                 </p>
               </div>

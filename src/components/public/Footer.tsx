@@ -26,7 +26,7 @@ export function Footer() {
               Renacer Drinks & Coffe
             </span>
           </div>
-          <p className="text-sm leading-relaxed text-muted-foreground">
+          <p className="text-sm font-small leading-relaxed text-muted-foreground">
             Café artesanal y bebidas para renacer cada día en Barquisimeto,
             Lara. Hecho con amor y buenos granos.
           </p>
@@ -36,7 +36,7 @@ export function Footer() {
           <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-brand-coffee">
             Horarios
           </h2>
-          <ul className="space-y-2 text-sm text-muted-foreground">
+          <ul className="space-y-2 text-sm font-small text-muted-foreground">
             <li className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-brand-rose-deep" aria-hidden="true" />
               Lunes a Domingo: 6:00 am – 12:00 pm
@@ -52,7 +52,7 @@ export function Footer() {
           <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-brand-coffee">
             Contáctanos
           </h2>
-          <ul className="space-y-2 text-sm text-muted-foreground">
+          <ul className="space-y-2 text-sm font-small text-muted-foreground">
             <li>
               <Link
                 href={DATOS_CAFETERIA.urlMapa}
@@ -80,7 +80,7 @@ export function Footer() {
       </div>
 
       <div className="border-t border-border/60 py-5">
-        <p className="flex flex-col items-center justify-center gap-2 text-center text-xs text-muted-foreground sm:flex-row">
+        <p className="flex flex-col items-center justify-center gap-2 text-center text-xs font-small text-muted-foreground sm:flex-row">
           <span className="flex items-center gap-2">
             <Coffee className="h-4 w-4 text-brand-rose-deep" aria-hidden="true" />
             © {new Date().getFullYear()} Renacer Drinks & Coffe. Todos los derechos reservados.
@@ -88,7 +88,7 @@ export function Footer() {
           <span className="hidden sm:inline" aria-hidden="true">•</span>
           <Link
             href="/admin/login"
-            className="inline-flex min-h-8 items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-brand-rose-deep"
+            className="inline-flex min-h-8 items-center gap-1.5 text-xs font-small font-medium text-muted-foreground transition-colors hover:text-brand-rose-deep"
           >
             <UserCog className="h-3.5 w-3.5" aria-hidden="true" />
             Panel admin

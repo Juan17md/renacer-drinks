@@ -42,10 +42,10 @@ export function CartItem({
       <div className="flex flex-1 flex-col gap-2">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h3 className="text-sm font-semibold text-brand-coffee">
+            <h3 className="text-sm font-small font-semibold text-brand-coffee">
               {item.producto.name}
             </h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm font-small text-muted-foreground">
               {formatearUSD(item.producto.price)} c/u
             </p>
           </div>
@@ -77,7 +77,7 @@ export function CartItem({
             >
               <Minus className="h-3.5 w-3.5" aria-hidden="true" />
             </Button>
-            <span className="w-6 text-center text-sm font-medium" aria-live="polite">
+            <span className="w-6 text-center text-sm font-small font-medium" aria-live="polite">
               {item.cantidad}
             </span>
             <Button
@@ -92,7 +92,7 @@ export function CartItem({
               <Plus className="h-3.5 w-3.5" aria-hidden="true" />
             </Button>
           </div>
-          <span className="text-sm font-bold text-brand-rose-deep">
+          <span className="text-sm font-small font-bold text-brand-rose-deep">
             {formatearUSD(subtotal)}
           </span>
         </div>

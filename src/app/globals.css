@@ -10,6 +10,7 @@
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-heading);
+  --font-small: var(--font-small);
   --color-brand-rose: var(--brand-rose);
   --color-brand-rose-light: var(--brand-rose-light);
   --color-brand-rose-deep: var(--brand-rose-deep);
@@ -143,6 +144,6 @@
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
+    font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
   }
 }

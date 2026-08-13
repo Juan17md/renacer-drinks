@@ -1,15 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Inter, Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
-const plusJakartaSans = Plus_Jakarta_Sans({
+const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
 });
 
-const plusJakartaSansHeading = Plus_Jakarta_Sans({
+const outfit = Outfit({
   variable: "--font-heading",
+  subsets: ["latin"],
+});
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-small",
   subsets: ["latin"],
 });
 
@@ -38,10 +43,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
-      <body
-        className={`${plusJakartaSans.variable} ${plusJakartaSansHeading.variable} antialiased`}
-      >
+    <html
+      lang="es"
+      className={`${inter.variable} ${outfit.variable} ${plusJakartaSans.variable}`}
+    >
+      <body className="antialiased">
         {children}
         <Analytics />
       </body>

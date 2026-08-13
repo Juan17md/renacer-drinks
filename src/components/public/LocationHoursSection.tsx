@@ -32,14 +32,14 @@ export function LocationHoursSection() {
               <h3 className="font-heading text-lg font-semibold text-brand-coffee">
                 Dirección
               </h3>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground sm:text-base">
+              <p className="mt-1 text-sm font-small leading-relaxed text-muted-foreground sm:text-base">
                 {DIRECCION}
               </p>
               <a
                 href={URL_MAPA}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-3 inline-flex items-center gap-2 rounded-full bg-brand-rose-deep px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-rose-deep/90"
+                className="mt-3 inline-flex items-center gap-2 rounded-full bg-brand-rose-deep px-4 py-2 text-sm font-small font-medium text-white transition-colors hover:bg-brand-rose-deep/90"
               >
                 <MapPin className="h-4 w-4" aria-hidden="true" />
                 Cómo llegar
@@ -55,7 +55,7 @@ export function LocationHoursSection() {
               <h3 className="font-heading text-lg font-semibold text-brand-coffee">
                 Horarios de atención
               </h3>
-              <ul className="mt-1 space-y-1 text-sm text-muted-foreground sm:text-base">
+              <ul className="mt-1 space-y-1 text-sm font-small text-muted-foreground sm:text-base">
                 <li className="flex items-center gap-2">
                   <CalendarDays className="h-4 w-4 text-brand-rose-deep" aria-hidden="true" />
                   Lunes a Domingo: 6:00 am – 12:00 pm

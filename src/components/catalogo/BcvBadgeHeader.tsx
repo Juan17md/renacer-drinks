@@ -21,7 +21,7 @@ export function BcvBadgeHeader({
 
   return (
     <div
-      className="inline-flex flex-wrap items-center gap-2 rounded-full border border-brand-rose/40 bg-brand-rose-light px-4 py-2 text-sm"
+      className="inline-flex flex-wrap items-center gap-2 rounded-full border border-brand-rose/40 bg-brand-rose-light px-4 py-2 text-sm font-small"
       data-testid="bcv-badge"
     >
       <TrendingUp className="h-4 w-4 text-brand-rose-deep" aria-hidden="true" />

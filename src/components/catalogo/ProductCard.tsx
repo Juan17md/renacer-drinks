@@ -59,7 +59,7 @@ export function ProductCard({ producto, tasaBCV }: ProductCardProps) {
           {producto.name}
         </h3>
         {producto.description && (
-          <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+          <p className="line-clamp-2 text-sm font-small leading-relaxed text-muted-foreground">
             {producto.description}
           </p>
         )}
@@ -69,7 +69,7 @@ export function ProductCard({ producto, tasaBCV }: ProductCardProps) {
             {formatearUSD(producto.price)}
           </span>
           {tasaBCV > 0 && (
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm font-small text-muted-foreground">
               {formatearBs(precioBs)}
             </span>
           )}
@@ -78,7 +78,7 @@ export function ProductCard({ producto, tasaBCV }: ProductCardProps) {
         <Button
           onClick={manejarAgregar}
           disabled={!producto.isAvailable}
-          className="h-12 w-full text-sm sm:text-base"
+          className="h-12 w-full text-sm font-small sm:text-base"
           aria-label={
             agregado
               ? `${producto.name} agregado al carrito`
