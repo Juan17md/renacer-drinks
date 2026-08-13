@@ -1,0 +1,38 @@
+# Dependencies & build outputs
+node_modules/
+.next/
+out/
+build/
+dist/
+coverage/
+
+# Environment variables
+.env
+.env*.local
+
+# Obsidian vault symlink & local docs
+docs-obsidian
+docs-obsidian/
+
+# Customizations (Skills and rules)
+.agents/
+.claude/
+skills/
+rules/
+
+# System & Editor files
+.DS_Store
+*.pem
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.tsskills-lock.json
