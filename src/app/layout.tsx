@@ -1,14 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Outfit } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
-const inter = Inter({
+const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-sans",
   subsets: ["latin"],
 });
 
-const outfit = Outfit({
+const plusJakartaSansHeading = Plus_Jakarta_Sans({
   variable: "--font-heading",
   subsets: ["latin"],
 });
@@ -40,7 +40,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body
-        className={`${inter.variable} ${outfit.variable} antialiased`}
+        className={`${plusJakartaSans.variable} ${plusJakartaSansHeading.variable} antialiased`}
       >
         {children}
         <Analytics />
