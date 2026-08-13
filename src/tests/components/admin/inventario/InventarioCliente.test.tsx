@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ProductsDataTable } from "@/components/admin/inventario/ProductsDataTable";
 import { InventarioCliente } from "@/components/admin/inventario/InventarioCliente";
-import type { Producto } from "@/types/product";
 
 const { productosMock, categoriasMock } = vi.hoisted(() => ({
   productosMock: [

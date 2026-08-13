@@ -46,7 +46,7 @@ export function CatalogoCliente({
               Nuestro menú
             </h1>
             <p className="mt-1 text-muted-foreground">
-              Elige tu bebida favorita y pide por WhatsApp.
+              Elige tu bebida favorita y envíala a la barra.
             </p>
           </div>
           <BcvBadgeHeader

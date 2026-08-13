@@ -5,6 +5,14 @@ import { Toaster } from "@/components/ui/sonner";
 import { useCartStore } from "@/store/useCartStore";
 import type { Producto } from "@/types/product";
 
+const { crearOrdenMock } = vi.hoisted(() => ({
+  crearOrdenMock: vi.fn(),
+}));
+
+vi.mock("@/services/orders", () => ({
+  crearOrden: crearOrdenMock,
+}));
+
 const productoMock: Producto = {
   id: "prod_1",
   name: "Café Mocca Helado",
@@ -33,8 +41,8 @@ describe("CartDrawer", () => {
 
     expect(screen.getByText(/tu carrito está vacío/i)).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /pedir por whatsapp/i })
-    ).toBeDisabled();
+      screen.queryByRole("button", { name: /enviar pedido a la barra/i })
+    ).not.toBeInTheDocument();
   });
 
   it("muestra los items del carrito con sus totales en USD y Bs.", () => {
@@ -82,8 +90,45 @@ describe("CartDrawer", () => {
     expect(screen.getByText(/tu carrito está vacío/i)).toBeInTheDocument();
   });
 
-  it("muestra un toast cuando no hay número de WhatsApp configurado", async () => {
-    delete process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
+  it("pide el nombre y envía el pedido a Firestore vaciando el carrito", async () => {
+    crearOrdenMock.mockResolvedValue({ id: "orden_1", numero: 12 });
+    useCartStore.getState().agregarProducto(productoMock, 1);
+
+    render(
+      <>
+        <Toaster />
+        <CartDrawer abierto onOpenChange={onOpenChange} tasaBCV={764.35} />
+      </>
+    );
+
+    fireEvent.change(screen.getByLabelText(/tu nombre/i), {
+      target: { value: "María" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: /enviar pedido a la barra/i })
+    );
+
+    expect(await screen.findByText(/pedido #12 recibido/i)).toBeInTheDocument();
+    expect(crearOrdenMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nombreCliente: "María",
+        totalUSD: 4.5,
+        totalBs: expect.any(Number),
+        items: [
+          {
+            nombre: "Café Mocca Helado",
+            precio: 4.5,
+            cantidad: 1,
+            subtotal: 4.5,
+          },
+        ],
+      })
+    );
+    expect(useCartStore.getState().items).toHaveLength(0);
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("muestra error si falta el nombre", async () => {
     useCartStore.getState().agregarProducto(productoMock, 1);
 
     render(
@@ -94,35 +139,36 @@ describe("CartDrawer", () => {
     );
 
     fireEvent.click(
-      screen.getByRole("button", { name: /pedir por whatsapp/i })
+      screen.getByRole("button", { name: /enviar pedido a la barra/i })
     );
 
     expect(
-      await screen.findByText(/whatsapp aún no está configurado/i)
+      await screen.findByText(/escribe tu nombre para entregarte tu pedido/i)
     ).toBeInTheDocument();
+    expect(crearOrdenMock).not.toHaveBeenCalled();
   });
 
-  it("envía el pedido a WhatsApp y vacía el carrito cuando hay número", () => {
-    process.env.NEXT_PUBLIC_WHATSAPP_NUMBER = "+584121234567";
+  it("muestra error si Firestore falla y mantiene el carrito", async () => {
+    crearOrdenMock.mockRejectedValue(new Error("firestore caído"));
     useCartStore.getState().agregarProducto(productoMock, 1);
 
-    const abrir = vi.fn();
-    vi.stubGlobal("open", abrir);
-
     render(
-      <CartDrawer abierto onOpenChange={onOpenChange} tasaBCV={764.35} />
+      <>
+        <Toaster />
+        <CartDrawer abierto onOpenChange={onOpenChange} tasaBCV={764.35} />
+      </>
     );
 
+    fireEvent.change(screen.getByLabelText(/tu nombre/i), {
+      target: { value: "María" },
+    });
     fireEvent.click(
-      screen.getByRole("button", { name: /pedir por whatsapp/i })
+      screen.getByRole("button", { name: /enviar pedido a la barra/i })
     );
 
-    expect(abrir).toHaveBeenCalledWith(
-      expect.stringContaining("https://wa.me/584121234567"),
-      "_blank",
-      "noopener,noreferrer"
-    );
-    expect(useCartStore.getState().items).toHaveLength(0);
-    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(
+      await screen.findByText(/no se pudo enviar el pedido/i)
+    ).toBeInTheDocument();
+    expect(useCartStore.getState().items).toHaveLength(1);
   });
 });

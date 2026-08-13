@@ -9,7 +9,7 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Menú | Renacer Drinks & Coffe",
   description:
-    "Explora el menú de Renacer Drinks & Coffe: bebidas frías y calientes con precios en USD y Bs. según la tasa BCV. Pide por WhatsApp.",
+    "Explora el menú de Renacer Drinks & Coffe: bebidas frías y calientes con precios en USD y Bs. según la tasa BCV. Pide desde tu celular en la barra.",
 };
 
 export default async function PaginaCatalogo() {

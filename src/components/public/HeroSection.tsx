@@ -26,8 +26,8 @@ export function HeroSection() {
           </h1>
           <p className="max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg">
             Bebidas frías y calientes preparadas con granos seleccionados,
-            leche de avena y mucho cariño. Descubre el menú y pide por
-            WhatsApp.
+            leche de avena y mucho cariño. Descubre el menú y pide desde
+            tu celular en la barra.
           </p>
           <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
             <Link href="/catalogo" className="w-full sm:w-auto">

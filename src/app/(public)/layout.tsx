@@ -9,11 +9,11 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Renacer Drinks & Coffe | Cafetería en Barquisimeto",
   description:
-    "Descubre Renacer Drinks & Coffe: cafetería artesanal en Barquisimeto, Lara. Bebidas frías y calientes, postres y un ambiente para renacer. Pide por WhatsApp.",
+    "Descubre Renacer Drinks & Coffe: cafetería artesanal en Barquisimeto, Lara. Bebidas frías y calientes, postres y un ambiente para renacer. Pide desde tu celular en la barra.",
   openGraph: {
     title: "Renacer Drinks & Coffe",
     description:
-      "Cafetería artesanal en Barquisimeto, Lara. Pide tu bebida favorita por WhatsApp.",
+      "Cafetería artesanal en Barquisimeto, Lara. Pide tu bebida favorita desde tu celular.",
     images: [{ url: "/logo.png", width: 725, height: 717, alt: "Renacer Drinks & Coffe" }],
   },
 };

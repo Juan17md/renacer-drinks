@@ -7,6 +7,7 @@ import { useState } from "react";
 import {
   LayoutDashboard,
   Package,
+  ReceiptText,
   Wallet,
   LogOut,
   Menu,
@@ -22,6 +23,11 @@ const ENLACES_ADMIN = [
     href: "/admin/dashboard",
     label: "Dashboard",
     icono: LayoutDashboard,
+  },
+  {
+    href: "/admin/ordenes",
+    label: "Órdenes",
+    icono: ReceiptText,
   },
   {
     href: "/admin/inventario",

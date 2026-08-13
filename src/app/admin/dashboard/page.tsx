@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Package, Wallet } from "lucide-react";
+import { Package, ReceiptText, Wallet } from "lucide-react";
 import { obtenerTasaBCV } from "@/lib/bcv";
 import { formatearBs } from "@/lib/utils";
 
@@ -40,6 +40,13 @@ export default async function PaginaDashboard() {
             Accesos rápidos
           </h2>
           <div className="mt-4 flex flex-col gap-3">
+            <Link
+              href="/admin/ordenes"
+              className="flex min-h-12 items-center gap-3 rounded-xl bg-brand-rose-light px-4 text-sm font-medium text-brand-rose-deep transition-colors hover:bg-brand-rose/30"
+            >
+              <ReceiptText className="h-4 w-4" aria-hidden="true" />
+              Ver órdenes en vivo
+            </Link>
             <Link
               href="/admin/inventario"
               className="flex min-h-12 items-center gap-3 rounded-xl bg-brand-rose-light px-4 text-sm font-medium text-brand-rose-deep transition-colors hover:bg-brand-rose/30"
