@@ -114,10 +114,6 @@ service cloud.firestore {
       return campo is number && campo >= 0;
     }
 
-    function soloCamposPermitidos(campos) {
-      return request.resource.data.keys().hasOnly(campos);
-    }
-
     // ===========================================================
     // Domain Validators
     // ===========================================================
@@ -200,7 +196,7 @@ service cloud.firestore {
       let data = request.resource.data;
       let items = data.items;
 
-      return soloCamposPermitidos([
+      return request.resource.data.keys().hasOnly([
             'numero', 'nombreCliente', 'items', 'totalUSD', 'totalBs',
             'tasaBCV', 'estado', 'createdAt', 'updatedAt'
           ]) &&
@@ -245,7 +241,7 @@ service cloud.firestore {
     function esTransaccionValida() {
       let data = request.resource.data;
 
-      return soloCamposPermitidos([
+      return request.resource.data.keys().hasOnly([
             'type', 'amount', 'amountBs', 'bcvRate', 'concept',
             'paymentMethod', 'date', 'createdBy', 'ordenId',
             'customerName', 'ganancia', 'items'
@@ -267,7 +263,7 @@ service cloud.firestore {
     function esResumenValido() {
       let data = request.resource.data;
 
-      return soloCamposPermitidos([
+      return request.resource.data.keys().hasOnly([
             'totalIncome', 'totalExpense', 'netProfit', 'totalSales', 'totalProfit'
           ]) &&
           esNumeroPositivo(data.totalIncome) &&
@@ -323,7 +319,7 @@ service cloud.firestore {
 
       // Creación: cualquier cliente sin login, con datos validados.
       // El contador_ordenes solo se crea la primera vez (numero == 1).
-      allow create: if esOrdenValida() || (ordenId == "contador_ordenes" && request.resource.data.keys().hasOnly(['numero']) && request.resource.data.numero == 1);
+      allow create: if (ordenId == "contador_ordenes" && request.resource.data.keys().hasOnly(['numero']) && request.resource.data.numero == 1) || esOrdenValida();
 
       // Actualización: solo admin, con transiciones de estado válidas
       // o el flag de registro en finanzas; el contador_ordenes solo puede
