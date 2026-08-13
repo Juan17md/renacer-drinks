@@ -278,6 +278,15 @@ service cloud.firestore {
     }
 
     // ===========================================================
+    // Contador de órdenes (documento especial en la colección)
+    // ===========================================================
+    // IMPORTANTE: los writes a /ordenes/contador_ordenes los evalúa el
+    // match comodín /ordenes/{ordenId} (no un match literal hermano).
+    // Nota: la condición debe ir INLINE en el allow del match padre;
+    // las funciones con parámetros no se evalúan correctamente en
+    // runtime en este ruleset (devuelven 403 pese a compilar).
+
+    // ===========================================================
     // Products (lectura pública, escritura solo Admin SDK)
     // ===========================================================
     match /products/{productId} {
@@ -307,29 +316,23 @@ service cloud.firestore {
     // Ordenes
     // ===========================================================
     match /ordenes/{ordenId} {
-      // Lectura: solo admin (panel en tiempo real)
-      allow read: if esAdmin();
+      // Lectura: solo admin (panel en tiempo real); el documento especial
+      // contador_ordenes es público porque el checkout (sin login) lo lee
+      // dentro de la transacción que crea la orden.
+      allow read: if esAdmin() || ordenId == "contador_ordenes";
 
-      // Creación: cualquier cliente sin login, con datos validados
-      allow create: if esOrdenValida();
+      // Creación: cualquier cliente sin login, con datos validados.
+      // El contador_ordenes solo se crea la primera vez (numero == 1).
+      allow create: if esOrdenValida() || (ordenId == "contador_ordenes" && request.resource.data.keys().hasOnly(['numero']) && request.resource.data.numero == 1);
 
       // Actualización: solo admin, con transiciones de estado válidas
-      // o el flag de registro en finanzas
-      allow update: if esAdmin() &&
-        (esTransicionEstadoValida() || esSoloRegistroFinanzas());
+      // o el flag de registro en finanzas; el contador_ordenes solo puede
+      // incrementarse en +1 estricto (diseño secuencial del checkout).
+      allow update: if ((esAdmin() &&
+        (esTransicionEstadoValida() || esSoloRegistroFinanzas())) ||
+        (ordenId == "contador_ordenes" && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['numero']) && request.resource.data.numero == resource.data.numero + 1));
 
       allow delete: if false;
-
-      // Contador secuencial: incremento estricto de +1, sin otros campos
-      match /contador_ordenes {
-        allow read: if esAdmin();
-        allow create: if request.resource.data.keys().hasOnly(['numero']) &&
-                          request.resource.data.numero == 1;
-        allow update: if request.resource.data.diff(resource.data)
-                          .affectedKeys().hasOnly(['numero']) &&
-                          request.resource.data.numero == resource.data.numero + 1;
-        allow delete: if false;
-      }
     }
 
     // ===========================================================
