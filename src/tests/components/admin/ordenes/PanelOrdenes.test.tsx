@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import { PanelOrdenes } from "@/components/admin/ordenes/PanelOrdenes";
 
-const { suscriptorMock, actualizarEstadoMock } = vi.hoisted(() => {
+const { suscriptorMock, actualizarEstadoMock, toastMock } = vi.hoisted(() => {
   let callbackActual: ((ordenes: unknown[]) => void) | null = null;
   return {
     suscriptorMock: vi.fn((callback: (ordenes: unknown[]) => void) => {
@@ -10,6 +10,7 @@ const { suscriptorMock, actualizarEstadoMock } = vi.hoisted(() => {
       return () => undefined;
     }),
     actualizarEstadoMock: vi.fn().mockResolvedValue(undefined),
+    toastMock: { success: vi.fn(), error: vi.fn() },
     emitir: (ordenes: unknown[]) => {
       callbackActual?.(ordenes);
     },
@@ -27,10 +28,10 @@ vi.mock("@/services/transactions", () => ({
 }));
 
 vi.mock("sonner", () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
+  toast: toastMock,
 }));
 
-function ordenMock(id: string, numero: number, estado: "recibida" | "lista" | "entregada") {
+function ordenMock(id: string, numero: number, estado: "recibida" | "lista" | "entregada" | "cancelada") {
   return {
     id,
     numero,
@@ -124,5 +125,50 @@ describe("PanelOrdenes", () => {
 
     expect(screen.queryByText("#12")).not.toBeInTheDocument();
     expect(screen.getByText("#13")).toBeInTheDocument();
+  });
+
+  it("muestra el botón de cancelar en órdenes recibidas", () => {
+    render(<PanelOrdenes />);
+    emitir([ordenMock("a", 12, "recibida")]);
+
+    expect(
+      screen.getByRole("button", { name: /cancelar orden 12/i })
+    ).toBeInTheDocument();
+  });
+
+  it("no muestra el botón de cancelar en órdenes entregadas o canceladas", () => {
+    render(<PanelOrdenes />);
+    emitir([
+      ordenMock("a", 12, "entregada"),
+      ordenMock("b", 13, "cancelada"),
+    ]);
+
+    fireEvent.click(screen.getByRole("button", { name: /todas/i }));
+
+    expect(
+      screen.queryByRole("button", { name: /cancelar orden/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("cancela una orden tras confirmar en el diálogo", async () => {
+    render(<PanelOrdenes />);
+    emitir([ordenMock("a", 12, "recibida")]);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /cancelar orden 12/i })
+    );
+
+    expect(
+      screen.getByText(/¿cancelar la orden #12\?/i)
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /^cancelar orden$/i })
+    );
+
+    await waitFor(() => {
+      expect(actualizarEstadoMock).toHaveBeenCalledWith("a", "cancelada");
+    });
+    expect(toastMock.success).toHaveBeenCalledWith("Orden #12 cancelada");
   });
 });

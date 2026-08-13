@@ -34,7 +34,7 @@ rules_version = '2';
 //   - totalUSD: number (required, >= 0)
 //   - totalBs: number (required, >= 0)
 //   - tasaBCV: number (required, >= 0)
-//   - estado: string (required, solo "recibida" | "lista" | "entregada")
+//   - estado: string (required, solo "recibida" | "lista" | "entregada" | "cancelada")
 //   - createdAt: string ISO (required, inmutable)
 //   - updatedAt: string ISO (required)
 //   - registradoEnFinanzas: bool (optional, lo escribe el admin)
@@ -226,7 +226,9 @@ service cloud.firestore {
         ((anterior == 'recibida' && nuevo == 'lista') ||
          (anterior == 'lista' && nuevo == 'entregada') ||
          (anterior == 'lista' && nuevo == 'recibida') ||
-         (anterior == 'entregada' && nuevo == 'lista'));
+         (anterior == 'entregada' && nuevo == 'lista') ||
+         (anterior == 'recibida' && nuevo == 'cancelada') ||
+         (anterior == 'lista' && nuevo == 'cancelada'));
     }
 
     // Actualización solo del flag de registro en finanzas (sin cambiar estado)

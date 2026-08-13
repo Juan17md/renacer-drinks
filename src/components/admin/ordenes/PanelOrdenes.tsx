@@ -10,9 +10,21 @@ import {
   User,
   Clock,
   RefreshCw,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import {
   escucharOrdenes,
@@ -23,12 +35,13 @@ import { ESTADOS_ORDEN, type Orden, type EstadoOrden } from "@/types/order";
 import { formatearUSD, formatearBs, obtenerFechaLocalISO } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
-const ORDEN_POR_ESTADO: EstadoOrden[] = ["recibida", "lista", "entregada"];
+const ORDEN_POR_ESTADO: EstadoOrden[] = ["recibida", "lista", "entregada", "cancelada"];
 
 const COLOR_ESTADO: Record<EstadoOrden, string> = {
   recibida: "bg-amber-100 text-amber-800",
   lista: "bg-emerald-100 text-emerald-800",
   entregada: "bg-muted text-muted-foreground",
+  cancelada: "bg-red-100 text-red-700",
 };
 
 function formatearHora(iso: string): string {
@@ -46,6 +59,7 @@ export function PanelOrdenes() {
   const [filtro, setFiltro] = useState<EstadoOrden | "todas">("recibida");
   const [cargando, setCargando] = useState(true);
   const [cambiando, setCambiando] = useState<string | null>(null);
+  const [cancelando, setCancelando] = useState<string | null>(null);
 
   useEffect(() => {
     const desuscribir = escucharOrdenes(
@@ -121,7 +135,22 @@ export function PanelOrdenes() {
     }
   };
 
-  const pendientes = ordenes.filter((o) => o.estado !== "entregada").length;
+  const manejarCancelar = async (orden: Orden) => {
+    setCancelando(orden.id);
+    try {
+      await actualizarEstadoOrden(orden.id, "cancelada");
+      toast.success(`Orden #${orden.numero} cancelada`);
+    } catch (error) {
+      console.error("Error al cancelar orden:", error);
+      toast.error("No se pudo cancelar la orden");
+    } finally {
+      setCancelando(null);
+    }
+  };
+
+  const pendientes = ordenes.filter(
+    (o) => o.estado !== "entregada" && o.estado !== "cancelada"
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -188,7 +217,7 @@ export function PanelOrdenes() {
                 key={orden.id}
                 className={cn(
                   "rounded-2xl border bg-white p-5 transition-opacity",
-                  orden.estado === "entregada"
+                  orden.estado === "entregada" || orden.estado === "cancelada"
                     ? "border-border/60 opacity-70"
                     : "border-brand-rose/40 shadow-sm"
                 )}
@@ -275,6 +304,44 @@ export function PanelOrdenes() {
                           <ChevronRight className="h-4 w-4" aria-hidden="true" />
                         )}
                       </Button>
+                    )}
+                    {(orden.estado === "recibida" || orden.estado === "lista") && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-10 w-10 text-muted-foreground hover:bg-red-50 hover:text-destructive"
+                            disabled={cambiando === orden.id || cancelando === orden.id}
+                            aria-label={`Cancelar orden ${orden.numero}`}
+                          >
+                            <XCircle className="h-4 w-4" aria-hidden="true" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              ¿Cancelar la orden #{orden.numero}?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              La orden de {orden.nombreCliente} se marcará como
+                              cancelada. Esta acción no se puede deshacer.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Volver</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => manejarCancelar(orden)}
+                              disabled={cancelando === orden.id}
+                              className="bg-destructive text-white hover:bg-destructive/90"
+                            >
+                              {cancelando === orden.id
+                                ? "Cancelando..."
+                                : "Cancelar orden"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     )}
                   </div>
                 </div>
