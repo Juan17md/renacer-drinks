@@ -11,11 +11,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const esPaginaLogin = pathname === "/admin/login";
 
   useEffect(() => {
     if (cargando || cargandoDatos) return;
     if (!usuario) {
-      if (pathname !== "/admin/login") {
+      if (!esPaginaLogin) {
         router.replace("/admin/login");
       }
       return;
@@ -23,9 +24,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
     if (!datosUsuario || datosUsuario.bloqueado) {
       cerrarSesion();
-      if (pathname !== "/admin/login") {
+      if (!esPaginaLogin) {
         router.replace("/admin/login");
       }
+      return;
+    }
+
+    if (esPaginaLogin) {
+      router.replace("/admin/dashboard");
       return;
     }
 
@@ -38,6 +44,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     usuario,
     datosUsuario,
     esAdmin,
+    esPaginaLogin,
     pathname,
     router,
     cerrarSesion,
@@ -57,6 +64,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
     );
+  }
+
+  if (esPaginaLogin) {
+    return <>{children}</>;
   }
 
   if (!usuario || !datosUsuario || datosUsuario.bloqueado) {

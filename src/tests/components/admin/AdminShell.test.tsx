@@ -116,6 +116,46 @@ describe("AdminShell (protección de rutas)", () => {
     expect(screen.queryByText("Contenido protegido")).not.toBeInTheDocument();
   });
 
+  it("muestra la página de login sin sesión activa sin redirigir ni ocultar el contenido", async () => {
+    pathnameActual = "/admin/login";
+    mocksAuth.onAuthStateChanged.mockImplementation((_auth, callback) => {
+      callback(null);
+      return () => undefined;
+    });
+
+    render(
+      <AdminShell>
+        <div>Formulario de inicio de sesión</div>
+      </AdminShell>
+    );
+
+    expect(
+      await screen.findByText("Formulario de inicio de sesión")
+    ).toBeInTheDocument();
+    expect(replaceMock).not.toHaveBeenCalled();
+  });
+
+  it("redirige al dashboard cuando hay sesión activa visitando la página de login", async () => {
+    pathnameActual = "/admin/login";
+    mocksAuth.onAuthStateChanged.mockImplementation((_auth, callback) => {
+      callback(usuarioMock);
+      return () => undefined;
+    });
+    mocksServicioUsuarios.obtenerUsuarioPorUid.mockResolvedValue(
+      documentoAdmin
+    );
+
+    render(
+      <AdminShell>
+        <div>Formulario de inicio de sesión</div>
+      </AdminShell>
+    );
+
+    await waitFor(() => {
+      expect(replaceMock).toHaveBeenCalledWith("/admin/dashboard");
+    });
+  });
+
   it("muestra el contenido cuando hay sesión activa con documento admin", async () => {
     mocksAuth.onAuthStateChanged.mockImplementation((_auth, callback) => {
       callback(usuarioMock);
