@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-export function AnimacionesEntrada() {
+export function AnimacionesEntrada({ children }: { children: ReactNode }) {
   const raizRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -68,5 +68,9 @@ export function AnimacionesEntrada() {
     };
   }, []);
 
-  return <div ref={raizRef} className="contents" aria-hidden="true" />;
+  return (
+    <div ref={raizRef} className="contents">
+      {children}
+    </div>
+  );
 }

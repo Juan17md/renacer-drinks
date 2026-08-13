@@ -29,10 +29,11 @@ export default async function LayoutPublico({
 
   return (
     <div className="flex min-h-[100dvh] flex-col">
-      <AnimacionesEntrada />
-      <Navbar tasaBCV={tasa.promedio} />
-      <main className="flex-1">{children}</main>
-      <Footer />
+      <AnimacionesEntrada>
+        <Navbar tasaBCV={tasa.promedio} />
+        <main className="flex-1">{children}</main>
+        <Footer />
+      </AnimacionesEntrada>
       <Toaster position="top-center" />
       <RegistroServiceWorker />
     </div>
