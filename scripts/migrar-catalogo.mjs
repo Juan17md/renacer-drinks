@@ -68,6 +68,7 @@ async function main() {
   const lote = db.batch();
 
   let totalProductos = 0;
+  let omitidos = 0;
 
   for (const [indice, categoria] of menu.categorias.entries()) {
     const slug = generarSlug(categoria.nombre);
@@ -84,6 +85,18 @@ async function main() {
     console.log(`  ✅ Categoría: ${categoria.nombre} (${slug})`);
 
     for (const producto of categoria.productos) {
+      const existente = await db
+        .collection("products")
+        .where("name", "==", producto.nombre)
+        .limit(1)
+        .get();
+
+      if (!existente.empty) {
+        omitidos += 1;
+        console.log(`  ⏭️  Omitido (ya existe): ${producto.nombre}`);
+        continue;
+      }
+
       totalProductos += 1;
       lote.set(
         db.collection("products").doc(),
@@ -104,7 +117,7 @@ async function main() {
   await lote.commit();
   await deleteApp(app);
 
-  console.log(`\n✅ Migración completada: ${menu.categorias.length} categorías y ${totalProductos} productos.`);
+  console.log(`\n✅ Migración completada: ${menu.categorias.length} categorías y ${totalProductos} productos creados (${omitidos} omitidos por ya existir).`);
 }
 
 main().catch((error) => {
