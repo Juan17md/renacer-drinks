@@ -13,7 +13,7 @@ export function LocationHoursSection() {
 
   return (
     <section id="ubicacion" className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 md:py-24 lg:px-8">
-      <div className="mb-10 text-center">
+      <div className="mb-10 text-center" data-reveal>
         <span className="font-heading text-sm font-semibold uppercase tracking-wider text-brand-rose-deep">
           Encuéntranos
         </span>
@@ -22,7 +22,7 @@ export function LocationHoursSection() {
         </h2>
       </div>
 
-      <div className="grid gap-8 md:grid-cols-2">
+      <div className="grid gap-8 md:grid-cols-2" data-reveal-stagger>
         <div className="flex flex-col justify-center gap-6 rounded-2xl border border-border/60 bg-white p-6 sm:p-8">
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-rose-light">

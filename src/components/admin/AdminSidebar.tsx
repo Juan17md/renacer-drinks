@@ -9,6 +9,7 @@ import {
   Package,
   ReceiptText,
   Wallet,
+  Users,
   LogOut,
   Menu,
   X,
@@ -41,13 +42,23 @@ const ENLACES_ADMIN = [
   },
 ];
 
+const ENLACE_USUARIOS = {
+  href: "/admin/usuarios",
+  label: "Usuarios",
+  icono: Users,
+};
+
 function ContenidoNavegacion({
   onNavegar,
 }: {
   onNavegar?: () => void;
 }) {
   const pathname = usePathname();
-  const { usuario, cerrarSesion } = useAuth();
+  const { usuario, datosUsuario, cerrarSesion } = useAuth();
+  const esAdmin = datosUsuario?.rol === "admin";
+  const enlaces = esAdmin
+    ? [...ENLACES_ADMIN, ENLACE_USUARIOS]
+    : ENLACES_ADMIN;
 
   const manejarCerrarSesion = async () => {
     try {
@@ -74,12 +85,17 @@ function ContenidoNavegacion({
           </p>
           <p className="truncate text-xs text-muted-foreground">
             {usuario?.email}
+            {datosUsuario && (
+              <span className="ml-1 rounded-full bg-brand-rose-light px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-rose-deep">
+                {datosUsuario.rol}
+              </span>
+            )}
           </p>
         </div>
       </div>
 
       <nav aria-label="Navegación del panel" className="flex-1 space-y-1 p-3">
-        {ENLACES_ADMIN.map((enlace) => {
+        {enlaces.map((enlace) => {
           const activo =
             pathname === enlace.href ||
             (enlace.href !== "/admin/dashboard" &&

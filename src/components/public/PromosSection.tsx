@@ -37,7 +37,7 @@ export function PromosSection() {
       />
 
       <div className="relative mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-10 text-center">
+        <div className="mb-10 text-center" data-reveal>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-white">
             <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
             Solo por tiempo limitado
@@ -50,7 +50,7 @@ export function PromosSection() {
           </h2>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-2" data-reveal-stagger>
           {PROMOCIONES.map((promo) => (
             <article
               key={promo.titulo}

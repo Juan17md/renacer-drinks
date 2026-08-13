@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { Menu, X, ShoppingBag } from "lucide-react";
+import { Menu, X, ShoppingBag, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CartDrawer } from "@/components/cart/CartDrawer";
@@ -63,6 +63,13 @@ export function Navbar({ tasaBCV }: NavbarProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          <Link
+            href="/admin/login"
+            className="hidden items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground lg:inline-flex"
+          >
+            <UserCog className="h-4 w-4" aria-hidden="true" />
+            Panel
+          </Link>
           <Button
             variant="ghost"
             size="icon"
@@ -116,6 +123,16 @@ export function Navbar({ tasaBCV }: NavbarProps) {
                 </Link>
               </li>
             ))}
+            <li>
+              <Link
+                href="/admin/login"
+                onClick={() => setMenuAbierto(false)}
+                className="flex min-h-12 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                <UserCog className="h-4 w-4" aria-hidden="true" />
+                Panel admin
+              </Link>
+            </li>
           </ul>
         </div>
       )}

@@ -15,4 +15,11 @@ describe("Footer", () => {
     );
     expect(enlace).toHaveAttribute("target", "_blank");
   });
+
+  it("ofrece el acceso al panel administrativo", () => {
+    render(<Footer />);
+
+    const enlace = screen.getByRole("link", { name: /panel admin/i });
+    expect(enlace).toHaveAttribute("href", "/admin/login");
+  });
 });

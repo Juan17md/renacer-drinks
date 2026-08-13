@@ -7,17 +7,43 @@ import { useAuth } from "@/hooks/useAuth";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
-  const { usuario, cargando } = useAuth();
+  const { usuario, datosUsuario, esAdmin, cargando, cargandoDatos, cerrarSesion } =
+    useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!cargando && !usuario && pathname !== "/admin/login") {
-      router.replace("/admin/login");
+    if (cargando || cargandoDatos) return;
+    if (!usuario) {
+      if (pathname !== "/admin/login") {
+        router.replace("/admin/login");
+      }
+      return;
     }
-  }, [cargando, usuario, pathname, router]);
 
-  if (cargando) {
+    if (!datosUsuario || datosUsuario.bloqueado) {
+      cerrarSesion();
+      if (pathname !== "/admin/login") {
+        router.replace("/admin/login");
+      }
+      return;
+    }
+
+    if (!esAdmin && pathname.startsWith("/admin/usuarios")) {
+      router.replace("/admin/dashboard");
+    }
+  }, [
+    cargando,
+    cargandoDatos,
+    usuario,
+    datosUsuario,
+    esAdmin,
+    pathname,
+    router,
+    cerrarSesion,
+  ]);
+
+  if (cargando || cargandoDatos) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center bg-brand-cream">
         <div className="flex flex-col items-center gap-3">
@@ -33,7 +59,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!usuario) {
+  if (!usuario || !datosUsuario || datosUsuario.bloqueado) {
     return null;
   }
 

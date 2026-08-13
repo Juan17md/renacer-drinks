@@ -61,6 +61,15 @@ rules_version = '2';
 //   - totalExpense: number (required, >= 0)
 //   - netProfit: number (required)
 //
+// Collection: usuarios
+// Document ID: uid de Firebase Auth
+// Fields:
+//   - email: string (required, 1-254 chars)
+//   - nombre: string (required, 1-100 chars)
+//   - rol: string (required, solo "admin" | "operador")
+//   - bloqueado: bool (required)
+//   - creadoEn: string ISO (required)
+//
 // ===============================================================
 
 service cloud.firestore {
@@ -250,6 +259,18 @@ service cloud.firestore {
                           request.resource.data.numero == resource.data.numero + 1;
         allow delete: if false;
       }
+    }
+
+    // ===========================================================
+    // Usuarios (lectura propia, escritura solo Admin SDK)
+    // ===========================================================
+    // Cada usuario autenticado puede leer su propio documento para
+    // conocer su rol y estado de bloqueo. Las escrituras (crear,
+    // editar, bloquear, eliminar) se realizan únicamente desde el
+    // servidor (Server Actions con Admin SDK, que ignora estas reglas).
+    match /usuarios/{uid} {
+      allow read: if esAutenticado() && request.auth.uid == uid;
+      allow create, update, delete: if false;
     }
 
     // ===========================================================

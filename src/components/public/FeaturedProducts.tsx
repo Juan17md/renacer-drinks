@@ -15,7 +15,7 @@ export async function FeaturedProducts() {
 
   if (destacados.length === 0) {
     return (
-      <section className="border-y border-border/60 bg-white/85">
+      <section className="border-y border-border/60 bg-white">
         <div className="mx-auto w-full max-w-6xl px-4 py-16 text-center sm:px-6 md:py-24 lg:px-8">
           <h2 className="font-heading text-[1.75rem] font-bold text-brand-coffee sm:text-4xl">
             Próximamente nuestro menú
@@ -30,9 +30,9 @@ export async function FeaturedProducts() {
   }
 
   return (
-    <section id="destacados" className="border-y border-border/60 bg-white/85">
+    <section id="destacados" className="border-y border-border/60 bg-white">
       <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 md:py-24 lg:px-8">
-        <div className="mb-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
+        <div className="mb-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end" data-reveal>
           <div>
             <span className="font-heading text-sm font-semibold uppercase tracking-wider text-brand-rose-deep">
               Favoritos
@@ -50,7 +50,7 @@ export async function FeaturedProducts() {
           </Link>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-reveal-stagger>
           {destacados.map((producto) => {
             const precioBs = convertirUSDaBs(producto.price, tasa.promedio);
             return (

@@ -6,6 +6,11 @@ const mocksAuth = vi.hoisted(() => ({
   signOut: vi.fn(),
 }));
 
+const mocksServicioUsuarios = vi.hoisted(() => ({
+  obtenerUsuarioPorUid: vi.fn(),
+  escucharUsuario: vi.fn(),
+}));
+
 vi.mock("firebase/auth", () => ({
   onAuthStateChanged: mocksAuth.onAuthStateChanged,
   signInWithEmailAndPassword: mocksAuth.signInWithEmailAndPassword,
@@ -27,6 +32,11 @@ vi.mock("@/lib/firebase", () => ({
   db: {},
 }));
 
+vi.mock("@/services/usuarios", () => ({
+  obtenerUsuarioPorUid: mocksServicioUsuarios.obtenerUsuarioPorUid,
+  escucharUsuario: mocksServicioUsuarios.escucharUsuario,
+}));
+
 import { useAuth } from "@/hooks/useAuth";
 import { renderHook, act, waitFor } from "@testing-library/react";
 
@@ -36,8 +46,21 @@ const usuarioMock = {
   emailVerified: true,
 };
 
+const documentoAdmin = {
+  uid: "uid_1",
+  email: "admin@renacer.com",
+  nombre: "Admin Renacer",
+  rol: "admin",
+  bloqueado: false,
+  creadoEn: "2026-01-01T00:00:00.000Z",
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
+  mocksServicioUsuarios.escucharUsuario.mockImplementation((_uid, callback) => {
+    callback(documentoAdmin);
+    return () => undefined;
+  });
 });
 
 afterEach(() => {
@@ -58,6 +81,7 @@ describe("useAuth", () => {
     act(() => capturador(null));
     await waitFor(() => expect(result.current.cargando).toBe(false));
     expect(result.current.usuario).toBeNull();
+    expect(result.current.datosUsuario).toBeNull();
   });
 
   it("expone el usuario autenticado cuando Auth lo emite", async () => {
@@ -66,12 +90,75 @@ describe("useAuth", () => {
       capturador = callback;
       return () => undefined;
     });
+    mocksServicioUsuarios.obtenerUsuarioPorUid.mockResolvedValue(documentoAdmin);
 
     const { result } = renderHook(() => useAuth());
 
     act(() => capturador(usuarioMock));
     await waitFor(() => expect(result.current.usuario).toEqual(usuarioMock));
     expect(result.current.cargando).toBe(false);
+  });
+
+  it("carga el documento del usuario y expone esAdmin según el rol", async () => {
+    mocksAuth.onAuthStateChanged.mockImplementation((_auth, callback) => {
+      callback(usuarioMock);
+      return () => undefined;
+    });
+    mocksServicioUsuarios.obtenerUsuarioPorUid.mockResolvedValue(documentoAdmin);
+
+    const { result } = renderHook(() => useAuth());
+
+    await waitFor(() => {
+      expect(result.current.datosUsuario).toEqual(documentoAdmin);
+    });
+    expect(result.current.esAdmin).toBe(true);
+    expect(mocksServicioUsuarios.obtenerUsuarioPorUid).toHaveBeenCalledWith(
+      "uid_1"
+    );
+    expect(mocksServicioUsuarios.escucharUsuario).toHaveBeenCalledWith(
+      "uid_1",
+      expect.any(Function)
+    );
+  });
+
+  it("esAdmin es false para el rol operador", async () => {
+    mocksAuth.onAuthStateChanged.mockImplementation((_auth, callback) => {
+      callback(usuarioMock);
+      return () => undefined;
+    });
+    mocksServicioUsuarios.obtenerUsuarioPorUid.mockResolvedValue({
+      ...documentoAdmin,
+      rol: "operador",
+    });
+    mocksServicioUsuarios.escucharUsuario.mockImplementation(
+      (_uid, callback) => {
+        callback({ ...documentoAdmin, rol: "operador" });
+        return () => undefined;
+      }
+    );
+
+    const { result } = renderHook(() => useAuth());
+
+    await waitFor(() => {
+      expect(result.current.datosUsuario?.rol).toBe("operador");
+    });
+    expect(result.current.esAdmin).toBe(false);
+  });
+
+  it("queda sin datos cuando el usuario no tiene documento", async () => {
+    mocksAuth.onAuthStateChanged.mockImplementation((_auth, callback) => {
+      callback(usuarioMock);
+      return () => undefined;
+    });
+    mocksServicioUsuarios.obtenerUsuarioPorUid.mockResolvedValue(null);
+
+    const { result } = renderHook(() => useAuth());
+
+    await waitFor(() => {
+      expect(result.current.cargandoDatos).toBe(false);
+    });
+    expect(result.current.datosUsuario).toBeNull();
+    expect(result.current.esAdmin).toBe(false);
   });
 
   it("inicia sesión con email y password", async () => {
@@ -121,5 +208,24 @@ describe("useAuth", () => {
     unmount();
 
     expect(desuscribir).toHaveBeenCalled();
+  });
+
+  it("deja de escuchar el documento al desmontar", async () => {
+    const desuscribirDoc = vi.fn();
+    mocksAuth.onAuthStateChanged.mockImplementation((_auth, callback) => {
+      callback(usuarioMock);
+      return () => undefined;
+    });
+    mocksServicioUsuarios.obtenerUsuarioPorUid.mockResolvedValue(documentoAdmin);
+    mocksServicioUsuarios.escucharUsuario.mockImplementation(() => desuscribirDoc);
+
+    const { unmount } = renderHook(() => useAuth());
+
+    await waitFor(() => {
+      expect(mocksServicioUsuarios.escucharUsuario).toHaveBeenCalled();
+    });
+    unmount();
+
+    expect(desuscribirDoc).toHaveBeenCalled();
   });
 });

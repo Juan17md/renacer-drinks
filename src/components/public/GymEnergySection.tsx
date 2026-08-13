@@ -26,10 +26,10 @@ export function GymEnergySection() {
     <section
       id="energia-gym"
       aria-labelledby="energia-gym-titulo"
-      className="bg-brand-cream/85"
+      className="bg-brand-cream"
     >
       <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 md:py-24 lg:px-8">
-        <div className="mb-10 text-center">
+        <div className="mb-10 text-center" data-reveal>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-rose-light px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-brand-rose-deep">
             <Dumbbell className="h-3.5 w-3.5" aria-hidden="true" />
             Dentro de Zona Gym
@@ -47,7 +47,7 @@ export function GymEnergySection() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-reveal-stagger>
           {BENEFICIOS.map((beneficio) => (
             <div
               key={beneficio.titulo}

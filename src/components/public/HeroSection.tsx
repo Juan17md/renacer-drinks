@@ -15,7 +15,7 @@ export function HeroSection() {
         aria-hidden="true"
       />
       <div className="relative mx-auto grid w-full max-w-6xl items-center gap-10 px-4 pb-16 pt-12 sm:px-6 md:grid-cols-2 md:pt-20 lg:px-8">
-        <div className="flex flex-col items-start gap-6">
+        <div className="flex flex-col items-start gap-6" data-reveal>
           <span className="inline-flex items-center gap-2 rounded-full border border-brand-rose/40 bg-brand-rose-light px-4 py-2 text-sm font-medium text-brand-rose-deep">
             <CupSoda className="h-4 w-4" aria-hidden="true" />
             Café artesanal en Barquisimeto
@@ -51,7 +51,7 @@ export function HeroSection() {
           </div>
         </div>
 
-        <div className="relative mx-auto flex max-w-sm items-center justify-center md:max-w-md">
+        <div className="relative mx-auto flex max-w-sm items-center justify-center md:max-w-md" data-reveal>
           <div
             className="absolute h-64 w-64 rounded-full bg-brand-rose/30 blur-3xl"
             aria-hidden="true"

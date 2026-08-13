@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { MapPin, Clock, Coffee } from "lucide-react";
+import { MapPin, Clock, Coffee, UserCog } from "lucide-react";
 import { IconoInstagram } from "@/components/icons/IconoInstagram";
 
 const DATOS_CAFETERIA = {
@@ -11,7 +11,7 @@ const DATOS_CAFETERIA = {
 
 export function Footer() {
   return (
-    <footer className="border-t border-border/60 bg-[#f8f1ec]/85">
+    <footer className="border-t border-border/60 bg-[#f8f1ec]">
       <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-3 lg:px-8">
         <div className="space-y-3">
           <div className="flex items-center gap-2">
@@ -80,9 +80,19 @@ export function Footer() {
       </div>
 
       <div className="border-t border-border/60 py-5">
-        <p className="flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
-          <Coffee className="h-4 w-4 text-brand-rose-deep" aria-hidden="true" />
-          © {new Date().getFullYear()} Renacer Drinks & Coffe. Todos los derechos reservados.
+        <p className="flex flex-col items-center justify-center gap-2 text-center text-xs text-muted-foreground sm:flex-row">
+          <span className="flex items-center gap-2">
+            <Coffee className="h-4 w-4 text-brand-rose-deep" aria-hidden="true" />
+            © {new Date().getFullYear()} Renacer Drinks & Coffe. Todos los derechos reservados.
+          </span>
+          <span className="hidden sm:inline" aria-hidden="true">•</span>
+          <Link
+            href="/admin/login"
+            className="inline-flex min-h-8 items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-brand-rose-deep"
+          >
+            <UserCog className="h-3.5 w-3.5" aria-hidden="true" />
+            Panel admin
+          </Link>
         </p>
       </div>
     </footer>
