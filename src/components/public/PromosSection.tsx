@@ -15,7 +15,7 @@ const PROMOCIONES = [
     titulo: "Tarde de Poder",
     horario: "Por tiempo limitado",
     descripcion:
-      "Proteína GRATIS en todos los batidos especiales. Añade extra de proteína a tu batido por $0.50.",
+      "Añade extra de proteína a tu batido por $0.50.",
     ofertas: [],
     icono: Zap,
   },

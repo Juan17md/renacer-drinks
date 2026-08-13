@@ -18,8 +18,8 @@ describe("PromosSection", () => {
     expect(
       screen.getByRole("heading", { name: "Tarde de Poder" })
     ).toBeInTheDocument();
-    expect(screen.getByText(/proteína gratis en todos los batidos/i)).toBeInTheDocument();
     expect(screen.getByText(/extra de proteína a tu batido por/i)).toBeInTheDocument();
+    expect(screen.queryByText(/proteína gratis/i)).not.toBeInTheDocument();
   });
 
   it("muestra el indicador de tiempo limitado", () => {
