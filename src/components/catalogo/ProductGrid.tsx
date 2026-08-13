@@ -1,8 +1,8 @@
 import { ProductCard } from "@/components/catalogo/ProductCard";
-import type { Producto } from "@/types/product";
+import type { ProductoPublico } from "@/types/product";
 
 interface ProductGridProps {
-  productos: Producto[];
+  productos: ProductoPublico[];
   tasaBCV: number;
 }
 

@@ -9,7 +9,7 @@ interface CartSummaryProps {
 export function CartSummary({ totalUSD, totalBs, tasaBCV }: CartSummaryProps) {
   return (
     <div className="space-y-3 rounded-2xl bg-brand-rose-light/60 p-5">
-      <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-brand-coffee">
+      <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-brand-coffee font-small">
         Resumen del pedido
       </h2>
       <dl className="space-y-2 text-sm font-small">

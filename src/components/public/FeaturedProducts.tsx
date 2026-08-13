@@ -34,7 +34,7 @@ export async function FeaturedProducts() {
       <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 md:py-24 lg:px-8">
         <div className="mb-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end" data-reveal>
           <div>
-            <span className="font-heading text-sm font-semibold uppercase tracking-wider text-brand-rose-deep">
+            <span className="font-heading text-sm font-semibold uppercase tracking-wider text-brand-rose-deep font-small">
               Favoritos
             </span>
             <h2 className="mt-2 font-heading text-[1.75rem] font-bold text-brand-coffee sm:text-4xl">

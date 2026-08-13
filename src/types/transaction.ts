@@ -19,6 +19,15 @@ export const METODOS_PAGO: { valor: MetodoPago; label: string }[] = [
   { valor: "OTRO", label: "Otro" },
 ];
 
+export interface ItemVenta {
+  productId: string;
+  nombre: string;
+  precioVenta: number;
+  costo: number;
+  cantidad: number;
+  subtotal: number;
+}
+
 export interface TransaccionFinanciera {
   id: string;
   type: TipoTransaccion;
@@ -29,6 +38,9 @@ export interface TransaccionFinanciera {
   paymentMethod: MetodoPago;
   date: string;
   createdBy: string;
+  customerName?: string;
+  ganancia: number;
+  items?: ItemVenta[];
 }
 
 export interface DatosTransaccion {
@@ -38,9 +50,18 @@ export interface DatosTransaccion {
   paymentMethod: MetodoPago;
 }
 
+export interface DatosVenta {
+  customerName: string;
+  items: ItemVenta[];
+  amount: number;
+  paymentMethod: MetodoPago;
+}
+
 export interface ResumenDiario {
   id: string;
   totalIncome: number;
   totalExpense: number;
   netProfit: number;
+  totalSales: number;
+  totalProfit: number;
 }

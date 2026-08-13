@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { Toaster } from "@/components/ui/sonner";
 import { useCartStore } from "@/store/useCartStore";
-import type { Producto } from "@/types/product";
+import type { ProductoPublico } from "@/types/product";
 
 const { crearOrdenMock } = vi.hoisted(() => ({
   crearOrdenMock: vi.fn(),
@@ -13,7 +13,7 @@ vi.mock("@/services/orders", () => ({
   crearOrden: crearOrdenMock,
 }));
 
-const productoMock: Producto = {
+const productoMock: ProductoPublico = {
   id: "prod_1",
   name: "Café Mocca Helado",
   description: "Espresso doble con chocolate",
@@ -116,6 +116,7 @@ describe("CartDrawer", () => {
         totalBs: expect.any(Number),
         items: [
           {
+            productId: "prod_1",
             nombre: "Café Mocca Helado",
             precio: 4.5,
             cantidad: 1,

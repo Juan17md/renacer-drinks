@@ -26,7 +26,7 @@ export function AboutSection() {
     <section id="historia" className="border-y border-border/60 bg-white">
       <div className="mx-auto grid w-full max-w-6xl gap-12 px-4 py-16 sm:px-6 md:grid-cols-2 md:py-24 lg:px-8">
         <div className="flex flex-col items-start gap-6" data-reveal>
-          <span className="font-heading text-sm font-semibold uppercase tracking-wider text-brand-rose-deep">
+          <span className="font-heading text-sm font-semibold uppercase tracking-wider text-brand-rose-deep font-small">
             Nuestra historia
           </span>
           <h2 className="font-heading text-[1.75rem] font-bold leading-tight text-brand-coffee sm:text-4xl">

@@ -16,15 +16,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
 import { crearProducto, actualizarProducto } from "@/actions/products";
+import { CategoryCombobox } from "@/components/admin/catalogo/CategoryCombobox";
 import type { Producto } from "@/types/product";
 import type { Categoria } from "@/types/category";
 
@@ -45,7 +39,8 @@ export function ProductFormModal({
 }: ProductFormModalProps) {
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
-  const [precio, setPrecio] = useState("");
+  const [costo, setCosto] = useState("");
+  const [precioVenta, setPrecioVenta] = useState("");
   const [categoria, setCategoria] = useState("");
   const [disponible, setDisponible] = useState(true);
   const [imagenUrl, setImagenUrl] = useState("");
@@ -58,7 +53,8 @@ export function ProductFormModal({
     if (abierto) {
       setNombre(producto?.name ?? "");
       setDescripcion(producto?.description ?? "");
-      setPrecio(producto ? String(producto.price) : "");
+      setCosto(producto ? String(producto.costo) : "");
+      setPrecioVenta(producto ? String(producto.price) : "");
       setCategoria(producto?.category ?? "");
       setDisponible(producto?.isAvailable ?? true);
       setImagenUrl(producto?.imageUrl ?? "");
@@ -71,13 +67,22 @@ export function ProductFormModal({
     evento.preventDefault();
     setError("");
 
-    const precioNumerico = Number(precio);
+    const costoNumerico = Number(costo);
+    const precioVentaNumerico = Number(precioVenta);
     if (!nombre.trim()) {
       setError("El nombre es obligatorio.");
       return;
     }
-    if (!precio || Number.isNaN(precioNumerico) || precioNumerico <= 0) {
-      setError("Ingresa un precio válido en USD.");
+    if (!costo || Number.isNaN(costoNumerico) || costoNumerico < 0) {
+      setError("Ingresa un precio (costo) válido en USD.");
+      return;
+    }
+    if (!precioVenta || Number.isNaN(precioVentaNumerico) || precioVentaNumerico <= 0) {
+      setError("Ingresa un precio de venta válido en USD.");
+      return;
+    }
+    if (precioVentaNumerico < costoNumerico) {
+      setError("El precio de venta no puede ser menor que el precio (costo).");
       return;
     }
     if (!categoria) {
@@ -89,7 +94,8 @@ export function ProductFormModal({
     const datos = {
       name: nombre.trim(),
       description: descripcion.trim(),
-      price: precioNumerico,
+      price: precioVentaNumerico,
+      costo: costoNumerico,
       category: categoria,
       isAvailable: disponible,
       imageUrl: imagenUrl,
@@ -136,8 +142,8 @@ export function ProductFormModal({
             {producto ? "Editar producto" : "Agregar producto"}
           </DialogTitle>
           <DialogDescription>
-            Completa los datos del producto. La imagen se optimiza con
-            ImageKit.
+            Completa los datos del producto. La ganancia se calcula como la
+            diferencia entre el precio de venta y el precio (costo).
           </DialogDescription>
         </DialogHeader>
 
@@ -167,35 +173,58 @@ export function ProductFormModal({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="producto-precio">Precio (USD) *</Label>
+              <Label htmlFor="producto-costo">Precio (costo) USD *</Label>
               <Input
-                id="producto-precio"
+                id="producto-costo"
                 type="number"
                 inputMode="decimal"
                 min="0"
                 step="0.01"
-                value={precio}
-                onChange={(evento) => setPrecio(evento.target.value)}
-                placeholder="4.50"
+                value={costo}
+                onChange={(evento) => setCosto(evento.target.value)}
+                placeholder="3.50"
                 className="h-12 text-base"
               />
+              <p className="text-sm font-small text-muted-foreground">
+                Lo que cuesta prepararlo
+              </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="producto-categoria">Categoría *</Label>
-              <Select value={categoria} onValueChange={setCategoria}>
-                <SelectTrigger id="producto-categoria" className="h-12 text-base">
-                  <SelectValue placeholder="Selecciona..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {categorias.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.slug}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="producto-precio-venta">Precio de venta USD *</Label>
+              <Input
+                id="producto-precio-venta"
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                value={precioVenta}
+                onChange={(evento) => setPrecioVenta(evento.target.value)}
+                placeholder="4.50"
+                className="h-12 text-base"
+              />
+              <p className="text-sm font-small text-muted-foreground">
+                Lo que paga el cliente
+              </p>
             </div>
+          </div>
+
+          {costo && precioVenta && Number(precioVenta) >= Number(costo) && (
+            <p className="rounded-lg bg-emerald-50 px-3 py-2 text-base text-emerald-700">
+              Ganancia por unidad:{" "}
+              <strong>
+                ${(Number(precioVenta) - Number(costo)).toFixed(2)} USD
+              </strong>
+            </p>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="producto-categoria">Categoría *</Label>
+            <CategoryCombobox
+              categorias={categorias}
+              valor={categoria}
+              onSeleccionar={setCategoria}
+            />
           </div>
 
           <div className="space-y-3">

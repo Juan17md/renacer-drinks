@@ -115,13 +115,40 @@ export function ProductsDataTable({
           className="flex min-h-9 items-center gap-1 font-medium"
           onClick={() => column.toggleSorting()}
         >
-          Precio USD
+          Venta USD
           <ArrowUpDown className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
       ),
       cell: ({ row }) => (
         <span className="font-semibold text-brand-rose-deep">
           {formatearUSD(row.original.price)}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "costo",
+      header: ({ column }) => (
+        <button
+          type="button"
+          className="flex min-h-9 items-center gap-1 font-medium"
+          onClick={() => column.toggleSorting()}
+        >
+          Costo USD
+          <ArrowUpDown className="h-3.5 w-3.5" aria-hidden="true" />
+        </button>
+      ),
+      cell: ({ row }) => (
+        <span className="text-muted-foreground">
+          {formatearUSD(row.original.costo)}
+        </span>
+      ),
+    },
+    {
+      id: "ganancia",
+      header: "Ganancia",
+      cell: ({ row }) => (
+        <span className="font-semibold text-emerald-600">
+          {formatearUSD(row.original.price - row.original.costo)}
         </span>
       ),
     },
@@ -247,6 +274,7 @@ function ToggleDisponibilidad({ producto }: { producto: Producto }) {
         name: producto.name,
         description: producto.description,
         price: producto.price,
+        costo: producto.costo,
         category: producto.category,
         isAvailable: disponible,
         imageUrl: producto.imageUrl,

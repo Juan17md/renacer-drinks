@@ -5,11 +5,11 @@ import { SearchBar } from "@/components/catalogo/SearchBar";
 import { CategoryFilter } from "@/components/catalogo/CategoryFilter";
 import { ProductGrid } from "@/components/catalogo/ProductGrid";
 import { BcvBadgeHeader } from "@/components/catalogo/BcvBadgeHeader";
-import type { Producto } from "@/types/product";
+import type { ProductoPublico } from "@/types/product";
 import type { Categoria } from "@/types/category";
 
 interface CatalogoClienteProps {
-  productos: Producto[];
+  productos: ProductoPublico[];
   categorias: Categoria[];
   tasaBCV: number;
   fechaActualizacion: string;

@@ -25,6 +25,7 @@ vi.mock("@/lib/utils", () => ({
 import {
   registrarTransaccion,
   registrarIngresoPorOrden,
+  registrarVenta,
   obtenerTransacciones,
   obtenerResumenDiario,
 } from "@/services/transactions";
@@ -71,6 +72,7 @@ describe("services/transactions", () => {
         paymentMethod: "EFECTIVO",
         date: expect.any(String),
         createdBy: "admin",
+        ganancia: 0,
       });
       expect(firestoreMock.runTransaction).toHaveBeenCalled();
       expect(resultado.id).toBe("tx_1");
@@ -142,6 +144,120 @@ describe("services/transactions", () => {
 
       expect(set).not.toHaveBeenCalled();
       expect(update).not.toHaveBeenCalled();
+    });
+
+    it("calcula la ganancia real con el costo del catálogo al registrar la orden", async () => {
+      const set = vi.fn();
+      const update = vi.fn();
+      firestoreMock.runTransaction.mockImplementation(async (_db, callback) => {
+        await callback({
+          get: vi.fn().mockImplementation((ref) => {
+            if (ref.id === "orden_1") {
+              return {
+                data: () => ({
+                  numero: 12,
+                  totalUSD: 9,
+                  bcvRate: 80,
+                  estado: "entregada",
+                  items: [
+                    {
+                      productId: "prod_1",
+                      nombre: "Café Mocca",
+                      precio: 4.5,
+                      cantidad: 2,
+                      subtotal: 9,
+                    },
+                  ],
+                  createdAt: "2026-08-13T10:00:00",
+                  updatedAt: "2026-08-13T10:00:00",
+                }),
+              };
+            }
+            return { data: () => null };
+          }),
+          set,
+          update,
+        });
+        return undefined;
+      });
+
+      firestoreMock.collection.mockImplementation((_db, nombre) => nombre);
+      firestoreMock.getDocs.mockResolvedValue({
+        docs: [
+          {
+            id: "prod_1",
+            data: () => ({ costo: 3.5 }),
+          },
+        ],
+      });
+
+      await registrarIngresoPorOrden("orden_1", 9, "Venta orden #12");
+
+      const llamadaSet = set.mock.calls[0];
+      const transaccion = llamadaSet[1];
+      expect(transaccion.ganancia).toBe(2);
+      expect(transaccion.items[0]).toMatchObject({
+        productId: "prod_1",
+        nombre: "Café Mocca",
+        precioVenta: 4.5,
+        costo: 3.5,
+        cantidad: 2,
+      });
+    });
+  });
+
+  describe("registrarVenta", () => {
+    it("registra la venta con items, ganancia real y actualiza el resumen del día", async () => {
+      firestoreMock.runTransaction.mockImplementation(async (_db, callback) => {
+        await callback({
+          get: vi.fn().mockResolvedValue({ data: () => null }),
+          set: vi.fn(),
+        });
+        return undefined;
+      });
+
+      const resultado = await registrarVenta(
+        {
+          customerName: "María",
+          items: [
+            {
+              productId: "prod_1",
+              nombre: "Café Mocca",
+              precioVenta: 4.5,
+              costo: 3.5,
+              cantidad: 2,
+              subtotal: 9,
+            },
+          ],
+          amount: 9,
+          paymentMethod: "PUNTO",
+        },
+        80
+      );
+
+      expect(firestoreMock.addDoc).toHaveBeenCalledWith("coleccion", {
+        type: "INGRESO",
+        amount: 9,
+        amountBs: 720,
+        bcvRate: 80,
+        concept: "Venta directa - María",
+        paymentMethod: "PUNTO",
+        date: expect.any(String),
+        createdBy: "admin",
+        customerName: "María",
+        ganancia: 2,
+        items: [
+          {
+            productId: "prod_1",
+            nombre: "Café Mocca",
+            precioVenta: 4.5,
+            costo: 3.5,
+            cantidad: 2,
+            subtotal: 9,
+          },
+        ],
+      });
+      expect(resultado.ganancia).toBe(2);
     });
   });
 

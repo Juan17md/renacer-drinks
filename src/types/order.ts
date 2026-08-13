@@ -7,6 +7,7 @@ export const ESTADOS_ORDEN = {
 } as const;
 
 export interface ItemOrden {
+  productId: string;
   nombre: string;
   precio: number;
   cantidad: number;

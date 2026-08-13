@@ -9,7 +9,8 @@ rules_version = '2';
 // Fields:
 //   - name: string (required, 1-80 chars) - nombre del producto
 //   - description: string (required, 0-500 chars)
-//   - price: number (required, >= 0)
+//   - price: number (required, >= 0) - precio de venta (lo que paga el cliente)
+//   - costo: number (required, >= 0) - precio de costo (interno, nunca expuesto)
 //   - category: string (required, 1-60 chars)
 //   - isAvailable: bool (required)
 //   - imageUrl: string (optional, URL https) - campo inmutable del cliente
@@ -28,8 +29,8 @@ rules_version = '2';
 //   - numero: int (required, >= 1)
 //   - nombreCliente: string (required, 1-60 chars)
 //   - items: list (required, 1-20 items) cada item:
-//       { nombre: string 1-80, precio: number >= 0,
-//         cantidad: int 1-99, subtotal: number >= 0 }
+//       { productId: string 1-100 (opcional), nombre: string 1-80,
+//         precio: number >= 0, cantidad: int 1-99, subtotal: number >= 0 }
 //   - totalUSD: number (required, >= 0)
 //   - totalBs: number (required, >= 0)
 //   - tasaBCV: number (required, >= 0)
@@ -53,6 +54,12 @@ rules_version = '2';
 //   - date: string ISO (required)
 //   - createdBy: string (required, 1-60 chars)
 //   - ordenId: string (optional)
+//   - customerName: string (optional, 1-60 chars)
+//   - ganancia: number (optional, >= 0) - ganancia real de la venta
+//   - items: list (optional, 1-20 items) cada item de venta:
+//       { productId: string 1-100, nombre: string 1-80,
+//         precioVenta: number >= 0, costo: number >= 0,
+//         cantidad: int 1-99, subtotal: number >= 0 }
 //
 // Collection: daily_summaries
 // Document ID: fecha YYYY-MM-DD
@@ -60,6 +67,16 @@ rules_version = '2';
 //   - totalIncome: number (required, >= 0)
 //   - totalExpense: number (required, >= 0)
 //   - netProfit: number (required)
+//   - totalSales: number (optional, >= 0) - cantidad de ventas del día
+//   - totalProfit: number (optional, >= 0) - ganancia real del día
+//
+// Collection: materials
+// Document ID: auto
+// Fields:
+//   - nombre: string (required, 1-100 chars)
+//   - unidad: string (required, 1-30 chars)
+//   - cantidad: number (required, >= 0)
+//   - updatedAt: timestamp (required)
 //
 // Collection: usuarios
 // Document ID: uid de Firebase Auth
@@ -107,15 +124,28 @@ service cloud.firestore {
 
     function esItemOrdenValido(item) {
       return item is map &&
-        item.keys().hasOnly(['nombre', 'precio', 'cantidad', 'subtotal']) &&
+        item.keys().hasOnly(['productId', 'nombre', 'precio', 'cantidad', 'subtotal']) &&
+        (!('productId' in item) || esCadenaValida(item.productId, 1, 100)) &&
         esCadenaValida(item.nombre, 1, 80) &&
         item.precio is number && item.precio >= 0 &&
         item.cantidad is int && item.cantidad >= 1 && item.cantidad <= 99 &&
         item.subtotal is number && item.subtotal >= 0;
     }
 
+    // Ítems de venta registrados por el admin (incluyen costo interno).
+    function esItemVentaValido(item) {
+      return item is map &&
+        item.keys().hasOnly(['productId', 'nombre', 'precioVenta', 'costo', 'cantidad', 'subtotal']) &&
+        (!('productId' in item) || esCadenaValida(item.productId, 1, 100)) &&
+        esCadenaValida(item.nombre, 1, 80) &&
+        item.precioVenta is number && item.precioVenta >= 0 &&
+        item.costo is number && item.costo >= 0 &&
+        item.cantidad is int && item.cantidad >= 1 && item.cantidad <= 99 &&
+        item.subtotal is number && item.subtotal >= 0;
+    }
+
     // Firestore rules no permite iterar listas; se valida por índice
-    // con un límite máximo de 20 items por orden.
+    // con un límite máximo de 20 ítems.
     function esListaItemsValida(items) {
       return items.size() >= 1 &&
         items.size() <= 20 &&
@@ -139,6 +169,31 @@ service cloud.firestore {
         (items.size() < 18 || esItemOrdenValido(items[17])) &&
         (items.size() < 19 || esItemOrdenValido(items[18])) &&
         (items.size() < 20 || esItemOrdenValido(items[19]));
+    }
+
+    function esListaItemsVentaValida(items) {
+      return items.size() >= 1 &&
+        items.size() <= 20 &&
+        esItemVentaValido(items[0]) &&
+        (items.size() < 2 || esItemVentaValido(items[1])) &&
+        (items.size() < 3 || esItemVentaValido(items[2])) &&
+        (items.size() < 4 || esItemVentaValido(items[3])) &&
+        (items.size() < 5 || esItemVentaValido(items[4])) &&
+        (items.size() < 6 || esItemVentaValido(items[5])) &&
+        (items.size() < 7 || esItemVentaValido(items[6])) &&
+        (items.size() < 8 || esItemVentaValido(items[7])) &&
+        (items.size() < 9 || esItemVentaValido(items[8])) &&
+        (items.size() < 10 || esItemVentaValido(items[9])) &&
+        (items.size() < 11 || esItemVentaValido(items[10])) &&
+        (items.size() < 12 || esItemVentaValido(items[11])) &&
+        (items.size() < 13 || esItemVentaValido(items[12])) &&
+        (items.size() < 14 || esItemVentaValido(items[13])) &&
+        (items.size() < 15 || esItemVentaValido(items[14])) &&
+        (items.size() < 16 || esItemVentaValido(items[15])) &&
+        (items.size() < 17 || esItemVentaValido(items[16])) &&
+        (items.size() < 18 || esItemVentaValido(items[17])) &&
+        (items.size() < 19 || esItemVentaValido(items[18])) &&
+        (items.size() < 20 || esItemVentaValido(items[19]));
     }
 
     function esOrdenValida() {
@@ -192,7 +247,8 @@ service cloud.firestore {
 
       return soloCamposPermitidos([
             'type', 'amount', 'amountBs', 'bcvRate', 'concept',
-            'paymentMethod', 'date', 'createdBy', 'ordenId'
+            'paymentMethod', 'date', 'createdBy', 'ordenId',
+            'customerName', 'ganancia', 'items'
           ]) &&
           data.type in ['INGRESO', 'EGRESO'] &&
           data.amount is number && data.amount > 0 &&
@@ -202,16 +258,23 @@ service cloud.firestore {
           esCadenaValida(data.paymentMethod, 1, 30) &&
           esCadenaValida(data.date, 8, 40) &&
           esCadenaValida(data.createdBy, 1, 60) &&
-          (!('ordenId' in data) || esCadenaValida(data.ordenId, 1, 100));
+          (!('ordenId' in data) || esCadenaValida(data.ordenId, 1, 100)) &&
+          (!('customerName' in data) || esCadenaValida(data.customerName, 1, 60)) &&
+          (!('ganancia' in data) || esNumeroPositivo(data.ganancia)) &&
+          (!('items' in data) || esListaItemsVentaValida(data.items));
     }
 
     function esResumenValido() {
       let data = request.resource.data;
 
-      return soloCamposPermitidos(['totalIncome', 'totalExpense', 'netProfit']) &&
+      return soloCamposPermitidos([
+            'totalIncome', 'totalExpense', 'netProfit', 'totalSales', 'totalProfit'
+          ]) &&
           esNumeroPositivo(data.totalIncome) &&
           esNumeroPositivo(data.totalExpense) &&
-          data.netProfit is number;
+          data.netProfit is number &&
+          (!('totalSales' in data) || data.totalSales is int && data.totalSales >= 0) &&
+          (!('totalProfit' in data) || esNumeroPositivo(data.totalProfit));
     }
 
     // ===========================================================
@@ -229,6 +292,14 @@ service cloud.firestore {
     // ===========================================================
     match /categories/{categoryId} {
       allow read: if true;
+      allow create, update, delete: if false;
+    }
+
+    // ===========================================================
+    // Materials (lectura solo admin, escritura solo Admin SDK)
+    // ===========================================================
+    match /materials/{materialId} {
+      allow read: if esAdmin();
       allow create, update, delete: if false;
     }
 

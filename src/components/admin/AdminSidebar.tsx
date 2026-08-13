@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useState } from "react";
 import {
   LayoutDashboard,
+  Coffee,
   Package,
   ReceiptText,
   Wallet,
@@ -29,6 +30,11 @@ const ENLACES_ADMIN = [
     href: "/admin/ordenes",
     label: "Órdenes",
     icono: ReceiptText,
+  },
+  {
+    href: "/admin/catalogo",
+    label: "Catálogo",
+    icono: Coffee,
   },
   {
     href: "/admin/inventario",
@@ -79,19 +85,9 @@ function ContenidoNavegacion({
           height={36}
           className="h-9 w-9 object-contain"
         />
-        <div className="min-w-0">
-          <p className="truncate font-heading text-base font-bold text-brand-coffee">
-            Renacer Admin
-          </p>
-          <p className="truncate text-base text-muted-foreground">
-            {usuario?.email}
-            {datosUsuario && (
-              <span className="ml-1 rounded-full bg-brand-rose-light px-2 py-0.5 text-sm font-small font-semibold uppercase tracking-wide text-brand-rose-deep">
-                {datosUsuario.rol}
-              </span>
-            )}
-          </p>
-        </div>
+        <p className="truncate font-heading text-base font-bold text-brand-coffee">
+          Renacer Admin
+        </p>
       </div>
 
       <nav aria-label="Navegación del panel" className="flex-1 space-y-1 p-3">
@@ -121,6 +117,26 @@ function ContenidoNavegacion({
       </nav>
 
       <div className="border-t border-border/60 p-3">
+        {usuario && (
+          <div className="mb-2 flex items-center gap-3 rounded-xl bg-muted/40 px-4 py-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-rose-light font-heading text-base font-bold text-brand-rose-deep">
+              {(datosUsuario?.nombre ?? usuario.email ?? "U").charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-base font-semibold text-brand-coffee">
+                {datosUsuario?.nombre ?? "Usuario"}
+              </p>
+              <p className="truncate text-base text-muted-foreground">
+                {usuario.email}
+                {datosUsuario && (
+                  <span className="ml-1 rounded-full bg-brand-rose-light px-2 py-0.5 text-sm font-small font-semibold uppercase tracking-wide text-brand-rose-deep">
+                    {datosUsuario.rol}
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+        )}
         <Button
           variant="ghost"
           className="h-12 w-full justify-start text-muted-foreground hover:text-destructive"

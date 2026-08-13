@@ -33,7 +33,7 @@ export function Footer() {
         </div>
 
         <div className="space-y-3">
-          <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-brand-coffee">
+          <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-brand-coffee font-small">
             Horarios
           </h2>
           <ul className="space-y-2 text-sm font-small text-muted-foreground">
@@ -49,7 +49,7 @@ export function Footer() {
         </div>
 
         <div className="space-y-3">
-          <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-brand-coffee">
+          <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-brand-coffee font-small">
             Contáctanos
           </h2>
           <ul className="space-y-2 text-sm font-small text-muted-foreground">

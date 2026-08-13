@@ -12,13 +12,32 @@ export interface DatosProducto {
   name: string;
   description: string;
   price: number;
+  costo: number;
   category: string;
   isAvailable: boolean;
   imageUrl: string;
   imageId: string;
 }
 
+function validarProducto(datos: DatosProducto): string | null {
+  if (!datos.name.trim()) return "El nombre es obligatorio.";
+  if (!datos.price || Number.isNaN(datos.price) || datos.price <= 0) {
+    return "Ingresa un precio de venta válido en USD.";
+  }
+  if (!datos.costo || Number.isNaN(datos.costo) || datos.costo < 0) {
+    return "Ingresa un precio (costo) válido en USD.";
+  }
+  if (datos.price < datos.costo) {
+    return "El precio de venta no puede ser menor que el precio (costo).";
+  }
+  if (!datos.category) return "Selecciona una categoría.";
+  return null;
+}
+
 export async function crearProducto(datos: DatosProducto) {
+  const errorValidacion = validarProducto(datos);
+  if (errorValidacion) return { ok: false as const, error: errorValidacion };
+
   try {
     const db = getAdminFirestore();
     const referencia = await db.collection("products").add({
@@ -27,6 +46,7 @@ export async function crearProducto(datos: DatosProducto) {
     });
     revalidatePath("/catalogo");
     revalidatePath("/");
+    revalidatePath("/admin/catalogo");
     return { ok: true as const, id: referencia.id };
   } catch (error) {
     Sentry.captureException(error);
@@ -36,6 +56,9 @@ export async function crearProducto(datos: DatosProducto) {
 }
 
 export async function actualizarProducto(id: string, datos: DatosProducto) {
+  const errorValidacion = validarProducto(datos);
+  if (errorValidacion) return { ok: false as const, error: errorValidacion };
+
   try {
     const db = getAdminFirestore();
     await db.doc(`products/${id}`).update({
@@ -44,6 +67,7 @@ export async function actualizarProducto(id: string, datos: DatosProducto) {
     });
     revalidatePath("/catalogo");
     revalidatePath("/");
+    revalidatePath("/admin/catalogo");
     return { ok: true as const };
   } catch (error) {
     Sentry.captureException(error);
@@ -88,7 +112,7 @@ export async function crearCategoria(datos: { name: string }) {
       slug,
     });
     revalidatePath("/catalogo");
-    revalidatePath("/admin/inventario");
+    revalidatePath("/admin/catalogo");
     return { ok: true as const, id: referencia.id };
   } catch (error) {
     Sentry.captureException(error);
@@ -102,7 +126,7 @@ export async function eliminarCategoria(id: string) {
     const db = getAdminFirestore();
     await db.doc(`categories/${id}`).delete();
     revalidatePath("/catalogo");
-    revalidatePath("/admin/inventario");
+    revalidatePath("/admin/catalogo");
     return { ok: true as const };
   } catch (error) {
     Sentry.captureException(error);

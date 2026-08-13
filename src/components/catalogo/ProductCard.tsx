@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCartStore } from "@/store/useCartStore";
 import { formatearUSD, formatearBs, convertirUSDaBs } from "@/lib/utils";
-import type { Producto } from "@/types/product";
+import type { ProductoPublico } from "@/types/product";
 
 interface ProductCardProps {
-  producto: Producto;
+  producto: ProductoPublico;
   tasaBCV: number;
 }
 

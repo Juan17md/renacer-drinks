@@ -1,45 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { ProductsDataTable } from "@/components/admin/inventario/ProductsDataTable";
 import { InventarioCliente } from "@/components/admin/inventario/InventarioCliente";
 
-const { productosMock, categoriasMock } = vi.hoisted(() => ({
-  productosMock: [
+const { materialesMock } = vi.hoisted(() => ({
+  materialesMock: [
     {
-      id: "prod_1",
-      name: "Café Mocca Helado",
-      description: "Espresso doble con chocolate",
-      price: 4.5,
-      category: "bebidas-frias",
-      isAvailable: true,
-      imageUrl: "",
-      imageId: "",
-      updatedAt: "2026-08-12T23:00:00Z",
+      id: "mat_1",
+      nombre: "Leche entera",
+      unidad: "L",
+      cantidad: 12,
+      updatedAt: "2026-08-13T10:00:00Z",
     },
     {
-      id: "prod_2",
-      name: "Capuchino",
-      description: "Café con leche espumosa",
-      price: 3.0,
-      category: "bebidas-calientes",
-      isAvailable: false,
-      imageUrl: "",
-      imageId: "",
-      updatedAt: "2026-08-12T23:00:00Z",
+      id: "mat_2",
+      nombre: "Café en grano",
+      unidad: "kg",
+      cantidad: 3.5,
+      updatedAt: "2026-08-13T10:00:00Z",
     },
-  ],
-  categoriasMock: [
-    { id: "cat_1", name: "Bebidas Frías", slug: "bebidas-frias" },
-    { id: "cat_2", name: "Bebidas Calientes", slug: "bebidas-calientes" },
   ],
 }));
 
-vi.mock("@/actions/products", () => ({
-  actualizarProducto: vi.fn().mockResolvedValue({ ok: true }),
-  eliminarProducto: vi.fn().mockResolvedValue({ ok: true }),
-  crearProducto: vi.fn().mockResolvedValue({ ok: true }),
-  crearCategoria: vi.fn().mockResolvedValue({ ok: true }),
-  eliminarCategoria: vi.fn().mockResolvedValue({ ok: true }),
+vi.mock("@/actions/materials", () => ({
+  crearMaterial: vi.fn().mockResolvedValue({ ok: true }),
+  actualizarMaterial: vi.fn().mockResolvedValue({ ok: true }),
+  eliminarMaterial: vi.fn().mockResolvedValue({ ok: true }),
 }));
 
 vi.mock("sonner", () => ({
@@ -50,116 +35,80 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("ProductsDataTable", () => {
-  it("renderiza los productos con sus precios", () => {
-    render(
-      <ProductsDataTable
-        productos={productosMock}
-        categorias={categoriasMock}
-        onEditar={vi.fn()}
-      />
-    );
+describe("InventarioCliente (materiales)", () => {
+  it("muestra los materiales con su unidad y cantidad", () => {
+    render(<InventarioCliente materiales={materialesMock} />);
 
-    expect(screen.getByText("Café Mocca Helado")).toBeInTheDocument();
-    expect(screen.getByText("Capuchino")).toBeInTheDocument();
-    expect(screen.getByText("$4.50")).toBeInTheDocument();
-    expect(screen.getByText("$3.00")).toBeInTheDocument();
+    expect(screen.getByText("Leche entera")).toBeInTheDocument();
+    expect(screen.getByText("Café en grano")).toBeInTheDocument();
+    expect(screen.getByText("L")).toBeInTheDocument();
+    expect(screen.getByText("kg")).toBeInTheDocument();
+    expect(screen.getByText(/2 materiales registrados/i)).toBeInTheDocument();
   });
 
-  it("filtra productos por la búsqueda global", () => {
-    render(
-      <ProductsDataTable
-        productos={productosMock}
-        categorias={categoriasMock}
-        onEditar={vi.fn()}
-      />
-    );
+  it("muestra el estado vacío cuando no hay materiales", () => {
+    render(<InventarioCliente materiales={[]} />);
 
-    fireEvent.change(screen.getByLabelText(/buscar producto/i), {
-      target: { value: "capuchino" },
-    });
-
-    expect(screen.queryByText("Café Mocca Helado")).not.toBeInTheDocument();
-    expect(screen.getByText("Capuchino")).toBeInTheDocument();
-  });
-
-  it("ordena por nombre al hacer clic en la columna", () => {
-    render(
-      <ProductsDataTable
-        productos={productosMock}
-        categorias={categoriasMock}
-        onEditar={vi.fn()}
-      />
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: /nombre/i }));
-    fireEvent.click(screen.getByRole("button", { name: /nombre/i }));
-
-    const filas = screen.getAllByRole("row");
-    expect(filas[1]).toHaveTextContent("Capuchino");
-    expect(filas[2]).toHaveTextContent("Café Mocca Helado");
-  });
-
-  it("abre el editor al hacer clic en editar", () => {
-    const onEditar = vi.fn();
-    render(
-      <ProductsDataTable
-        productos={productosMock}
-        categorias={categoriasMock}
-        onEditar={onEditar}
-      />
-    );
-
-    fireEvent.click(
-      screen.getByRole("button", { name: /editar café mocca helado/i })
-    );
-
-    expect(onEditar).toHaveBeenCalledWith(productosMock[0]);
-  });
-});
-
-describe("InventarioCliente", () => {
-  it("muestra el botón de agregar y el contador de productos", () => {
-    render(
-      <InventarioCliente productos={productosMock} categorias={categoriasMock} />
-    );
-
-    expect(screen.getByText(/2 productos en el menú/i)).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /agregar producto/i })
+      screen.getByText(/no hay materiales registrados todavía/i)
     ).toBeInTheDocument();
   });
 
-  it("abre el modal de creación al hacer clic en agregar", () => {
-    render(
-      <InventarioCliente productos={productosMock} categorias={categoriasMock} />
-    );
+  it("abre el modal de creación al hacer clic en agregar material", () => {
+    render(<InventarioCliente materiales={materialesMock} />);
 
     fireEvent.click(
-      screen.getByRole("button", { name: /agregar producto/i })
+      screen.getByRole("button", { name: /agregar material/i })
     );
 
     expect(
-      screen.getByRole("dialog", { name: /agregar producto/i })
+      screen.getByRole("dialog", { name: /agregar material/i })
     ).toBeInTheDocument();
   });
 
-  it("abre el modal de edición con los datos del producto", async () => {
-    render(
-      <InventarioCliente productos={productosMock} categorias={categoriasMock} />
-    );
+  it("abre el modal de edición con los datos del material", async () => {
+    render(<InventarioCliente materiales={materialesMock} />);
 
     fireEvent.click(
-      screen.getByRole("button", { name: /editar café mocca helado/i })
+      screen.getByRole("button", { name: /editar leche entera/i })
     );
 
     const dialogo = await screen.findByRole("dialog", {
-      name: /editar producto/i,
+      name: /editar material/i,
     });
     expect(dialogo).toBeInTheDocument();
-    expect(screen.getByLabelText("Nombre *")).toHaveValue(
-      "Café Mocca Helado"
+    expect(screen.getByLabelText("Nombre *")).toHaveValue("Leche entera");
+    expect(screen.getByLabelText(/cantidad \*/i)).toHaveValue(12);
+  });
+
+  it("valida que el nombre sea obligatorio al crear", async () => {
+    render(<InventarioCliente materiales={materialesMock} />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /agregar material/i })
     );
-    expect(screen.getByLabelText(/precio \(usd\)/i)).toHaveValue(4.5);
+    fireEvent.click(screen.getByRole("button", { name: /crear material/i }));
+
+    expect(
+      await screen.findByText(/el nombre del material es obligatorio/i)
+    ).toBeInTheDocument();
+  });
+
+  it("permite escribir una unidad personalizada con la opción Otra", async () => {
+    render(<InventarioCliente materiales={materialesMock} />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /agregar material/i })
+    );
+
+    fireEvent.click(
+      screen.getByRole("combobox", { name: /unidad de medida/i })
+    );
+    const opciones = await screen.findAllByText("Otra...");
+    fireEvent.click(opciones[opciones.length - 1]);
+
+    expect(
+      screen.getByLabelText(/escribe la unidad \*/i)
+    ).toBeInTheDocument();
   });
 });

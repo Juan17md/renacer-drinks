@@ -3,33 +3,27 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ProductsDataTable } from "@/components/admin/inventario/ProductsDataTable";
-import { ProductFormModal } from "@/components/admin/inventario/ProductFormModal";
-import { CategoryManager } from "@/components/admin/inventario/CategoryManager";
-import type { Producto } from "@/types/product";
-import type { Categoria } from "@/types/category";
+import { MaterialsDataTable } from "@/components/admin/inventario/MaterialsDataTable";
+import { MaterialFormModal } from "@/components/admin/inventario/MaterialFormModal";
+import type { Material } from "@/types/material";
 
 interface InventarioClienteProps {
-  productos: Producto[];
-  categorias: Categoria[];
+  materiales: Material[];
 }
 
-export function InventarioCliente({
-  productos,
-  categorias,
-}: InventarioClienteProps) {
+export function InventarioCliente({ materiales }: InventarioClienteProps) {
   const [modalAbierto, setModalAbierto] = useState(false);
-  const [productoEditando, setProductoEditando] = useState<Producto | null>(
+  const [materialEditando, setMaterialEditando] = useState<Material | null>(
     null
   );
 
   const abrirCrear = () => {
-    setProductoEditando(null);
+    setMaterialEditando(null);
     setModalAbierto(true);
   };
 
-  const abrirEditar = (producto: Producto) => {
-    setProductoEditando(producto);
+  const abrirEditar = (material: Material) => {
+    setMaterialEditando(material);
     setModalAbierto(true);
   };
 
@@ -41,29 +35,25 @@ export function InventarioCliente({
             Inventario
           </h1>
           <p className="mt-1 text-base text-muted-foreground">
-            {productos.length} producto{productos.length === 1 ? "" : "s"} en
-            el menú
+            {materiales.length} material{materiales.length === 1 ? "" : "es"}{" "}
+            registrados
           </p>
         </div>
         <Button className="h-12" onClick={abrirCrear}>
           <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-          Agregar producto
+          Agregar material
         </Button>
       </div>
 
-      <ProductsDataTable
-        productos={productos}
-        categorias={categorias}
+      <MaterialsDataTable
+        materiales={materiales}
         onEditar={abrirEditar}
       />
 
-      <CategoryManager categorias={categorias} />
-
-      <ProductFormModal
+      <MaterialFormModal
         abierto={modalAbierto}
         onOpenChange={setModalAbierto}
-        producto={productoEditando}
-        categorias={categorias}
+        material={materialEditando}
       />
     </div>
   );

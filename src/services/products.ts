@@ -1,7 +1,7 @@
 import "server-only";
 import { collection, getDocs, doc, getDoc, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { Producto } from "@/types/product";
+import type { Producto, ProductoPublico } from "@/types/product";
 
 function convertirProducto(docSnapshot: {
   id: string;
@@ -13,6 +13,7 @@ function convertirProducto(docSnapshot: {
     name: String(datos.name ?? ""),
     description: String(datos.description ?? ""),
     price: Number(datos.price ?? 0),
+    costo: Number(datos.costo ?? 0),
     category: String(datos.category ?? ""),
     isAvailable: Boolean(datos.isAvailable ?? true),
     imageUrl: String(datos.imageUrl ?? ""),
@@ -24,7 +25,13 @@ function convertirProducto(docSnapshot: {
   };
 }
 
-export async function obtenerProductos(): Promise<Producto[]> {
+export async function obtenerProductos(): Promise<ProductoPublico[]> {
+  const productos = await obtenerProductosCompletos();
+  // El costo es información interna del negocio: nunca se expone al público.
+  return productos.map(({ costo: _costo, ...producto }) => producto);
+}
+
+export async function obtenerProductosCompletos(): Promise<Producto[]> {
   try {
     const consulta = query(
       collection(db, "products"),
@@ -38,7 +45,7 @@ export async function obtenerProductos(): Promise<Producto[]> {
   }
 }
 
-export async function obtenerProductosDisponibles(): Promise<Producto[]> {
+export async function obtenerProductosDisponibles(): Promise<ProductoPublico[]> {
   const productos = await obtenerProductos();
   return productos.filter((producto) => producto.isAvailable);
 }

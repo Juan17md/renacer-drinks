@@ -1,16 +1,10 @@
-import { obtenerProductos } from "@/services/products";
-import { obtenerCategorias } from "@/services/categories";
+import { obtenerMateriales } from "@/services/materials";
 import { InventarioCliente } from "@/components/admin/inventario/InventarioCliente";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 export default async function PaginaInventario() {
-  const [productos, categorias] = await Promise.all([
-    obtenerProductos(),
-    obtenerCategorias(),
-  ]);
+  const materiales = await obtenerMateriales();
 
-  return (
-    <InventarioCliente productos={productos} categorias={categorias} />
-  );
+  return <InventarioCliente materiales={materiales} />;
 }

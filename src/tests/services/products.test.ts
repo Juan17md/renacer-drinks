@@ -20,7 +20,7 @@ vi.mock("@/lib/firebase", () => ({
   db: {},
 }));
 
-import { obtenerProductos, obtenerProductosDisponibles, obtenerProductoPorId } from "@/services/products";
+import { obtenerProductos, obtenerProductosDisponibles, obtenerProductoPorId, obtenerProductosCompletos } from "@/services/products";
 import { obtenerCategorias } from "@/services/categories";
 
 function crearSnapshot(datos: Record<string, unknown>[], ids: string[]) {
@@ -36,6 +36,7 @@ const productoDatos = {
   name: "Café Mocca",
   description: "Espresso con chocolate",
   price: 4.5,
+  costo: 3.5,
   category: "bebidas-calientes",
   isAvailable: true,
   imageUrl: "https://ik.imagekit.io/renacer/mocca.jpg",
@@ -72,6 +73,29 @@ describe("obtenerProductos", () => {
     const productos = await obtenerProductos();
 
     expect(productos).toEqual([]);
+  });
+
+  it("nunca expone el costo al público", async () => {
+    mocksFirestore.getDocs.mockResolvedValue(
+      crearSnapshot([productoDatos], ["prod_1"])
+    );
+
+    const productos = await obtenerProductos();
+
+    expect(productos[0]).not.toHaveProperty("costo");
+    expect((productos[0] as { costo?: number }).costo).toBeUndefined();
+  });
+});
+
+describe("obtenerProductosCompletos", () => {
+  it("incluye el costo para el panel admin", async () => {
+    mocksFirestore.getDocs.mockResolvedValue(
+      crearSnapshot([productoDatos], ["prod_1"])
+    );
+
+    const productos = await obtenerProductosCompletos();
+
+    expect(productos[0].costo).toBe(3.5);
   });
 });
 

@@ -1,15 +1,15 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Producto } from "@/types/product";
+import type { ProductoPublico } from "@/types/product";
 
 export interface ItemCarrito {
-  producto: Producto;
+  producto: ProductoPublico;
   cantidad: number;
 }
 
 interface CartState {
   items: ItemCarrito[];
-  agregarProducto: (producto: Producto, cantidad?: number) => void;
+  agregarProducto: (producto: ProductoPublico, cantidad?: number) => void;
   eliminarProducto: (productoId: string) => void;
   actualizarCantidad: (productoId: string, cantidad: number) => void;
   vaciarCarrito: () => void;

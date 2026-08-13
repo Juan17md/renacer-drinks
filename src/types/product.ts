@@ -3,6 +3,7 @@ export interface Producto {
   name: string;
   description: string;
   price: number;
+  costo: number;
   category: string;
   isAvailable: boolean;
   imageUrl: string;
@@ -10,10 +11,15 @@ export interface Producto {
   updatedAt: string;
 }
 
+// Versión pública del producto: el costo es información interna del negocio
+// y nunca debe exponerse al cliente.
+export type ProductoPublico = Omit<Producto, "costo">;
+
 export interface ProductoInput {
   name: string;
   description: string;
   price: number;
+  costo: number;
   category: string;
   isAvailable: boolean;
   imageUrl: string;

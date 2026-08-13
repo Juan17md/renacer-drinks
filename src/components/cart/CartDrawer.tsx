@@ -56,6 +56,7 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
       const orden = await crearOrden({
         nombreCliente: nombreCliente.trim(),
         items: items.map((item) => ({
+          productId: item.producto.id,
           nombre: item.producto.name,
           precio: item.producto.price,
           cantidad: item.cantidad,
