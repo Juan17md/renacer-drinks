@@ -146,6 +146,7 @@ describe("CartDrawer", () => {
     expect(
       screen.queryByRole("button", { name: /pago móvil/i })
     ).not.toBeInTheDocument();
+    expect(screen.queryByText(/método de pago/i)).not.toBeInTheDocument();
 
     fireEvent.click(botonPagar);
 
@@ -153,6 +154,36 @@ describe("CartDrawer", () => {
       screen.getByRole("button", { name: /pago móvil/i })
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /efectivo/i })).toBeInTheDocument();
+    expect(screen.getByText(/método de pago/i)).toBeInTheDocument();
+  });
+
+  it("mantiene el método elegido y la sección de pago al reabrir el carrito", () => {
+    useCartStore.getState().agregarProducto(productoMock, 1);
+
+    const { rerender } = render(
+      <CartDrawer abierto={false} onOpenChange={onOpenChange} tasaBCV={764.35} />
+    );
+
+    rerender(
+      <CartDrawer abierto onOpenChange={onOpenChange} tasaBCV={764.35} />
+    );
+    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
+    fireEvent.click(screen.getByRole("button", { name: /pago móvil/i }));
+    expect(screen.getByText("0414-1234567")).toBeInTheDocument();
+
+    rerender(
+      <CartDrawer abierto={false} onOpenChange={onOpenChange} tasaBCV={764.35} />
+    );
+    rerender(
+      <CartDrawer abierto onOpenChange={onOpenChange} tasaBCV={764.35} />
+    );
+
+    expect(screen.getByText(/método de pago/i)).toBeInTheDocument();
+    expect(screen.getByText("0414-1234567")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /pago móvil/i })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
   });
 
   it("muestra los datos del método con botón copiar al elegir Pago Móvil", () => {
@@ -177,6 +208,54 @@ describe("CartDrawer", () => {
     fireEvent.click(screen.getByRole("button", { name: /copiar teléfono/i }));
 
     expect(clipboardMock).toHaveBeenCalledWith("0414-1234567");
+  });
+
+  it("copia todos los datos del método con el botón Copiar todos", async () => {
+    useCartStore.getState().agregarProducto(productoMock, 1);
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: vi.fn().mockResolvedValue(undefined) },
+      configurable: true,
+    });
+    const clipboardMock = vi.spyOn(navigator.clipboard, "writeText");
+
+    render(
+      <>
+        <Toaster />
+        <CartDrawer abierto onOpenChange={onOpenChange} tasaBCV={764.35} />
+      </>
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
+    fireEvent.click(screen.getByRole("button", { name: /pago móvil/i }));
+
+    const botonCopiarTodos = screen.getByRole("button", {
+      name: /copiar todos/i,
+    });
+    expect(botonCopiarTodos).toBeInTheDocument();
+
+    fireEvent.click(botonCopiarTodos);
+
+    expect(
+      await screen.findByRole("button", { name: /datos copiados/i })
+    ).toBeInTheDocument();
+    expect(clipboardMock).toHaveBeenCalledWith(
+      "Teléfono: 0414-1234567\nCédula: V-12.345.678"
+    );
+  });
+
+  it("no muestra Copiar todos en métodos sin datos", () => {
+    useCartStore.getState().agregarProducto(productoMock, 1);
+
+    render(
+      <CartDrawer abierto onOpenChange={onOpenChange} tasaBCV={764.35} />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
+    fireEvent.click(screen.getByRole("button", { name: /efectivo/i }));
+
+    expect(
+      screen.queryByRole("button", { name: /copiar todos/i })
+    ).not.toBeInTheDocument();
   });
 
   it("no permite enviar con método digital sin comprobante", () => {

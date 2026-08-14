@@ -31,7 +31,7 @@ import { convertirUSDaBs } from "@/lib/utils";
 import { crearOrden } from "@/services/orders";
 import { escucharMetodosPago } from "@/services/metodosPago";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import type { MetodoPagoConfig } from "@/types/payment";
+import type { MetodoPagoConfig, DatoMetodoPago } from "@/types/payment";
 import { cn } from "@/lib/utils";
 
 const URL_ENDPOINT = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT ?? "";
@@ -83,6 +83,20 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
       setCopiado(etiqueta);
       setTimeout(() => setCopiado(null), 2000);
       toast.success(`${etiqueta} copiado`);
+    } catch {
+      toast.error("No se pudo copiar. Cópialo manualmente.");
+    }
+  };
+
+  const manejarCopiarTodos = async (datos: DatoMetodoPago[]) => {
+    try {
+      const texto = datos
+        .map((dato) => `${dato.etiqueta}: ${dato.valor}`)
+        .join("\n");
+      await navigator.clipboard.writeText(texto);
+      setCopiado("todos");
+      setTimeout(() => setCopiado(null), 2000);
+      toast.success("Datos de pago copiados");
     } catch {
       toast.error("No se pudo copiar. Cópialo manualmente.");
     }
@@ -221,13 +235,13 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
               </p>
             </div>
 
-            <div className="rounded-2xl border border-brand-rose/30 bg-brand-rose-light/40 p-4">
-              <p className="flex items-center gap-2 font-medium text-brand-coffee">
-                <Wallet className="h-4 w-4 text-brand-rose-deep" aria-hidden="true" />
-                Método de pago
-              </p>
+            {(pagoVisible || metodoSeleccionado) && (
+              <div className="rounded-2xl border border-brand-rose/30 bg-brand-rose-light/40 p-4">
+                <p className="flex items-center gap-2 font-medium text-brand-coffee">
+                  <Wallet className="h-4 w-4 text-brand-rose-deep" aria-hidden="true" />
+                  Método de pago
+                </p>
 
-              {(pagoVisible || metodoSeleccionado) && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {metodosActivos.map((metodo) => {
                     const seleccionado = metodoSeleccionado?.id === metodo.id;
@@ -253,126 +267,144 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                     );
                   })}
                 </div>
-              )}
 
-              {metodoSeleccionado && (
-                <div className="mt-4 space-y-4">
-                  {metodoSeleccionado.requiereComprobante ? (
-                    <>
-                      <ul className="space-y-2">
-                        {metodoSeleccionado.datos.map((dato) => (
-                          <li
-                            key={dato.etiqueta}
-                            className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-white px-3 py-2.5"
-                          >
-                            <div className="min-w-0">
-                              <p className="text-sm font-small text-muted-foreground">
-                                {dato.etiqueta}
-                              </p>
-                              <p className="truncate font-medium text-brand-coffee">
-                                {dato.valor}
-                              </p>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="h-9 shrink-0"
-                              onClick={() =>
-                                manejarCopiar(dato.valor, dato.etiqueta)
-                              }
-                              aria-label={`Copiar ${dato.etiqueta}`}
+                {metodoSeleccionado && (
+                  <div className="mt-4 space-y-4">
+                    {metodoSeleccionado.requiereComprobante ? (
+                      <>
+                        <ul className="space-y-2">
+                          {metodoSeleccionado.datos.map((dato) => (
+                            <li
+                              key={dato.etiqueta}
+                              className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-white px-3 py-2.5"
                             >
-                              {copiado === dato.etiqueta ? (
-                                <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" />
-                              ) : (
-                                <Copy className="h-4 w-4" aria-hidden="true" />
-                              )}
-                              {copiado === dato.etiqueta ? "Copiado" : "Copiar"}
-                            </Button>
-                          </li>
-                        ))}
-                      </ul>
-
-                      <IKContext
-                        publicKey={process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY}
-                        urlEndpoint={URL_ENDPOINT}
-                        authenticationEndpoint="/api/imagekit-auth"
-                      >
-                        <div className="space-y-2">
-                          <Label>Comprobante de pago *</Label>
-                          {comprobanteUrl ? (
-                            <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-white p-2">
-                              <Image
-                                src={comprobanteUrl}
-                                alt="Vista previa del comprobante"
-                                width={64}
-                                height={64}
-                                className="h-16 w-16 rounded-lg object-cover"
-                              />
-                              <div className="min-w-0 flex-1">
-                                <p className="flex items-center gap-1.5 text-base font-medium text-emerald-700">
-                                  <Check className="h-4 w-4" aria-hidden="true" />
-                                  Comprobante cargado
+                              <div className="min-w-0">
+                                <p className="text-sm font-small text-muted-foreground">
+                                  {dato.etiqueta}
                                 </p>
-                                <button
-                                  type="button"
-                                  onClick={() => setComprobanteUrl("")}
-                                  className="text-sm font-small text-destructive underline"
-                                >
-                                  Quitar y cargar otro
-                                </button>
+                                <p className="truncate font-medium text-brand-coffee">
+                                  {dato.valor}
+                                </p>
                               </div>
-                            </div>
-                          ) : (
-                            <label
-                              htmlFor="comprobante-pago"
-                              className={cn(
-                                "flex h-20 w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-border bg-white text-muted-foreground transition-colors hover:border-brand-rose hover:text-brand-rose-deep",
-                                subiendo && "pointer-events-none opacity-60"
-                              )}
-                            >
-                              {subiendo ? (
-                                <Loader2
-                                  className="h-5 w-5 animate-spin"
-                                  aria-hidden="true"
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-9 shrink-0"
+                                onClick={() =>
+                                  manejarCopiar(dato.valor, dato.etiqueta)
+                                }
+                                aria-label={`Copiar ${dato.etiqueta}`}
+                              >
+                                {copiado === dato.etiqueta ? (
+                                  <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                                ) : (
+                                  <Copy className="h-4 w-4" aria-hidden="true" />
+                                )}
+                                {copiado === dato.etiqueta ? "Copiado" : "Copiar"}
+                              </Button>
+                            </li>
+                          ))}
+                        </ul>
+
+                        {metodoSeleccionado.datos.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full"
+                            onClick={() =>
+                              manejarCopiarTodos(metodoSeleccionado.datos)
+                            }
+                          >
+                            {copiado === "todos" ? (
+                              <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                            ) : (
+                              <Copy className="h-4 w-4" aria-hidden="true" />
+                            )}
+                            {copiado === "todos" ? "Datos copiados" : "Copiar todos"}
+                          </Button>
+                        )}
+
+                        <IKContext
+                          publicKey={process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY}
+                          urlEndpoint={URL_ENDPOINT}
+                          authenticationEndpoint="/api/imagekit-auth"
+                        >
+                          <div className="space-y-2">
+                            <Label>Comprobante de pago *</Label>
+                            {comprobanteUrl ? (
+                              <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-white p-2">
+                                <Image
+                                  src={comprobanteUrl}
+                                  alt="Vista previa del comprobante"
+                                  width={64}
+                                  height={64}
+                                  className="h-16 w-16 rounded-lg object-cover"
                                 />
-                              ) : (
-                                <Upload className="h-5 w-5" aria-hidden="true" />
-                              )}
-                              <span className="text-sm font-medium">
-                                {subiendo
-                                  ? "Cargando comprobante..."
-                                  : "Toca para cargar la imagen (JPG, PNG o WebP, máx. 5MB)"}
-                              </span>
-                            </label>
-                          )}
-                          {!comprobanteUrl && (
-                            <IKUpload
-                              id="comprobante-pago"
-                              fileName={`comprobante-${Date.now()}`}
-                              useUniqueFileName
-                              folder="/comprobantes"
-                              onUploadStart={() => setSubiendo(true)}
-                              onSuccess={manejarExitoSubida}
-                              onError={manejarErrorSubida}
-                              className="hidden"
-                              accept="image/jpeg,image/png,image/webp"
-                              aria-label="Subir comprobante de pago"
-                            />
-                          )}
-                        </div>
-                      </IKContext>
-                    </>
-                  ) : (
-                    <p className="rounded-xl bg-white px-4 py-3 text-base text-brand-coffee">
-                      Paga en el local y se lo comunicas al personal de la
-                      barra. ¡Nos vemos!
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="flex items-center gap-1.5 text-base font-medium text-emerald-700">
+                                    <Check className="h-4 w-4" aria-hidden="true" />
+                                    Comprobante cargado
+                                  </p>
+                                  <button
+                                    type="button"
+                                    onClick={() => setComprobanteUrl("")}
+                                    className="text-sm font-small text-destructive underline"
+                                  >
+                                    Quitar y cargar otro
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <label
+                                htmlFor="comprobante-pago"
+                                className={cn(
+                                  "flex h-20 w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-border bg-white text-muted-foreground transition-colors hover:border-brand-rose hover:text-brand-rose-deep",
+                                  subiendo && "pointer-events-none opacity-60"
+                                )}
+                              >
+                                {subiendo ? (
+                                  <Loader2
+                                    className="h-5 w-5 animate-spin"
+                                    aria-hidden="true"
+                                  />
+                                ) : (
+                                  <Upload className="h-5 w-5" aria-hidden="true" />
+                                )}
+                                <span className="text-sm font-medium">
+                                  {subiendo
+                                    ? "Cargando comprobante..."
+                                    : "Toca para cargar la imagen (JPG, PNG o WebP, máx. 5MB)"}
+                                </span>
+                              </label>
+                            )}
+                            {!comprobanteUrl && (
+                              <IKUpload
+                                id="comprobante-pago"
+                                fileName={`comprobante-${Date.now()}`}
+                                useUniqueFileName
+                                folder="/comprobantes"
+                                onUploadStart={() => setSubiendo(true)}
+                                onSuccess={manejarExitoSubida}
+                                onError={manejarErrorSubida}
+                                className="hidden"
+                                accept="image/jpeg,image/png,image/webp"
+                                aria-label="Subir comprobante de pago"
+                              />
+                            )}
+                          </div>
+                        </IKContext>
+                      </>
+                    ) : (
+                      <p className="rounded-xl bg-white px-4 py-3 text-base text-brand-coffee">
+                        Paga en el local y se lo comunicas al personal de la
+                        barra. ¡Nos vemos!
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {error && (
               <p
