@@ -27,16 +27,20 @@ import { toast } from "sonner";
 import { CartItem } from "@/components/cart/CartItem";
 import { CartSummary } from "@/components/cart/CartSummary";
 import { useCartStore } from "@/store/useCartStore";
-import { convertirUSDaBs } from "@/lib/utils";
+import { convertirUSDaBs, formatearBs } from "@/lib/utils";
 import { autenticarImageKit } from "@/lib/imagekit-auth";
 import { crearOrden } from "@/services/orders";
 import { escucharMetodosPago } from "@/services/metodosPago";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import type { MetodoPagoConfig, DatoMetodoPago } from "@/types/payment";
+import type { MetodoPago } from "@/types/transaction";
 import { cn } from "@/lib/utils";
 
 const URL_ENDPOINT = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT ?? "";
 const CONSULTA_ESCRITORIO = "(min-width: 768px)";
+
+// Métodos que se pagan en bolívares y exigen indicar el monto al transferir
+const METODOS_CON_MONTO: MetodoPago[] = ["PAGO_MOVIL", "TRANSFERENCIA"];
 
 interface CartDrawerProps {
   abierto: boolean;
@@ -111,6 +115,19 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
     0
   );
   const totalBs = convertirUSDaBs(totalUSD, tasaBCV);
+
+  const mostrarMonto = Boolean(
+    metodoSeleccionado &&
+      METODOS_CON_MONTO.includes(metodoSeleccionado.id) &&
+      totalBs > 0
+  );
+
+  const datosConMonto: DatoMetodoPago[] = mostrarMonto
+    ? [
+        { etiqueta: "Monto a pagar", valor: formatearBs(totalBs) },
+        ...(metodoSeleccionado?.datos ?? []),
+      ]
+    : (metodoSeleccionado?.datos ?? []);
 
   const manejarCopiar = async (valor: string, etiqueta: string) => {
     try {
@@ -315,7 +332,7 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                     {metodoSeleccionado.requiereComprobante ? (
                       <>
                         <ul className="space-y-2">
-                          {metodoSeleccionado.datos.map((dato) => (
+                          {datosConMonto.map((dato) => (
                             <li
                               key={dato.etiqueta}
                               className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-white px-3 py-2.5"
@@ -349,14 +366,12 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                           ))}
                         </ul>
 
-                        {metodoSeleccionado.datos.length > 1 && (
+                        {datosConMonto.length > 1 && (
                           <Button
                             type="button"
                             variant="outline"
                             className="h-11 w-full"
-                            onClick={() =>
-                              manejarCopiarTodos(metodoSeleccionado.datos)
-                            }
+                            onClick={() => manejarCopiarTodos(datosConMonto)}
                           >
                             {copiado === "todos" ? (
                               <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" />

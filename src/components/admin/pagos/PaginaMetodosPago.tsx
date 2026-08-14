@@ -5,10 +5,12 @@ import { Loader2, Plus, Save, Trash2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { obtenerMetodosPago } from "@/services/metodosPago";
 import { guardarMetodoPago, sembrarMetodosPagoPorDefecto } from "@/actions/metodosPago";
+import { cn } from "@/lib/utils";
 import type { MetodoPagoConfig, DatoMetodoPago } from "@/types/payment";
 import type { MetodoPago } from "@/types/transaction";
 
@@ -76,6 +78,22 @@ export function PaginaMetodosPago() {
     if (resultado.ok) {
       toast.success("Método de pago guardado");
     } else {
+      toast.error(resultado.error);
+    }
+  };
+
+  const manejarToggleActivo = async (id: MetodoPago, activo: boolean) => {
+    const actual = edicion[id];
+    if (!actual || guardando === id) return;
+    const anterior = actual.activo;
+    actualizarEdicion(id, { activo });
+    setGuardando(id);
+    const resultado = await guardarMetodoPago(id, { ...actual, activo });
+    setGuardando(null);
+    if (resultado.ok) {
+      toast.success(activo ? "Método habilitado" : "Método deshabilitado");
+    } else {
+      actualizarEdicion(id, { activo: anterior });
       toast.error(resultado.error);
     }
   };
@@ -151,13 +169,40 @@ export function PaginaMetodosPago() {
                       maxLength={60}
                     />
                   </div>
-                  <Switch
-                    checked={actual?.activo ?? false}
-                    onCheckedChange={(activo) =>
-                      actualizarEdicion(metodo.id, { activo })
-                    }
-                    aria-label={`Activar método ${metodo.label}`}
-                  />
+                </div>
+
+                <div className="mt-4 flex items-center justify-between rounded-xl border border-border/60 bg-muted/30 px-4 py-3">
+                  <div>
+                    <p className="text-base font-medium text-brand-coffee">
+                      Habilitado
+                    </p>
+                    <p className="text-base text-muted-foreground">
+                      {actual?.activo
+                        ? "Visible para los clientes al pagar"
+                        : "Oculto para los clientes al pagar"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge
+                      variant="secondary"
+                      className={cn(
+                        "h-6 px-2.5 text-xs font-semibold",
+                        actual?.activo
+                          ? "bg-[#588157] text-white"
+                          : "bg-muted text-muted-foreground"
+                      )}
+                    >
+                      {actual?.activo ? "Activo" : "Inactivo"}
+                    </Badge>
+                    <Switch
+                      checked={actual?.activo ?? false}
+                      onCheckedChange={(activo) =>
+                        manejarToggleActivo(metodo.id, activo)
+                      }
+                      disabled={guardando === metodo.id}
+                      aria-label={`Habilitar o deshabilitar ${metodo.label}`}
+                    />
+                  </div>
                 </div>
 
                 <div className="mt-4 flex items-center justify-between rounded-xl border border-border/60 bg-muted/30 px-4 py-3">
