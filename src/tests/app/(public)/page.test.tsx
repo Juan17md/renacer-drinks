@@ -6,6 +6,10 @@ vi.mock("@/components/public/FeaturedProducts", () => ({
   FeaturedProducts: () => <div data-testid="destacados">Destacados mock</div>,
 }));
 
+vi.mock("@/components/public/PromosSection", () => ({
+  PromosSection: () => <div data-testid="promos">Promos mock</div>,
+}));
+
 describe("Página de Inicio (Landing)", () => {
   it("ensambla el hero, la historia y la ubicación", async () => {
     const elemento = await PaginaInicio();

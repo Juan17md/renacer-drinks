@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { DashboardCliente } from "@/components/admin/dashboard/DashboardCliente";
+import { obtenerFechaLocalISO } from "@/lib/utils";
 
 const { obtenerResumenDiarioMock, obtenerProductosCompletosMock } =
   vi.hoisted(() => ({
@@ -23,11 +24,17 @@ vi.mock("@/services/products", () => ({
   obtenerProductosCompletos: obtenerProductosCompletosMock,
 }));
 
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
 describe("DashboardCliente", () => {
   it("carga el resumen del día y muestra las tarjetas: monto vendido, ganado y ventas", async () => {
     render(<DashboardCliente tasaBCVInicial={80} />);
 
-    expect(obtenerResumenDiarioMock).toHaveBeenCalledWith("2026-08-13");
+    expect(obtenerResumenDiarioMock).toHaveBeenCalledWith(
+      obtenerFechaLocalISO().slice(0, 10)
+    );
 
     expect(await screen.findByText(/monto vendido hoy/i)).toBeInTheDocument();
     expect(screen.getByText(/monto ganado hoy/i)).toBeInTheDocument();

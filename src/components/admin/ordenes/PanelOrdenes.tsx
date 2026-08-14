@@ -486,6 +486,28 @@ export function PanelOrdenes() {
               />
             </div>
           )}
+          {comprobanteVisible && comprobanteVisible.pagoVerificado === false && (
+            <Button
+              type="button"
+              className="mt-4 w-full"
+              onClick={() => {
+                manejarVerificarPago(comprobanteVisible);
+                setComprobanteVisible(null);
+              }}
+              disabled={verificando === comprobanteVisible.id}
+              aria-label={`Verificar pago de la orden ${comprobanteVisible.numero}`}
+            >
+              {verificando === comprobanteVisible.id ? (
+                <Loader2
+                  className="mr-1.5 h-4 w-4 animate-spin"
+                  aria-hidden="true"
+                />
+              ) : (
+                <ShieldCheck className="mr-1.5 h-4 w-4" aria-hidden="true" />
+              )}
+              Verificar pago
+            </Button>
+          )}
         </DialogContent>
       </Dialog>
     </div>

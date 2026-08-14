@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { crearProducto, actualizarProducto } from "@/actions/products";
+import { autenticarImageKit } from "@/lib/imagekit-auth";
 import { CategoryCombobox } from "@/components/admin/catalogo/CategoryCombobox";
 import type { Producto } from "@/types/product";
 import type { Categoria } from "@/types/category";
@@ -43,6 +44,7 @@ export function ProductFormModal({
   const [precioVenta, setPrecioVenta] = useState("");
   const [categoria, setCategoria] = useState("");
   const [disponible, setDisponible] = useState(true);
+  const [destacado, setDestacado] = useState(false);
   const [imagenUrl, setImagenUrl] = useState("");
   const [imagenId, setImagenId] = useState("");
   const [subiendo, setSubiendo] = useState(false);
@@ -57,6 +59,7 @@ export function ProductFormModal({
       setPrecioVenta(producto ? String(producto.price) : "");
       setCategoria(producto?.category ?? "");
       setDisponible(producto?.isAvailable ?? true);
+      setDestacado(producto?.destacado ?? false);
       setImagenUrl(producto?.imageUrl ?? "");
       setImagenId(producto?.imageId ?? "");
       setError("");
@@ -98,6 +101,7 @@ export function ProductFormModal({
       costo: costoNumerico,
       category: categoria,
       isAvailable: disponible,
+      destacado,
       imageUrl: imagenUrl,
       imageId: imagenId,
     };
@@ -232,7 +236,7 @@ export function ProductFormModal({
             <IKContext
               publicKey={process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY}
               urlEndpoint={URL_ENDPOINT}
-              authenticationEndpoint="/api/imagekit-auth"
+              authenticator={autenticarImageKit}
             >
               <div className="flex flex-col gap-3">
                 {imagenUrl ? (
@@ -300,6 +304,22 @@ export function ProductFormModal({
               checked={disponible}
               onCheckedChange={setDisponible}
               aria-label="Disponibilidad del producto"
+            />
+          </div>
+
+          <div className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/30 px-4 py-3">
+            <div>
+              <p className="text-base font-medium text-brand-coffee">
+                Destacado en la landing
+              </p>
+              <p className="text-base text-muted-foreground">
+                Aparece en &quot;Productos destacados&quot; de la página principal
+              </p>
+            </div>
+            <Switch
+              checked={destacado}
+              onCheckedChange={setDestacado}
+              aria-label="Destacado en la landing"
             />
           </div>
 

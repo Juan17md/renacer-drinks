@@ -230,16 +230,16 @@ service cloud.firestore {
             data.metodoPago in ['EFECTIVO', 'PAGO_MOVIL', 'PUNTO', 'TRANSFERENCIA', 'BINANCE', 'ZELLE']) &&
           (!('comprobanteUrl' in data) ||
             (data.comprobanteUrl is string &&
-             (data.comprobanteUrl.size() == 0 || data.comprobanteUrl.startsWith('https://')))) &&
+             (data.comprobanteUrl.size() == 0 || data.comprobanteUrl.matches('^https://.*')))) &&
           (!('pagoVerificado' in data) || data.pagoVerificado is bool) &&
-          (data.pagoVerificado != true ||
+          (!('pagoVerificado' in data && data.pagoVerificado == true) ||
             ('metodoPago' in data && data.metodoPago in ['EFECTIVO', 'PUNTO'])) &&
           (('metodoPago' in data &&
             data.metodoPago in ['PAGO_MOVIL', 'TRANSFERENCIA', 'BINANCE', 'ZELLE']) ?
             ('comprobanteUrl' in data &&
              data.comprobanteUrl is string &&
              data.comprobanteUrl.size() > 0 &&
-             data.comprobanteUrl.startsWith('https://')) : true);
+             data.comprobanteUrl.matches('^https://.*')) : true);
     }
 
     function esFechaValida(campo) {
@@ -277,7 +277,7 @@ service cloud.firestore {
       return camposModificados.hasOnly(['pagoVerificado', 'updatedAt']) &&
         resource.data.estado == request.resource.data.estado &&
         request.resource.data.pagoVerificado == true &&
-        resource.data.pagoVerificado != true;
+        (!('pagoVerificado' in resource.data) || resource.data.pagoVerificado != true);
     }
 
     function esTransaccionValida() {
@@ -378,6 +378,16 @@ service cloud.firestore {
     // Metodos de pago (lectura pública, escritura solo Admin SDK)
     // ===========================================================
     match /metodos_pago/{metodoId} {
+      allow read: if true;
+      // Las escrituras se realizan únicamente desde el servidor
+      // (Server Actions con Admin SDK, que ignora estas reglas).
+      allow create, update, delete: if false;
+    }
+
+    // ===========================================================
+    // Promociones de la landing (lectura pública, escritura solo Admin SDK)
+    // ===========================================================
+    match /promociones/{promocionId} {
       allow read: if true;
       // Las escrituras se realizan únicamente desde el servidor
       // (Server Actions con Admin SDK, que ignora estas reglas).

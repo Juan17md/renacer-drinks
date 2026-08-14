@@ -19,7 +19,7 @@ export const METODOS_PAGO_PREDETERMINADOS: MetodoPagoConfig[] = [
     datos: [
       { etiqueta: "Banco", valor: "Banesco" },
       { etiqueta: "Teléfono", valor: "0414-1234567" },
-      { etiqueta: "Cédula/RIF", valor: "V-12.345.678" },
+      { etiqueta: "Cédula/RIF", valor: "V-12345678" },
       { etiqueta: "Beneficiario", valor: "Renacer Drinks & Coffe" },
     ],
   },
@@ -40,7 +40,7 @@ export const METODOS_PAGO_PREDETERMINADOS: MetodoPagoConfig[] = [
     requiereComprobante: true,
     datos: [
       { etiqueta: "Banco", valor: "Banesco" },
-      { etiqueta: "Cuenta", valor: "0134-0000-00-0000000000" },
+      { etiqueta: "Cuenta", valor: "01340000000000000000" },
       { etiqueta: "Beneficiario", valor: "Renacer Drinks & Coffe" },
     ],
   },

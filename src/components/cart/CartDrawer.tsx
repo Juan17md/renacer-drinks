@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { IKContext, IKUpload } from "imagekitio-react";
 import {
@@ -28,10 +28,11 @@ import { CartItem } from "@/components/cart/CartItem";
 import { CartSummary } from "@/components/cart/CartSummary";
 import { useCartStore } from "@/store/useCartStore";
 import { convertirUSDaBs } from "@/lib/utils";
+import { autenticarImageKit } from "@/lib/imagekit-auth";
 import { crearOrden } from "@/services/orders";
 import { escucharMetodosPago } from "@/services/metodosPago";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import type { MetodoPagoConfig } from "@/types/payment";
+import type { MetodoPagoConfig, DatoMetodoPago } from "@/types/payment";
 import { cn } from "@/lib/utils";
 
 const URL_ENDPOINT = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT ?? "";
@@ -60,6 +61,17 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
   const [comprobanteUrl, setComprobanteUrl] = useState("");
   const [subiendo, setSubiendo] = useState(false);
   const [copiado, setCopiado] = useState<string | null>(null);
+  const refBloquePago = useRef<HTMLDivElement>(null);
+  const refDatosMetodo = useRef<HTMLDivElement>(null);
+
+  const desplazarHacia = (elemento: HTMLElement | null) => {
+    elemento?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  };
+
+  const manejarAbrirPago = () => {
+    setPagoVisible(true);
+    requestAnimationFrame(() => desplazarHacia(refBloquePago.current));
+  };
 
   useEffect(() => {
     const desuscribir = escucharMetodosPago(
@@ -67,6 +79,29 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
       () => toast.error("No se pudieron cargar los métodos de pago")
     );
     return desuscribir;
+  }, []);
+
+  useEffect(() => {
+    const viewportVisual = window.visualViewport;
+    if (!viewportVisual) return;
+
+    const restaurarAltoDrawer = () => {
+      requestAnimationFrame(() => {
+        if (viewportVisual.height >= window.innerHeight - 1) {
+          const contenido = document.querySelector(
+            '[data-slot="drawer-content"]'
+          );
+          if (contenido instanceof HTMLElement) {
+            contenido.style.height = "";
+            contenido.style.bottom = "";
+          }
+        }
+      });
+    };
+
+    viewportVisual.addEventListener("resize", restaurarAltoDrawer);
+    return () =>
+      viewportVisual.removeEventListener("resize", restaurarAltoDrawer);
   }, []);
 
   const metodosActivos = metodosPago.filter((metodo) => metodo.activo);
@@ -83,6 +118,20 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
       setCopiado(etiqueta);
       setTimeout(() => setCopiado(null), 2000);
       toast.success(`${etiqueta} copiado`);
+    } catch {
+      toast.error("No se pudo copiar. Cópialo manualmente.");
+    }
+  };
+
+  const manejarCopiarTodos = async (datos: DatoMetodoPago[]) => {
+    try {
+      const texto = datos
+        .map((dato) => `${dato.etiqueta}: ${dato.valor}`)
+        .join("\n");
+      await navigator.clipboard.writeText(texto);
+      setCopiado("todos");
+      setTimeout(() => setCopiado(null), 2000);
+      toast.success("Datos de pago copiados");
     } catch {
       toast.error("No se pudo copiar. Cópialo manualmente.");
     }
@@ -190,44 +239,48 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
         ) : (
           <form
             onSubmit={manejarEnvio}
-            className="flex flex-col gap-5 overflow-y-auto px-6"
+            className="flex min-h-0 flex-1 flex-col gap-5 px-6"
             noValidate
           >
-            <ul className="space-y-4">
-              {items.map((item) => (
-                <CartItem
-                  key={item.producto.id}
-                  item={item}
-                  onActualizarCantidad={actualizarCantidad}
-                  onEliminar={eliminarProducto}
+            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto">
+              <ul className="space-y-4">
+                {items.map((item) => (
+                  <CartItem
+                    key={item.producto.id}
+                    item={item}
+                    onActualizarCantidad={actualizarCantidad}
+                    onEliminar={eliminarProducto}
+                  />
+                ))}
+              </ul>
+              <CartSummary totalUSD={totalUSD} totalBs={totalBs} tasaBCV={tasaBCV} />
+
+              <div className="space-y-2">
+                <Label htmlFor="carrito-nombre">Tu nombre *</Label>
+                <Input
+                  id="carrito-nombre"
+                  value={nombreCliente}
+                  onChange={(evento) => setNombreCliente(evento.target.value)}
+                  placeholder="Ej. María"
+                  autoComplete="name"
+                  className="h-12 text-base"
+                  maxLength={40}
                 />
-              ))}
-            </ul>
-            <CartSummary totalUSD={totalUSD} totalBs={totalBs} tasaBCV={tasaBCV} />
+                <p className="text-xs font-small text-muted-foreground">
+                  Lo usamos para avisarte cuando tu pedido esté listo.
+                </p>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="carrito-nombre">Tu nombre *</Label>
-              <Input
-                id="carrito-nombre"
-                value={nombreCliente}
-                onChange={(evento) => setNombreCliente(evento.target.value)}
-                placeholder="Ej. María"
-                autoComplete="name"
-                className="h-12 text-base"
-                maxLength={40}
-              />
-              <p className="text-xs font-small text-muted-foreground">
-                Lo usamos para avisarte cuando tu pedido esté listo.
-              </p>
-            </div>
+            {(pagoVisible || metodoSeleccionado) && (
+              <div
+                ref={refBloquePago}
+                className="rounded-2xl border border-brand-rose/30 bg-brand-rose-light/40 p-4"
+              >
+                <p className="flex items-center gap-2 font-medium text-brand-coffee">
+                  <Wallet className="h-4 w-4 text-brand-rose-deep" aria-hidden="true" />
+                  Método de pago
+                </p>
 
-            <div className="rounded-2xl border border-brand-rose/30 bg-brand-rose-light/40 p-4">
-              <p className="flex items-center gap-2 font-medium text-brand-coffee">
-                <Wallet className="h-4 w-4 text-brand-rose-deep" aria-hidden="true" />
-                Método de pago
-              </p>
-
-              {(pagoVisible || metodoSeleccionado) && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {metodosActivos.map((metodo) => {
                     const seleccionado = metodoSeleccionado?.id === metodo.id;
@@ -239,6 +292,9 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                           setMetodoSeleccionado(metodo);
                           setComprobanteUrl("");
                           setPagoVisible(true);
+                          requestAnimationFrame(() =>
+                            desplazarHacia(refDatosMetodo.current)
+                          );
                         }}
                         aria-pressed={seleccionado}
                         className={cn(
@@ -253,126 +309,144 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                     );
                   })}
                 </div>
-              )}
 
-              {metodoSeleccionado && (
-                <div className="mt-4 space-y-4">
-                  {metodoSeleccionado.requiereComprobante ? (
-                    <>
-                      <ul className="space-y-2">
-                        {metodoSeleccionado.datos.map((dato) => (
-                          <li
-                            key={dato.etiqueta}
-                            className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-white px-3 py-2.5"
-                          >
-                            <div className="min-w-0">
-                              <p className="text-sm font-small text-muted-foreground">
-                                {dato.etiqueta}
-                              </p>
-                              <p className="truncate font-medium text-brand-coffee">
-                                {dato.valor}
-                              </p>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="h-9 shrink-0"
-                              onClick={() =>
-                                manejarCopiar(dato.valor, dato.etiqueta)
-                              }
-                              aria-label={`Copiar ${dato.etiqueta}`}
+                {metodoSeleccionado && (
+                  <div ref={refDatosMetodo} className="mt-4 space-y-4">
+                    {metodoSeleccionado.requiereComprobante ? (
+                      <>
+                        <ul className="space-y-2">
+                          {metodoSeleccionado.datos.map((dato) => (
+                            <li
+                              key={dato.etiqueta}
+                              className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-white px-3 py-2.5"
                             >
-                              {copiado === dato.etiqueta ? (
-                                <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" />
-                              ) : (
-                                <Copy className="h-4 w-4" aria-hidden="true" />
-                              )}
-                              {copiado === dato.etiqueta ? "Copiado" : "Copiar"}
-                            </Button>
-                          </li>
-                        ))}
-                      </ul>
-
-                      <IKContext
-                        publicKey={process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY}
-                        urlEndpoint={URL_ENDPOINT}
-                        authenticationEndpoint="/api/imagekit-auth"
-                      >
-                        <div className="space-y-2">
-                          <Label>Comprobante de pago *</Label>
-                          {comprobanteUrl ? (
-                            <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-white p-2">
-                              <Image
-                                src={comprobanteUrl}
-                                alt="Vista previa del comprobante"
-                                width={64}
-                                height={64}
-                                className="h-16 w-16 rounded-lg object-cover"
-                              />
-                              <div className="min-w-0 flex-1">
-                                <p className="flex items-center gap-1.5 text-base font-medium text-emerald-700">
-                                  <Check className="h-4 w-4" aria-hidden="true" />
-                                  Comprobante cargado
+                              <div className="min-w-0">
+                                <p className="text-sm font-small text-muted-foreground">
+                                  {dato.etiqueta}
                                 </p>
-                                <button
-                                  type="button"
-                                  onClick={() => setComprobanteUrl("")}
-                                  className="text-sm font-small text-destructive underline"
-                                >
-                                  Quitar y cargar otro
-                                </button>
+                                <p className="truncate font-medium text-brand-coffee">
+                                  {dato.valor}
+                                </p>
                               </div>
-                            </div>
-                          ) : (
-                            <label
-                              htmlFor="comprobante-pago"
-                              className={cn(
-                                "flex h-20 w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-border bg-white text-muted-foreground transition-colors hover:border-brand-rose hover:text-brand-rose-deep",
-                                subiendo && "pointer-events-none opacity-60"
-                              )}
-                            >
-                              {subiendo ? (
-                                <Loader2
-                                  className="h-5 w-5 animate-spin"
-                                  aria-hidden="true"
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-9 shrink-0"
+                                onClick={() =>
+                                  manejarCopiar(dato.valor, dato.etiqueta)
+                                }
+                                aria-label={`Copiar ${dato.etiqueta}`}
+                              >
+                                {copiado === dato.etiqueta ? (
+                                  <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                                ) : (
+                                  <Copy className="h-4 w-4" aria-hidden="true" />
+                                )}
+                                {copiado === dato.etiqueta ? "Copiado" : "Copiar"}
+                              </Button>
+                            </li>
+                          ))}
+                        </ul>
+
+                        {metodoSeleccionado.datos.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-11 w-full"
+                            onClick={() =>
+                              manejarCopiarTodos(metodoSeleccionado.datos)
+                            }
+                          >
+                            {copiado === "todos" ? (
+                              <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                            ) : (
+                              <Copy className="h-4 w-4" aria-hidden="true" />
+                            )}
+                            {copiado === "todos" ? "Datos copiados" : "Copiar todos"}
+                          </Button>
+                        )}
+
+                        <IKContext
+                          publicKey={process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY}
+                          urlEndpoint={URL_ENDPOINT}
+                          authenticator={autenticarImageKit}
+                        >
+                          <div className="space-y-2">
+                            <Label>Comprobante de pago *</Label>
+                            {comprobanteUrl ? (
+                              <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-white p-2">
+                                <Image
+                                  src={comprobanteUrl}
+                                  alt="Vista previa del comprobante"
+                                  width={64}
+                                  height={64}
+                                  className="h-16 w-16 rounded-lg object-cover"
                                 />
-                              ) : (
-                                <Upload className="h-5 w-5" aria-hidden="true" />
-                              )}
-                              <span className="text-sm font-medium">
-                                {subiendo
-                                  ? "Cargando comprobante..."
-                                  : "Toca para cargar la imagen (JPG, PNG o WebP, máx. 5MB)"}
-                              </span>
-                            </label>
-                          )}
-                          {!comprobanteUrl && (
-                            <IKUpload
-                              id="comprobante-pago"
-                              fileName={`comprobante-${Date.now()}`}
-                              useUniqueFileName
-                              folder="/comprobantes"
-                              onUploadStart={() => setSubiendo(true)}
-                              onSuccess={manejarExitoSubida}
-                              onError={manejarErrorSubida}
-                              className="hidden"
-                              accept="image/jpeg,image/png,image/webp"
-                              aria-label="Subir comprobante de pago"
-                            />
-                          )}
-                        </div>
-                      </IKContext>
-                    </>
-                  ) : (
-                    <p className="rounded-xl bg-white px-4 py-3 text-base text-brand-coffee">
-                      Paga en el local y se lo comunicas al personal de la
-                      barra. ¡Nos vemos!
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="flex items-center gap-1.5 text-base font-medium text-emerald-700">
+                                    <Check className="h-4 w-4" aria-hidden="true" />
+                                    Comprobante cargado
+                                  </p>
+                                  <button
+                                    type="button"
+                                    onClick={() => setComprobanteUrl("")}
+                                    className="text-sm font-small text-destructive underline"
+                                  >
+                                    Quitar y cargar otro
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <label
+                                htmlFor="comprobante-pago"
+                                className={cn(
+                                  "flex h-28 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-white text-muted-foreground transition-colors hover:border-brand-rose hover:text-brand-rose-deep",
+                                  subiendo && "pointer-events-none opacity-60"
+                                )}
+                              >
+                                {subiendo ? (
+                                  <Loader2
+                                    className="h-5 w-5 animate-spin"
+                                    aria-hidden="true"
+                                  />
+                                ) : (
+                                  <Upload className="h-5 w-5" aria-hidden="true" />
+                                )}
+                                <span className="text-sm font-medium">
+                                  {subiendo
+                                    ? "Cargando comprobante..."
+                                    : "Toca para cargar imagen"}
+                                </span>
+                              </label>
+                            )}
+                            {!comprobanteUrl && (
+                              <IKUpload
+                                id="comprobante-pago"
+                                fileName={`comprobante-${Date.now()}`}
+                                useUniqueFileName
+                                folder="/comprobantes"
+                                onUploadStart={() => setSubiendo(true)}
+                                onSuccess={manejarExitoSubida}
+                                onError={manejarErrorSubida}
+                                className="hidden"
+                                accept="image/jpeg,image/png,image/webp"
+                                aria-label="Subir comprobante de pago"
+                              />
+                            )}
+                          </div>
+                        </IKContext>
+                      </>
+                    ) : (
+                      <p className="rounded-xl bg-white px-4 py-3 text-base text-brand-coffee">
+                        Paga en el local y se lo comunicas al personal de la
+                        barra. ¡Nos vemos!
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {error && (
               <p
@@ -382,6 +456,7 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                 {error}
               </p>
             )}
+            </div>
 
             <DrawerFooter className="px-0 pb-[env(safe-area-inset-bottom)]">
               {botonListoParaEnviar ? (
@@ -410,7 +485,7 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                 <Button
                   type="button"
                   className="h-14 w-full text-base"
-                  onClick={() => setPagoVisible(true)}
+                  onClick={manejarAbrirPago}
                   disabled={enviando || metodosActivos.length === 0}
                 >
                   <Wallet className="mr-2 h-5 w-5" aria-hidden="true" />

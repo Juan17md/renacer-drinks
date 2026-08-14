@@ -6,6 +6,7 @@ export interface Producto {
   costo: number;
   category: string;
   isAvailable: boolean;
+  destacado: boolean;
   imageUrl: string;
   imageId: string;
   updatedAt: string;
@@ -22,6 +23,7 @@ export interface ProductoInput {
   costo: number;
   category: string;
   isAvailable: boolean;
+  destacado: boolean;
   imageUrl: string;
   imageId: string;
 }

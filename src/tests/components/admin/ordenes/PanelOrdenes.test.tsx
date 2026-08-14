@@ -295,6 +295,59 @@ describe("PanelOrdenes", () => {
     );
 
     expect(screen.getByText(/comprobante de la orden #12/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /verificar pago de la orden 12/i })
+    ).toBeInTheDocument();
+  });
+
+  it("verifica el pago desde el diálogo del comprobante y lo cierra", async () => {
+    render(<PanelOrdenes />);
+    emitir([
+      ordenMock("a", 12, "recibida", {
+        metodoPago: "PAGO_MOVIL",
+        comprobanteUrl: "https://ik.imagekit.io/renacer/comprobante.jpg",
+        pagoVerificado: false,
+      }),
+    ]);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /ver comprobante de la orden 12/i })
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /verificar pago de la orden 12/i })
+    );
+
+    await waitFor(() =>
+      expect(verificarPagoMock).toHaveBeenCalledWith("a")
+    );
+    expect(toastMock.success).toHaveBeenCalledWith(
+      expect.stringContaining("verificado")
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByText(/comprobante de la orden #12/i)
+      ).not.toBeInTheDocument()
+    );
+  });
+
+  it("no muestra el botón verificar en el diálogo cuando el pago ya está verificado", () => {
+    render(<PanelOrdenes />);
+    emitir([
+      ordenMock("a", 12, "recibida", {
+        metodoPago: "PAGO_MOVIL",
+        comprobanteUrl: "https://ik.imagekit.io/renacer/comprobante.jpg",
+        pagoVerificado: true,
+      }),
+    ]);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /ver comprobante de la orden 12/i })
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /verificar pago de la orden 12/i })
+    ).not.toBeInTheDocument();
   });
 
   it("no muestra datos de pago en órdenes sin método", () => {

@@ -15,6 +15,7 @@ export interface DatosProducto {
   costo: number;
   category: string;
   isAvailable: boolean;
+  destacado: boolean;
   imageUrl: string;
   imageId: string;
 }

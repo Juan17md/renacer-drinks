@@ -20,7 +20,7 @@ vi.mock("@/lib/firebase", () => ({
   db: {},
 }));
 
-import { obtenerProductos, obtenerProductosDisponibles, obtenerProductoPorId, obtenerProductosCompletos } from "@/services/products";
+import { obtenerProductos, obtenerProductosDisponibles, obtenerProductosDestacados, obtenerProductoPorId, obtenerProductosCompletos } from "@/services/products";
 import { obtenerCategorias } from "@/services/categories";
 
 function crearSnapshot(datos: Record<string, unknown>[], ids: string[]) {
@@ -115,6 +115,62 @@ describe("obtenerProductosDisponibles", () => {
 
     expect(productos).toHaveLength(1);
     expect(productos[0].id).toBe("prod_1");
+  });
+});
+
+describe("obtenerProductosDestacados", () => {
+  it("filtra solo los productos marcados como destacados", async () => {
+    mocksFirestore.getDocs.mockResolvedValue(
+      crearSnapshot(
+        [
+          { ...productoDatos, destacado: true },
+          { ...productoDatos, destacado: false },
+        ],
+        ["prod_1", "prod_2"]
+      )
+    );
+
+    const productos = await obtenerProductosDestacados();
+
+    expect(productos).toHaveLength(1);
+    expect(productos[0].id).toBe("prod_1");
+    expect(productos[0].destacado).toBe(true);
+  });
+
+  it("usa los primeros disponibles si no hay destacados marcados", async () => {
+    mocksFirestore.getDocs.mockResolvedValue(
+      crearSnapshot(
+        [
+          { ...productoDatos, destacado: false },
+          { ...productoDatos, destacado: false },
+        ],
+        ["prod_1", "prod_2"]
+      )
+    );
+
+    const productos = await obtenerProductosDestacados();
+
+    expect(productos).toHaveLength(2);
+    expect(productos[0].id).toBe("prod_1");
+    expect(productos[0].destacado).toBe(false);
+  });
+
+  it("limita a tres productos como máximo", async () => {
+    mocksFirestore.getDocs.mockResolvedValue(
+      crearSnapshot(
+        [
+          { ...productoDatos, destacado: true },
+          { ...productoDatos, destacado: true },
+          { ...productoDatos, destacado: true },
+          { ...productoDatos, destacado: true },
+        ],
+        ["prod_1", "prod_2", "prod_3", "prod_4"]
+      )
+    );
+
+    const productos = await obtenerProductosDestacados();
+
+    expect(productos).toHaveLength(3);
   });
 });
 

@@ -1,17 +1,17 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
-import { obtenerProductosDisponibles } from "@/services/products";
+import { obtenerProductosDestacados } from "@/services/products";
 import { obtenerTasaBCV } from "@/lib/bcv";
 import { formatearUSD, formatearBs, convertirUSDaBs } from "@/lib/utils";
 
 export async function FeaturedProducts() {
   const [productos, tasa] = await Promise.all([
-    obtenerProductosDisponibles(),
+    obtenerProductosDestacados(),
     obtenerTasaBCV(),
   ]);
 
-  const destacados = productos.slice(0, 3);
+  const destacados = productos;
 
   if (destacados.length === 0) {
     return (

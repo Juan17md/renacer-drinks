@@ -277,6 +277,7 @@ function ToggleDisponibilidad({ producto }: { producto: Producto }) {
         costo: producto.costo,
         category: producto.category,
         isAvailable: disponible,
+        destacado: producto.destacado ?? false,
         imageUrl: producto.imageUrl,
         imageId: producto.imageId,
       });
