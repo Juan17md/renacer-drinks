@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { crearProducto, actualizarProducto } from "@/actions/products";
-import { autenticarImageKit } from "@/lib/imagekit";
+import { autenticarImageKit } from "@/lib/imagekit-auth";
 import { CategoryCombobox } from "@/components/admin/catalogo/CategoryCombobox";
 import type { Producto } from "@/types/product";
 import type { Categoria } from "@/types/category";

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { autenticarImageKit } from "@/lib/imagekit";
+import { autenticarImageKit } from "@/lib/imagekit-auth";
 
 describe("autenticarImageKit", () => {
   afterEach(() => {

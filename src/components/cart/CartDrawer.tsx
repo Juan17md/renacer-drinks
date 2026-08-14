@@ -28,7 +28,7 @@ import { CartItem } from "@/components/cart/CartItem";
 import { CartSummary } from "@/components/cart/CartSummary";
 import { useCartStore } from "@/store/useCartStore";
 import { convertirUSDaBs } from "@/lib/utils";
-import { autenticarImageKit } from "@/lib/imagekit";
+import { autenticarImageKit } from "@/lib/imagekit-auth";
 import { crearOrden } from "@/services/orders";
 import { escucharMetodosPago } from "@/services/metodosPago";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
