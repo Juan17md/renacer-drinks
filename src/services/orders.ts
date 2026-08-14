@@ -34,6 +34,14 @@ function transformarOrden(docSnapshot: {
     estado: (datos.estado as EstadoOrden) ?? "recibida",
     createdAt: String(datos.createdAt ?? ""),
     updatedAt: String(datos.updatedAt ?? ""),
+    metodoPago: datos.metodoPago ? (datos.metodoPago as Orden["metodoPago"]) : undefined,
+    comprobanteUrl: datos.comprobanteUrl
+      ? String(datos.comprobanteUrl)
+      : undefined,
+    pagoVerificado:
+      datos.pagoVerificado === undefined
+        ? undefined
+        : Boolean(datos.pagoVerificado),
   };
 }
 
@@ -56,13 +64,32 @@ export async function crearOrden(datos: DatosNuevaOrden): Promise<Orden> {
       estado: "recibida",
       createdAt: ahora,
       updatedAt: ahora,
+      ...(datos.metodoPago ? { metodoPago: datos.metodoPago } : {}),
+      ...(datos.comprobanteUrl ? { comprobanteUrl: datos.comprobanteUrl } : {}),
+      ...(typeof datos.pagoVerificado === "boolean"
+        ? { pagoVerificado: datos.pagoVerificado }
+        : {}),
     });
     transaccion.set(refContador, { numero }, { merge: true });
 
     return { id: refOrden.id, numero };
   });
 
-  return { ...datos, id: nuevaOrden.id, numero: nuevaOrden.numero, estado: "recibida", createdAt: ahora, updatedAt: ahora };
+  return {
+    ...datos,
+    id: nuevaOrden.id,
+    numero: nuevaOrden.numero,
+    estado: "recibida" as EstadoOrden,
+    createdAt: ahora,
+    updatedAt: ahora,
+  };
+}
+
+export async function verificarPagoOrden(id: string): Promise<void> {
+  await updateDoc(doc(db, COLECCION_ORDENES, id), {
+    pagoVerificado: true,
+    updatedAt: obtenerFechaLocalISO(),
+  });
 }
 
 export async function actualizarEstadoOrden(

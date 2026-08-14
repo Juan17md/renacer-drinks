@@ -146,6 +146,40 @@ describe("services/transactions", () => {
       expect(update).not.toHaveBeenCalled();
     });
 
+    it("usa el método de pago del cliente en la transacción", async () => {
+      const set = vi.fn();
+      const update = vi.fn();
+      firestoreMock.runTransaction.mockImplementation(async (_db, callback) => {
+        await callback({
+          get: vi.fn().mockImplementation((ref) => {
+            if (ref.id === "orden_1") {
+              return {
+                data: () => ({
+                  numero: 12,
+                  totalUSD: 4.5,
+                  bcvRate: 80,
+                  estado: "entregada",
+                  metodoPago: "PAGO_MOVIL",
+                  items: [],
+                  createdAt: "2026-08-13T10:00:00",
+                  updatedAt: "2026-08-13T10:00:00",
+                }),
+              };
+            }
+            return { data: () => null };
+          }),
+          set,
+          update,
+        });
+        return undefined;
+      });
+
+      await registrarIngresoPorOrden("orden_1", 4.5, "Venta orden #12");
+
+      const llamadaSet = set.mock.calls[0];
+      expect(llamadaSet[1].paymentMethod).toBe("PAGO_MOVIL");
+    });
+
     it("calcula la ganancia real con el costo del catálogo al registrar la orden", async () => {
       const set = vi.fn();
       const update = vi.fn();

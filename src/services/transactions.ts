@@ -190,6 +190,8 @@ export async function registrarIngresoPorOrden(
 
     const fecha = obtenerFechaHoraLocalISO();
     const tasaBCV = Number(datosOrden?.bcvRate ?? 0);
+    const metodoPago =
+      (datosOrden?.metodoPago as string | undefined) ?? "EFECTIVO";
     const itemsOrden = Array.isArray(datosOrden?.items)
       ? datosOrden.items
       : [];
@@ -218,7 +220,7 @@ export async function registrarIngresoPorOrden(
       amountBs: totalUSD * tasaBCV,
       bcvRate: tasaBCV,
       concept: concepto,
-      paymentMethod: "EFECTIVO",
+      paymentMethod: metodoPago,
       date: fecha,
       createdBy: "admin",
       ordenId,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Image from "next/image";
 import {
   ReceiptText,
   Loader2,
@@ -11,6 +12,9 @@ import {
   Clock,
   RefreshCw,
   XCircle,
+  CreditCard,
+  ImageIcon,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,13 +29,22 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   escucharOrdenes,
   actualizarEstadoOrden,
+  verificarPagoOrden,
 } from "@/services/orders";
 import { registrarIngresoPorOrden } from "@/services/transactions";
 import { ESTADOS_ORDEN, type Orden, type EstadoOrden } from "@/types/order";
+import { METODOS_PAGO } from "@/types/transaction";
 import { formatearUSD, formatearBs, obtenerFechaLocalISO } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -54,12 +67,24 @@ function formatearHora(iso: string): string {
   });
 }
 
+function obtenerLabelMetodoPago(metodoPago?: string): string {
+  if (!metodoPago) return "";
+  return (
+    METODOS_PAGO.find((metodo) => metodo.valor === metodoPago)?.label ??
+    metodoPago
+  );
+}
+
 export function PanelOrdenes() {
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
   const [filtro, setFiltro] = useState<EstadoOrden | "todas">("recibida");
   const [cargando, setCargando] = useState(true);
   const [cambiando, setCambiando] = useState<string | null>(null);
   const [cancelando, setCancelando] = useState<string | null>(null);
+  const [verificando, setVerificando] = useState<string | null>(null);
+  const [comprobanteVisible, setComprobanteVisible] = useState<Orden | null>(
+    null
+  );
 
   useEffect(() => {
     const desuscribir = escucharOrdenes(
@@ -145,6 +170,23 @@ export function PanelOrdenes() {
       toast.error("No se pudo cancelar la orden");
     } finally {
       setCancelando(null);
+    }
+  };
+
+  const manejarVerificarPago = async (orden: Orden) => {
+    setVerificando(orden.id);
+    try {
+      await verificarPagoOrden(orden.id);
+      toast.success(
+        `Pago de la orden #${orden.numero} verificado (${obtenerLabelMetodoPago(
+          orden.metodoPago
+        )})`
+      );
+    } catch (error) {
+      console.error("Error al verificar pago:", error);
+      toast.error("No se pudo verificar el pago");
+    } finally {
+      setVerificando(null);
     }
   };
 
@@ -260,6 +302,61 @@ export function PanelOrdenes() {
                   ))}
                 </ul>
 
+                {orden.metodoPago && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-2">
+                    <span className="flex items-center gap-1.5 text-base font-medium text-brand-coffee">
+                      <CreditCard
+                        className="h-4 w-4 text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                      {obtenerLabelMetodoPago(orden.metodoPago)}
+                    </span>
+                    {orden.pagoVerificado ? (
+                      <Badge className="bg-emerald-100 text-emerald-800">
+                        Pago verificado
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-amber-100 text-amber-800">
+                        Pago pendiente
+                      </Badge>
+                    )}
+                    {orden.comprobanteUrl && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="ml-auto h-8"
+                        onClick={() => setComprobanteVisible(orden)}
+                        aria-label={`Ver comprobante de la orden ${orden.numero}`}
+                      >
+                        <ImageIcon className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                        Ver comprobante
+                      </Button>
+                    )}
+                    {orden.pagoVerificado === false && (
+                      <Button
+                        size="sm"
+                        className="h-8"
+                        onClick={() => manejarVerificarPago(orden)}
+                        disabled={verificando === orden.id}
+                        aria-label={`Verificar pago de la orden ${orden.numero}`}
+                      >
+                        {verificando === orden.id ? (
+                          <Loader2
+                            className="mr-1.5 h-3.5 w-3.5 animate-spin"
+                            aria-hidden="true"
+                          />
+                        ) : (
+                          <ShieldCheck
+                            className="mr-1.5 h-3.5 w-3.5"
+                            aria-hidden="true"
+                          />
+                        )}
+                        Verificar pago
+                      </Button>
+                    )}
+                  </div>
+                )}
+
                 <div className="mt-4 flex items-center justify-between border-t border-dashed border-border/60 pt-3">
                   <div>
                     <p className="font-heading text-lg font-bold text-brand-coffee">
@@ -289,7 +386,17 @@ export function PanelOrdenes() {
                         size="sm"
                         className="h-10"
                         onClick={() => manejarAvanzar(orden)}
-                        disabled={cambiando === orden.id}
+                        disabled={
+                          cambiando === orden.id ||
+                          (estado.siguiente === "lista" &&
+                            orden.pagoVerificado === false)
+                        }
+                        title={
+                          estado.siguiente === "lista" &&
+                          orden.pagoVerificado === false
+                            ? "Verifica el pago antes de avanzar"
+                            : undefined
+                        }
                         aria-label={`Marcar orden ${orden.numero} como ${ESTADOS_ORDEN[estado.siguiente].label}`}
                       >
                         {cambiando === orden.id ? (
@@ -350,6 +457,37 @@ export function PanelOrdenes() {
           })}
         </ul>
       )}
+
+      <Dialog
+        open={Boolean(comprobanteVisible)}
+        onOpenChange={(abierto) => {
+          if (!abierto) setComprobanteVisible(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              Comprobante de la orden #
+              {comprobanteVisible?.numero}
+            </DialogTitle>
+            <DialogDescription>
+              Pago de {comprobanteVisible?.nombreCliente} por{" "}
+              {obtenerLabelMetodoPago(comprobanteVisible?.metodoPago)}.
+            </DialogDescription>
+          </DialogHeader>
+          {comprobanteVisible?.comprobanteUrl && (
+            <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/30">
+              <Image
+                src={comprobanteVisible.comprobanteUrl}
+                alt={`Comprobante de pago de la orden #${comprobanteVisible.numero}`}
+                width={640}
+                height={480}
+                className="h-auto w-full object-contain"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

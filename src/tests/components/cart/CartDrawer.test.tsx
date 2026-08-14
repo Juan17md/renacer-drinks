@@ -4,13 +4,57 @@ import { CartDrawer } from "@/components/cart/CartDrawer";
 import { Toaster } from "@/components/ui/sonner";
 import { useCartStore } from "@/store/useCartStore";
 import type { ProductoPublico } from "@/types/product";
+import type { MetodoPagoConfig } from "@/types/payment";
 
-const { crearOrdenMock } = vi.hoisted(() => ({
+const { crearOrdenMock, metodosPagoMock } = vi.hoisted(() => ({
   crearOrdenMock: vi.fn(),
+  metodosPagoMock: vi.fn(),
 }));
 
 vi.mock("@/services/orders", () => ({
   crearOrden: crearOrdenMock,
+}));
+
+vi.mock("@/services/metodosPago", () => ({
+  escucharMetodosPago: (callback: (metodos: MetodoPagoConfig[]) => void) => {
+    metodosPagoMock();
+    callback([
+      {
+        id: "PAGO_MOVIL",
+        label: "Pago Móvil",
+        activo: true,
+        requiereComprobante: true,
+        datos: [
+          { etiqueta: "Teléfono", valor: "0414-1234567" },
+          { etiqueta: "Cédula", valor: "V-12.345.678" },
+        ],
+      },
+      {
+        id: "EFECTIVO",
+        label: "Efectivo",
+        activo: true,
+        requiereComprobante: false,
+        datos: [],
+      },
+    ]);
+    return () => {};
+  },
+}));
+
+vi.mock("imagekitio-react", () => ({
+  IKContext: ({ children }: { children: React.ReactNode }) => children,
+  IKUpload: (props: {
+    onSuccess?: (respuesta: { url?: string }) => void;
+    onError?: () => void;
+    id?: string;
+  }) => (
+    <input
+      type="file"
+      id={props.id}
+      data-testid="ik-upload"
+      onChange={() => props.onSuccess?.({ url: "https://ik.imagekit.io/renacer/comprobante.jpg" })}
+    />
+  ),
 }));
 
 const productoMock: ProductoPublico = {
@@ -45,7 +89,7 @@ describe("CartDrawer", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("muestra los items del carrito con sus totales en USD y Bs.", () => {
+  it("muestra los items del pedido con sus totales en USD y Bs.", () => {
     useCartStore.getState().agregarProducto(productoMock, 2);
 
     render(
@@ -90,7 +134,78 @@ describe("CartDrawer", () => {
     expect(screen.getByText(/tu pedido está vacío/i)).toBeInTheDocument();
   });
 
-  it("pide el nombre y envía el pedido a Firestore vaciando el pedido", async () => {
+  it("muestra el botón Pagar y despliega el selector de métodos de pago", () => {
+    useCartStore.getState().agregarProducto(productoMock, 1);
+
+    render(
+      <CartDrawer abierto onOpenChange={onOpenChange} tasaBCV={764.35} />
+    );
+
+    const botonPagar = screen.getByRole("button", { name: /pagar/i });
+    expect(botonPagar).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /pago móvil/i })
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(botonPagar);
+
+    expect(
+      screen.getByRole("button", { name: /pago móvil/i })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /efectivo/i })).toBeInTheDocument();
+  });
+
+  it("muestra los datos del método con botón copiar al elegir Pago Móvil", () => {
+    useCartStore.getState().agregarProducto(productoMock, 1);
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: vi.fn().mockResolvedValue(undefined) },
+      configurable: true,
+    });
+    const clipboardMock = vi.spyOn(navigator.clipboard, "writeText");
+
+    render(
+      <CartDrawer abierto onOpenChange={onOpenChange} tasaBCV={764.35} />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
+    fireEvent.click(screen.getByRole("button", { name: /pago móvil/i }));
+
+    expect(screen.getByText("0414-1234567")).toBeInTheDocument();
+    expect(screen.getByText("V-12.345.678")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /copiar teléfono/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /copiar teléfono/i }));
+
+    expect(clipboardMock).toHaveBeenCalledWith("0414-1234567");
+  });
+
+  it("no permite enviar con método digital sin comprobante", () => {
+    useCartStore.getState().agregarProducto(productoMock, 1);
+
+    render(
+      <>
+        <Toaster />
+        <CartDrawer abierto onOpenChange={onOpenChange} tasaBCV={764.35} />
+      </>
+    );
+
+    fireEvent.change(screen.getByLabelText(/tu nombre/i), {
+      target: { value: "María" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
+    fireEvent.click(screen.getByRole("button", { name: /pago móvil/i }));
+
+    const botonCargar = screen.getByRole("button", {
+      name: /cargar comprobante/i,
+    });
+    expect(botonCargar).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: /enviar pedido/i })
+    ).not.toBeInTheDocument();
+    expect(crearOrdenMock).not.toHaveBeenCalled();
+  });
+
+  it("envía el pedido con comprobante, método y pago pendiente", async () => {
     crearOrdenMock.mockResolvedValue({ id: "orden_1", numero: 12 });
     useCartStore.getState().agregarProducto(productoMock, 1);
 
@@ -104,16 +219,26 @@ describe("CartDrawer", () => {
     fireEvent.change(screen.getByLabelText(/tu nombre/i), {
       target: { value: "María" },
     });
-    fireEvent.click(
-      screen.getByRole("button", { name: /enviar pedido/i })
-    );
+    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
+    fireEvent.click(screen.getByRole("button", { name: /pago móvil/i }));
+
+    const inputComprobante = screen.getByTestId("ik-upload");
+    fireEvent.change(inputComprobante, {
+      target: { files: [new File([""], "comprobante.jpg", { type: "image/jpeg" })] },
+    });
+    expect(
+      await screen.findByText(/comprobante cargado/i)
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /enviar pedido/i }));
 
     expect(await screen.findByText(/pedido #12 recibido/i)).toBeInTheDocument();
     expect(crearOrdenMock).toHaveBeenCalledWith(
       expect.objectContaining({
         nombreCliente: "María",
-        totalUSD: 4.5,
-        totalBs: expect.any(Number),
+        metodoPago: "PAGO_MOVIL",
+        comprobanteUrl: "https://ik.imagekit.io/renacer/comprobante.jpg",
+        pagoVerificado: false,
         items: [
           {
             productId: "prod_1",
@@ -129,6 +254,39 @@ describe("CartDrawer", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
+  it("envía directo con Efectivo sin comprobante y pago verificado", async () => {
+    crearOrdenMock.mockResolvedValue({ id: "orden_2", numero: 13 });
+    useCartStore.getState().agregarProducto(productoMock, 1);
+
+    render(
+      <>
+        <Toaster />
+        <CartDrawer abierto onOpenChange={onOpenChange} tasaBCV={764.35} />
+      </>
+    );
+
+    fireEvent.change(screen.getByLabelText(/tu nombre/i), {
+      target: { value: "Pedro" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
+    fireEvent.click(screen.getByRole("button", { name: /efectivo/i }));
+
+    expect(screen.getByText(/paga en el local/i)).toBeInTheDocument();
+    expect(screen.queryByTestId("ik-upload")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /enviar pedido/i }));
+
+    expect(await screen.findByText(/pedido #13 recibido/i)).toBeInTheDocument();
+    expect(crearOrdenMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nombreCliente: "Pedro",
+        metodoPago: "EFECTIVO",
+        comprobanteUrl: undefined,
+        pagoVerificado: true,
+      })
+    );
+  });
+
   it("muestra error si falta el nombre", async () => {
     useCartStore.getState().agregarProducto(productoMock, 1);
 
@@ -139,9 +297,9 @@ describe("CartDrawer", () => {
       </>
     );
 
-    fireEvent.click(
-      screen.getByRole("button", { name: /enviar pedido/i })
-    );
+    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
+    fireEvent.click(screen.getByRole("button", { name: /efectivo/i }));
+    fireEvent.click(screen.getByRole("button", { name: /enviar pedido/i }));
 
     expect(
       await screen.findByText(/escribe tu nombre para entregarte tu pedido/i)
@@ -163,9 +321,9 @@ describe("CartDrawer", () => {
     fireEvent.change(screen.getByLabelText(/tu nombre/i), {
       target: { value: "María" },
     });
-    fireEvent.click(
-      screen.getByRole("button", { name: /enviar pedido/i })
-    );
+    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
+    fireEvent.click(screen.getByRole("button", { name: /efectivo/i }));
+    fireEvent.click(screen.getByRole("button", { name: /enviar pedido/i }));
 
     expect(
       await screen.findByText(/no se pudo enviar el pedido/i)
