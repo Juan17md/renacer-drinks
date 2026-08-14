@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { crearProducto, actualizarProducto } from "@/actions/products";
+import { autenticarImageKit } from "@/lib/imagekit";
 import { CategoryCombobox } from "@/components/admin/catalogo/CategoryCombobox";
 import type { Producto } from "@/types/product";
 import type { Categoria } from "@/types/category";
@@ -232,7 +233,7 @@ export function ProductFormModal({
             <IKContext
               publicKey={process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY}
               urlEndpoint={URL_ENDPOINT}
-              authenticationEndpoint="/api/imagekit-auth"
+              authenticator={autenticarImageKit}
             >
               <div className="flex flex-col gap-3">
                 {imagenUrl ? (

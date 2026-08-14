@@ -28,6 +28,7 @@ import { CartItem } from "@/components/cart/CartItem";
 import { CartSummary } from "@/components/cart/CartSummary";
 import { useCartStore } from "@/store/useCartStore";
 import { convertirUSDaBs } from "@/lib/utils";
+import { autenticarImageKit } from "@/lib/imagekit";
 import { crearOrden } from "@/services/orders";
 import { escucharMetodosPago } from "@/services/metodosPago";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -369,7 +370,7 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                         <IKContext
                           publicKey={process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY}
                           urlEndpoint={URL_ENDPOINT}
-                          authenticationEndpoint="/api/imagekit-auth"
+                          authenticator={autenticarImageKit}
                         >
                           <div className="space-y-2">
                             <Label>Comprobante de pago *</Label>
