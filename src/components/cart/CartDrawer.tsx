@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { IKContext, IKUpload } from "imagekitio-react";
 import {
@@ -60,6 +60,17 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
   const [comprobanteUrl, setComprobanteUrl] = useState("");
   const [subiendo, setSubiendo] = useState(false);
   const [copiado, setCopiado] = useState<string | null>(null);
+  const refBloquePago = useRef<HTMLDivElement>(null);
+  const refDatosMetodo = useRef<HTMLDivElement>(null);
+
+  const desplazarHacia = (elemento: HTMLElement | null) => {
+    elemento?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  };
+
+  const manejarAbrirPago = () => {
+    setPagoVisible(true);
+    requestAnimationFrame(() => desplazarHacia(refBloquePago.current));
+  };
 
   useEffect(() => {
     const desuscribir = escucharMetodosPago(
@@ -260,7 +271,10 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
               </div>
 
             {(pagoVisible || metodoSeleccionado) && (
-              <div className="rounded-2xl border border-brand-rose/30 bg-brand-rose-light/40 p-4">
+              <div
+                ref={refBloquePago}
+                className="rounded-2xl border border-brand-rose/30 bg-brand-rose-light/40 p-4"
+              >
                 <p className="flex items-center gap-2 font-medium text-brand-coffee">
                   <Wallet className="h-4 w-4 text-brand-rose-deep" aria-hidden="true" />
                   Método de pago
@@ -277,6 +291,9 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                           setMetodoSeleccionado(metodo);
                           setComprobanteUrl("");
                           setPagoVisible(true);
+                          requestAnimationFrame(() =>
+                            desplazarHacia(refDatosMetodo.current)
+                          );
                         }}
                         aria-pressed={seleccionado}
                         className={cn(
@@ -293,7 +310,7 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                 </div>
 
                 {metodoSeleccionado && (
-                  <div className="mt-4 space-y-4">
+                  <div ref={refDatosMetodo} className="mt-4 space-y-4">
                     {metodoSeleccionado.requiereComprobante ? (
                       <>
                         <ul className="space-y-2">
@@ -383,7 +400,7 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                               <label
                                 htmlFor="comprobante-pago"
                                 className={cn(
-                                  "flex h-28 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-white text-muted-foreground transition-colors hover:border-brand-rose hover:text-brand-rose-deep",
+                                  "flex h-36 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-white text-muted-foreground transition-colors hover:border-brand-rose hover:text-brand-rose-deep",
                                   subiendo && "pointer-events-none opacity-60"
                                 )}
                               >
@@ -467,7 +484,7 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                 <Button
                   type="button"
                   className="h-14 w-full text-base"
-                  onClick={() => setPagoVisible(true)}
+                  onClick={manejarAbrirPago}
                   disabled={enviando || metodosActivos.length === 0}
                 >
                   <Wallet className="mr-2 h-5 w-5" aria-hidden="true" />

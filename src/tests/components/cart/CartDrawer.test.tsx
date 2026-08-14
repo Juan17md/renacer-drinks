@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { Toaster } from "@/components/ui/sonner";
 import { useCartStore } from "@/store/useCartStore";
@@ -155,6 +155,28 @@ describe("CartDrawer", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /efectivo/i })).toBeInTheDocument();
     expect(screen.getByText(/método de pago/i)).toBeInTheDocument();
+  });
+
+  it("desplaza el foco al bloque de pago al pulsar Pagar y a los datos al elegir método", async () => {
+    useCartStore.getState().agregarProducto(productoMock, 1);
+    const scrollSpy = vi.spyOn(Element.prototype, "scrollIntoView");
+
+    render(
+      <CartDrawer abierto onOpenChange={onOpenChange} tasaBCV={764.35} />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
+
+    await waitFor(() =>
+      expect(scrollSpy).toHaveBeenCalledWith({
+        behavior: "smooth",
+        block: "nearest",
+      })
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /pago móvil/i }));
+
+    await waitFor(() => expect(scrollSpy).toHaveBeenCalledTimes(2));
   });
 
   it("mantiene el método elegido y la sección de pago al reabrir el carrito", () => {
