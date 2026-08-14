@@ -124,4 +124,85 @@ describe("PaginaMetodosPago", () => {
       );
     });
   });
+
+  it("deshabilita un método con guardado automático al tocar el switch", async () => {
+    obtenerMetodosMock.mockResolvedValue(metodosMock);
+
+    render(<PaginaMetodosPago />);
+    await screen.findByDisplayValue("Pago Móvil");
+
+    expect(screen.getAllByText("Activo")).toHaveLength(2);
+
+    fireEvent.click(
+      screen.getByRole("switch", {
+        name: /habilitar o deshabilitar pago móvil/i,
+      })
+    );
+
+    await waitFor(() => {
+      expect(guardarMetodoMock).toHaveBeenCalledWith("PAGO_MOVIL", {
+        label: "Pago Móvil",
+        activo: false,
+        requiereComprobante: true,
+        datos: [{ etiqueta: "Teléfono", valor: "0414-1234567" }],
+      });
+    });
+    expect(toastMock.success).toHaveBeenCalledWith(
+      "Método deshabilitado"
+    );
+    expect(screen.getByText("Inactivo")).toBeInTheDocument();
+  });
+
+  it("habilita un método con guardado automático al tocar el switch", async () => {
+    obtenerMetodosMock.mockResolvedValue([
+      { ...metodosMock[1], activo: false },
+    ]);
+
+    render(<PaginaMetodosPago />);
+    await screen.findByDisplayValue("Efectivo");
+
+    expect(screen.getByText("Inactivo")).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("switch", {
+        name: /habilitar o deshabilitar efectivo/i,
+      })
+    );
+
+    await waitFor(() => {
+      expect(guardarMetodoMock).toHaveBeenCalledWith("EFECTIVO", {
+        label: "Efectivo",
+        activo: true,
+        requiereComprobante: false,
+        datos: [],
+      });
+    });
+    expect(toastMock.success).toHaveBeenCalledWith("Método habilitado");
+    expect(screen.getByText("Activo")).toBeInTheDocument();
+  });
+
+  it("revierte el switch si falla el guardado automático", async () => {
+    obtenerMetodosMock.mockResolvedValue(metodosMock);
+    guardarMetodoMock.mockResolvedValueOnce({
+      ok: false,
+      error: "No se pudo guardar el método de pago",
+    });
+
+    render(<PaginaMetodosPago />);
+    await screen.findByDisplayValue("Pago Móvil");
+
+    fireEvent.click(
+      screen.getByRole("switch", {
+        name: /habilitar o deshabilitar pago móvil/i,
+      })
+    );
+
+    await waitFor(() => {
+      expect(toastMock.error).toHaveBeenCalledWith(
+        "No se pudo guardar el método de pago"
+      );
+    });
+    expect(screen.getAllByText("Activo")).toHaveLength(2);
+    expect(screen.queryByText("Inactivo")).not.toBeInTheDocument();
+  });
 });
