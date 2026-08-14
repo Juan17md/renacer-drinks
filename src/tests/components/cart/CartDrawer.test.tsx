@@ -41,7 +41,7 @@ describe("CartDrawer", () => {
 
     expect(screen.getByText(/tu pedido está vacío/i)).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /enviar pedido a la barra/i })
+      screen.queryByRole("button", { name: /enviar pedido/i })
     ).not.toBeInTheDocument();
   });
 
@@ -105,7 +105,7 @@ describe("CartDrawer", () => {
       target: { value: "María" },
     });
     fireEvent.click(
-      screen.getByRole("button", { name: /enviar pedido a la barra/i })
+      screen.getByRole("button", { name: /enviar pedido/i })
     );
 
     expect(await screen.findByText(/pedido #12 recibido/i)).toBeInTheDocument();
@@ -140,7 +140,7 @@ describe("CartDrawer", () => {
     );
 
     fireEvent.click(
-      screen.getByRole("button", { name: /enviar pedido a la barra/i })
+      screen.getByRole("button", { name: /enviar pedido/i })
     );
 
     expect(
@@ -164,7 +164,7 @@ describe("CartDrawer", () => {
       target: { value: "María" },
     });
     fireEvent.click(
-      screen.getByRole("button", { name: /enviar pedido a la barra/i })
+      screen.getByRole("button", { name: /enviar pedido/i })
     );
 
     expect(
