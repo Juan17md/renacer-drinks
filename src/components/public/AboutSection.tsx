@@ -24,7 +24,7 @@ const VALORES = [
 export function AboutSection() {
   return (
     <section id="historia" className="border-y border-border/60 bg-white">
-      <div className="mx-auto grid w-full max-w-6xl gap-12 px-4 py-16 sm:px-6 md:grid-cols-2 md:py-24 lg:px-8">
+      <div className="mx-auto grid w-full max-w-7xl gap-12 px-4 py-16 sm:px-6 md:grid-cols-2 md:py-24 lg:px-8">
         <div className="flex flex-col items-start gap-6" data-reveal>
           <span className="font-heading text-sm font-semibold uppercase tracking-wider text-brand-rose-deep font-small">
             Nuestra historia

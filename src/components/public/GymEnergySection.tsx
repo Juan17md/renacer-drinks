@@ -28,7 +28,7 @@ export function GymEnergySection() {
       aria-labelledby="energia-gym-titulo"
       className="bg-brand-cream"
     >
-      <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 md:py-24 lg:px-8">
+      <div className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 md:py-24 lg:px-8">
         <div className="mb-10 text-center" data-reveal>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-rose-light px-4 py-1.5 text-xs font-small font-semibold uppercase tracking-wider text-brand-rose-deep">
             <Dumbbell className="h-3.5 w-3.5" aria-hidden="true" />

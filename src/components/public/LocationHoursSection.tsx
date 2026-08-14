@@ -12,7 +12,7 @@ export function LocationHoursSection() {
   const urlMapa = `https://www.google.com/maps?q=${LATITUD},${LONGITUD}&output=embed`;
 
   return (
-    <section id="ubicacion" className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 md:py-24 lg:px-8">
+    <section id="ubicacion" className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 md:py-24 lg:px-8">
       <div className="mb-10 text-center" data-reveal>
         <span className="font-heading text-sm font-semibold uppercase tracking-wider text-brand-rose-deep font-small">
           Encuéntranos
