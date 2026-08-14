@@ -69,6 +69,29 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
     return desuscribir;
   }, []);
 
+  useEffect(() => {
+    const viewportVisual = window.visualViewport;
+    if (!viewportVisual) return;
+
+    const restaurarAltoDrawer = () => {
+      requestAnimationFrame(() => {
+        if (viewportVisual.height >= window.innerHeight - 1) {
+          const contenido = document.querySelector(
+            '[data-slot="drawer-content"]'
+          );
+          if (contenido instanceof HTMLElement) {
+            contenido.style.height = "";
+            contenido.style.bottom = "";
+          }
+        }
+      });
+    };
+
+    viewportVisual.addEventListener("resize", restaurarAltoDrawer);
+    return () =>
+      viewportVisual.removeEventListener("resize", restaurarAltoDrawer);
+  }, []);
+
   const metodosActivos = metodosPago.filter((metodo) => metodo.activo);
 
   const totalUSD = items.reduce(
@@ -204,36 +227,37 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
         ) : (
           <form
             onSubmit={manejarEnvio}
-            className="flex flex-col gap-5 overflow-y-auto px-6"
+            className="flex min-h-0 flex-1 flex-col gap-5 px-6"
             noValidate
           >
-            <ul className="space-y-4">
-              {items.map((item) => (
-                <CartItem
-                  key={item.producto.id}
-                  item={item}
-                  onActualizarCantidad={actualizarCantidad}
-                  onEliminar={eliminarProducto}
-                />
-              ))}
-            </ul>
-            <CartSummary totalUSD={totalUSD} totalBs={totalBs} tasaBCV={tasaBCV} />
+            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto">
+              <ul className="space-y-4">
+                {items.map((item) => (
+                  <CartItem
+                    key={item.producto.id}
+                    item={item}
+                    onActualizarCantidad={actualizarCantidad}
+                    onEliminar={eliminarProducto}
+                  />
+                ))}
+              </ul>
+              <CartSummary totalUSD={totalUSD} totalBs={totalBs} tasaBCV={tasaBCV} />
 
-            <div className="space-y-2">
-              <Label htmlFor="carrito-nombre">Tu nombre *</Label>
-              <Input
-                id="carrito-nombre"
-                value={nombreCliente}
-                onChange={(evento) => setNombreCliente(evento.target.value)}
-                placeholder="Ej. María"
-                autoComplete="name"
-                className="h-12 text-base"
-                maxLength={40}
-              />
-              <p className="text-xs font-small text-muted-foreground">
-                Lo usamos para avisarte cuando tu pedido esté listo.
-              </p>
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="carrito-nombre">Tu nombre *</Label>
+                <Input
+                  id="carrito-nombre"
+                  value={nombreCliente}
+                  onChange={(evento) => setNombreCliente(evento.target.value)}
+                  placeholder="Ej. María"
+                  autoComplete="name"
+                  className="h-12 text-base"
+                  maxLength={40}
+                />
+                <p className="text-xs font-small text-muted-foreground">
+                  Lo usamos para avisarte cuando tu pedido esté listo.
+                </p>
+              </div>
 
             {(pagoVisible || metodoSeleccionado) && (
               <div className="rounded-2xl border border-brand-rose/30 bg-brand-rose-light/40 p-4">
@@ -414,6 +438,7 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                 {error}
               </p>
             )}
+            </div>
 
             <DrawerFooter className="px-0 pb-[env(safe-area-inset-bottom)]">
               {botonListoParaEnviar ? (
