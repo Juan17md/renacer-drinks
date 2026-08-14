@@ -45,3 +45,8 @@ export function obtenerFechaLocalISO(fecha = new Date()): string {
   const dia = String(fecha.getDate()).padStart(2, "0");
   return `${anio}-${mes}-${dia}`;
 }
+
+export function precioOfertaANumero(precio: string): number {
+  const numero = parseFloat(precio.replace(/[^\d.,-]/g, "").replace(",", "."));
+  return Number.isFinite(numero) ? numero : 0;
+}

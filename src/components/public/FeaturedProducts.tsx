@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { obtenerProductosDestacados } from "@/services/products";
 import { obtenerTasaBCV } from "@/lib/bcv";
 import { formatearUSD, formatearBs, convertirUSDaBs } from "@/lib/utils";
+import { BotonAgregarProducto } from "@/components/public/BotonAgregarProducto";
 
 export async function FeaturedProducts() {
   const [productos, tasa] = await Promise.all([
@@ -86,6 +87,9 @@ export async function FeaturedProducts() {
                         {formatearBs(precioBs)}
                       </span>
                     )}
+                  </div>
+                  <div className="pt-2">
+                    <BotonAgregarProducto producto={producto} />
                   </div>
                 </div>
               </article>

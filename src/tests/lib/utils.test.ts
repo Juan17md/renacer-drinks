@@ -5,6 +5,7 @@ import {
   convertirUSDaBs,
   generarSlug,
   obtenerFechaLocalISO,
+  precioOfertaANumero,
 } from "@/lib/utils";
 
 describe("formatearUSD", () => {
@@ -66,5 +67,25 @@ describe("obtenerFechaLocalISO", () => {
       hoy.getMonth() + 1
     ).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
     expect(obtenerFechaLocalISO()).toBe(esperado);
+  });
+});
+
+describe("precioOfertaANumero", () => {
+  it("convierte precios con signo de dólar y decimales", () => {
+    expect(precioOfertaANumero("$4.50")).toBe(4.5);
+    expect(precioOfertaANumero("$0.50")).toBe(0.5);
+  });
+
+  it("convierte precios con coma decimal", () => {
+    expect(precioOfertaANumero("5,60")).toBe(5.6);
+  });
+
+  it("convierte precios sin símbolo", () => {
+    expect(precioOfertaANumero("10")).toBe(10);
+  });
+
+  it("retorna 0 para precios inválidos", () => {
+    expect(precioOfertaANumero("gratis")).toBe(0);
+    expect(precioOfertaANumero("")).toBe(0);
   });
 });
