@@ -36,7 +36,7 @@ export function PromosSection() {
         className="pointer-events-none absolute -bottom-20 -left-10 h-72 w-72 rounded-full bg-brand-rose/40 blur-3xl"
       />
 
-      <div className="relative mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
+      <div className="relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-10 text-center" data-reveal>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-1.5 text-xs font-small font-semibold uppercase tracking-wider text-white">
             <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />

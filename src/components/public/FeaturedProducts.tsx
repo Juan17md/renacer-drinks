@@ -16,7 +16,7 @@ export async function FeaturedProducts() {
   if (destacados.length === 0) {
     return (
       <section className="border-y border-border/60 bg-white">
-        <div className="mx-auto w-full max-w-6xl px-4 py-16 text-center sm:px-6 md:py-24 lg:px-8">
+        <div className="mx-auto w-full max-w-7xl px-4 py-16 text-center sm:px-6 md:py-24 lg:px-8">
           <h2 className="font-heading text-[1.75rem] font-bold text-brand-coffee sm:text-4xl">
             Próximamente nuestro menú
           </h2>
@@ -31,7 +31,7 @@ export async function FeaturedProducts() {
 
   return (
     <section id="destacados" className="border-y border-border/60 bg-white">
-      <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 md:py-24 lg:px-8">
+      <div className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 md:py-24 lg:px-8">
         <div className="mb-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end" data-reveal>
           <div>
             <span className="font-heading text-sm font-semibold uppercase tracking-wider text-brand-rose-deep font-small">

@@ -30,7 +30,7 @@ export function Navbar({ tasaBCV }: NavbarProps) {
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/75">
       <nav
         aria-label="Navegación principal"
-        className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8"
+        className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8"
       >
         <Link
           href="/"
@@ -75,7 +75,7 @@ export function Navbar({ tasaBCV }: NavbarProps) {
             size="icon"
             className="relative h-12 w-12"
             onClick={() => setCarritoAbierto(true)}
-            aria-label={`Abrir carrito de compras (${cantidadItems} artículos)`}
+            aria-label={`Abrir pedido (${cantidadItems} artículos)`}
           >
             <ShoppingBag className="h-5 w-5" />
             {cantidadItems > 0 && (

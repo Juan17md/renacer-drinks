@@ -38,9 +38,25 @@ rules_version = '2';
 //   - createdAt: string ISO (required, inmutable)
 //   - updatedAt: string ISO (required)
 //   - registradoEnFinanzas: bool (optional, lo escribe el admin)
+//   - metodoPago: string (optional, solo "EFECTIVO" | "PAGO_MOVIL" | "PUNTO" |
+//       "TRANSFERENCIA" | "BINANCE" | "ZELLE") - método elegido por el cliente
+//   - comprobanteUrl: string (optional, URL https) - comprobante subido a ImageKit;
+//       obligatorio cuando metodoPago requiere comprobante
+//   - pagoVerificado: bool (optional) - true al crear solo para EFECTIVO/PUNTO;
+//       para el resto lo marca el admin al verificar el pago
 //
 // Documento especial: ordenes/contador_ordenes
 //   - numero: int - contador secuencial de órdenes (solo +1)
+//
+// Collection: metodos_pago
+// Document ID: valor de MetodoPago ("EFECTIVO", "PAGO_MOVIL", ...)
+// Fields:
+//   - label: string (required, 1-60 chars) - nombre visible para el cliente
+//   - activo: bool (required) - si aparece en el selector del cliente
+//   - requiereComprobante: bool (required) - false para EFECTIVO/PUNTO (pago en local)
+//   - datos: list (optional) de pares { etiqueta: string, valor: string } con
+//     los datos a copiar (teléfono, cédula, correo, etc.)
+// Escrituras solo vía Admin SDK (Server Actions), lectura pública.
 //
 // Collection: financial_transactions
 // Document ID: auto
@@ -198,7 +214,8 @@ service cloud.firestore {
 
       return request.resource.data.keys().hasOnly([
             'numero', 'nombreCliente', 'items', 'totalUSD', 'totalBs',
-            'tasaBCV', 'estado', 'createdAt', 'updatedAt'
+            'tasaBCV', 'estado', 'createdAt', 'updatedAt',
+            'metodoPago', 'comprobanteUrl', 'pagoVerificado'
           ]) &&
           data.numero is int && data.numero >= 1 &&
           esCadenaValida(data.nombreCliente, 1, 60) &&
@@ -208,7 +225,21 @@ service cloud.firestore {
           esNumeroPositivo(data.tasaBCV) &&
           data.estado == 'recibida' &&
           esFechaValida(data.createdAt) &&
-          esFechaValida(data.updatedAt);
+          esFechaValida(data.updatedAt) &&
+          (!('metodoPago' in data) ||
+            data.metodoPago in ['EFECTIVO', 'PAGO_MOVIL', 'PUNTO', 'TRANSFERENCIA', 'BINANCE', 'ZELLE']) &&
+          (!('comprobanteUrl' in data) ||
+            (data.comprobanteUrl is string &&
+             (data.comprobanteUrl.size() == 0 || data.comprobanteUrl.startsWith('https://')))) &&
+          (!('pagoVerificado' in data) || data.pagoVerificado is bool) &&
+          (data.pagoVerificado != true ||
+            ('metodoPago' in data && data.metodoPago in ['EFECTIVO', 'PUNTO'])) &&
+          (('metodoPago' in data &&
+            data.metodoPago in ['PAGO_MOVIL', 'TRANSFERENCIA', 'BINANCE', 'ZELLE']) ?
+            ('comprobanteUrl' in data &&
+             data.comprobanteUrl is string &&
+             data.comprobanteUrl.size() > 0 &&
+             data.comprobanteUrl.startsWith('https://')) : true);
     }
 
     function esFechaValida(campo) {
@@ -238,6 +269,15 @@ service cloud.firestore {
         resource.data.estado == request.resource.data.estado &&
         request.resource.data.registradoEnFinanzas == true &&
         resource.data.registradoEnFinanzas != true;
+    }
+
+    // Actualización solo de la verificación de pago por el admin (sin cambiar estado)
+    function esSoloVerificarPago() {
+      let camposModificados = request.resource.data.diff(resource.data).affectedKeys();
+      return camposModificados.hasOnly(['pagoVerificado', 'updatedAt']) &&
+        resource.data.estado == request.resource.data.estado &&
+        request.resource.data.pagoVerificado == true &&
+        resource.data.pagoVerificado != true;
     }
 
     function esTransaccionValida() {
@@ -323,14 +363,25 @@ service cloud.firestore {
       // El contador_ordenes solo se crea la primera vez (numero == 1).
       allow create: if (ordenId == "contador_ordenes" && request.resource.data.keys().hasOnly(['numero']) && request.resource.data.numero == 1) || esOrdenValida();
 
-      // Actualización: solo admin, con transiciones de estado válidas
-      // o el flag de registro en finanzas; el contador_ordenes solo puede
-      // incrementarse en +1 estricto (diseño secuencial del checkout).
+      // Actualización: solo admin, con transiciones de estado válidas,
+      // el flag de registro en finanzas o la verificación de pago;
+      // el contador_ordenes solo puede incrementarse en +1 estricto
+      // (diseño secuencial del checkout).
       allow update: if ((esAdmin() &&
-        (esTransicionEstadoValida() || esSoloRegistroFinanzas())) ||
+        (esTransicionEstadoValida() || esSoloRegistroFinanzas() || esSoloVerificarPago())) ||
         (ordenId == "contador_ordenes" && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['numero']) && request.resource.data.numero == resource.data.numero + 1));
 
       allow delete: if false;
+    }
+
+    // ===========================================================
+    // Metodos de pago (lectura pública, escritura solo Admin SDK)
+    // ===========================================================
+    match /metodos_pago/{metodoId} {
+      allow read: if true;
+      // Las escrituras se realizan únicamente desde el servidor
+      // (Server Actions con Admin SDK, que ignora estas reglas).
+      allow create, update, delete: if false;
     }
 
     // ===========================================================

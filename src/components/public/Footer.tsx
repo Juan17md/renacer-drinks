@@ -12,7 +12,7 @@ const DATOS_CAFETERIA = {
 export function Footer() {
   return (
     <footer className="border-t border-border/60 bg-[#f8f1ec]">
-      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-3 lg:px-8">
+      <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-3 lg:px-8">
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Image

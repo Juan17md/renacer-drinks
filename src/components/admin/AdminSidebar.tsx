@@ -14,6 +14,7 @@ import {
   LogOut,
   Menu,
   X,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -45,6 +46,11 @@ const ENLACES_ADMIN = [
     href: "/admin/finanzas",
     label: "Finanzas",
     icono: Wallet,
+  },
+  {
+    href: "/admin/pagos",
+    label: "Pagos",
+    icono: CreditCard,
   },
 ];
 

@@ -3,6 +3,7 @@ import {
   escucharOrdenes,
   actualizarEstadoOrden,
   crearOrden,
+  verificarPagoOrden,
 } from "@/services/orders";
 
 const mocksFirestore = vi.hoisted(() => ({
@@ -49,7 +50,13 @@ describe("escucharOrdenes", () => {
             numero: 5,
             nombreCliente: "María",
             items: [
-              { nombre: "Tropical", precio: 3, cantidad: 2, subtotal: 6 },
+              {
+                productId: "prod_1",
+                nombre: "Tropical",
+                precio: 3,
+                cantidad: 2,
+                subtotal: 6,
+              },
             ],
             totalUSD: 6,
             totalBs: 4586.1,
@@ -78,6 +85,45 @@ describe("escucharOrdenes", () => {
     expect(desuscribir).toBeTypeOf("function");
   });
 
+  it("transforma los campos de pago de la orden", () => {
+    const callback = vi.fn();
+    escucharOrdenes(callback);
+
+    const snapshotMock = {
+      docs: [
+        {
+          id: "abc123",
+          data: () => ({
+            numero: 6,
+            nombreCliente: "María",
+            items: [],
+            totalUSD: 6,
+            totalBs: 4586.1,
+            tasaBCV: 764.35,
+            estado: "recibida",
+            createdAt: "2026-08-13T10:00:00",
+            updatedAt: "2026-08-13T10:00:00",
+            metodoPago: "PAGO_MOVIL",
+            comprobanteUrl: "https://ik.imagekit.io/renacer/comprobante.jpg",
+            pagoVerificado: false,
+          }),
+        },
+      ],
+    };
+
+    const ejecutarCallback =
+      mocksFirestore.onSnapshot.mock.calls.at(-1)![1];
+    ejecutarCallback(snapshotMock);
+
+    expect(callback).toHaveBeenCalledWith([
+      expect.objectContaining({
+        metodoPago: "PAGO_MOVIL",
+        comprobanteUrl: "https://ik.imagekit.io/renacer/comprobante.jpg",
+        pagoVerificado: false,
+      }),
+    ]);
+  });
+
   it("llama onError cuando la suscripción falla", () => {
     const callback = vi.fn();
     const onError = vi.fn();
@@ -100,6 +146,22 @@ describe("actualizarEstadoOrden", () => {
       expect.anything(),
       expect.objectContaining({
         estado: "lista",
+        updatedAt: expect.any(String),
+      })
+    );
+  });
+});
+
+describe("verificarPagoOrden", () => {
+  it("marca el pago como verificado en Firestore", async () => {
+    mocksFirestore.updateDoc.mockResolvedValue(undefined);
+
+    await verificarPagoOrden("abc123");
+
+    expect(mocksFirestore.updateDoc).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        pagoVerificado: true,
         updatedAt: expect.any(String),
       })
     );

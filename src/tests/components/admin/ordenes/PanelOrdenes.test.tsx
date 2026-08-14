@@ -1,26 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import React from "react";
 import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import { PanelOrdenes } from "@/components/admin/ordenes/PanelOrdenes";
 
-const { suscriptorMock, actualizarEstadoMock, toastMock } = vi.hoisted(() => {
-  let callbackActual: ((ordenes: unknown[]) => void) | null = null;
-  return {
-    suscriptorMock: vi.fn((callback: (ordenes: unknown[]) => void) => {
-      callbackActual = callback;
-      return () => undefined;
-    }),
-    actualizarEstadoMock: vi.fn().mockResolvedValue(undefined),
-    toastMock: { success: vi.fn(), error: vi.fn() },
-    emitir: (ordenes: unknown[]) => {
-      callbackActual?.(ordenes);
-    },
-  };
-});
+const { suscriptorMock, actualizarEstadoMock, verificarPagoMock, toastMock } =
+  vi.hoisted(() => {
+    let callbackActual: ((ordenes: unknown[]) => void) | null = null;
+    return {
+      suscriptorMock: vi.fn((callback: (ordenes: unknown[]) => void) => {
+        callbackActual = callback;
+        return () => undefined;
+      }),
+      actualizarEstadoMock: vi.fn().mockResolvedValue(undefined),
+      verificarPagoMock: vi.fn().mockResolvedValue(undefined),
+      toastMock: { success: vi.fn(), error: vi.fn() },
+      emitir: (ordenes: unknown[]) => {
+        callbackActual?.(ordenes);
+      },
+    };
+  });
 
 vi.mock("@/services/orders", () => ({
   escucharOrdenes: (callback: (ordenes: unknown[]) => void) =>
     suscriptorMock(callback),
   actualizarEstadoOrden: actualizarEstadoMock,
+  verificarPagoOrden: verificarPagoMock,
 }));
 
 vi.mock("@/services/transactions", () => ({
@@ -31,7 +35,23 @@ vi.mock("sonner", () => ({
   toast: toastMock,
 }));
 
-function ordenMock(id: string, numero: number, estado: "recibida" | "lista" | "entregada" | "cancelada") {
+vi.mock("next/image", () => ({
+  default: (props: Record<string, unknown>) => {
+    const { src, alt, ...resto } = props;
+    return React.createElement("img", {
+      src: String(src ?? ""),
+      alt: String(alt ?? ""),
+      ...resto,
+    });
+  },
+}));
+
+function ordenMock(
+  id: string,
+  numero: number,
+  estado: "recibida" | "lista" | "entregada" | "cancelada",
+  pago?: { metodoPago?: string; comprobanteUrl?: string; pagoVerificado?: boolean }
+) {
   return {
     id,
     numero,
@@ -43,6 +63,7 @@ function ordenMock(id: string, numero: number, estado: "recibida" | "lista" | "e
     estado,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    ...pago,
   };
 }
 
@@ -170,5 +191,119 @@ describe("PanelOrdenes", () => {
       expect(actualizarEstadoMock).toHaveBeenCalledWith("a", "cancelada");
     });
     expect(toastMock.success).toHaveBeenCalledWith("Orden #12 cancelada");
+  });
+
+  it("muestra el método de pago con badge de pago pendiente", () => {
+    render(<PanelOrdenes />);
+    emitir([
+      ordenMock("a", 12, "recibida", {
+        metodoPago: "PAGO_MOVIL",
+        comprobanteUrl: "https://ik.imagekit.io/renacer/comprobante.jpg",
+        pagoVerificado: false,
+      }),
+    ]);
+
+    expect(screen.getByText("Pago Móvil")).toBeInTheDocument();
+    expect(screen.getByText("Pago pendiente")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /ver comprobante de la orden 12/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /verificar pago de la orden 12/i })
+    ).toBeInTheDocument();
+  });
+
+  it("muestra badge de pago verificado sin botón de verificación", () => {
+    render(<PanelOrdenes />);
+    emitir([
+      ordenMock("a", 12, "recibida", {
+        metodoPago: "EFECTIVO",
+        pagoVerificado: true,
+      }),
+    ]);
+
+    expect(screen.getByText("Efectivo")).toBeInTheDocument();
+    expect(screen.getByText("Pago verificado")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /verificar pago/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("bloquea el avance a lista cuando el pago está pendiente", () => {
+    render(<PanelOrdenes />);
+    emitir([
+      ordenMock("a", 12, "recibida", {
+        metodoPago: "ZELLE",
+        comprobanteUrl: "https://ik.imagekit.io/renacer/comprobante.jpg",
+        pagoVerificado: false,
+      }),
+    ]);
+
+    const botonAvanzar = screen.getByRole("button", {
+      name: /marcar orden 12 como lista/i,
+    });
+    expect(botonAvanzar).toBeDisabled();
+  });
+
+  it("permite avanzar a lista con el pago verificado", () => {
+    render(<PanelOrdenes />);
+    emitir([
+      ordenMock("a", 12, "recibida", {
+        metodoPago: "PAGO_MOVIL",
+        comprobanteUrl: "https://ik.imagekit.io/renacer/comprobante.jpg",
+        pagoVerificado: true,
+      }),
+    ]);
+
+    const botonAvanzar = screen.getByRole("button", {
+      name: /marcar orden 12 como lista/i,
+    });
+    expect(botonAvanzar).not.toBeDisabled();
+  });
+
+  it("verifica el pago de una orden", async () => {
+    render(<PanelOrdenes />);
+    emitir([
+      ordenMock("a", 12, "recibida", {
+        metodoPago: "PAGO_MOVIL",
+        comprobanteUrl: "https://ik.imagekit.io/renacer/comprobante.jpg",
+        pagoVerificado: false,
+      }),
+    ]);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /verificar pago de la orden 12/i })
+    );
+
+    await waitFor(() => {
+      expect(verificarPagoMock).toHaveBeenCalledWith("a");
+    });
+  });
+
+  it("abre el comprobante de pago en un diálogo", () => {
+    render(<PanelOrdenes />);
+    emitir([
+      ordenMock("a", 12, "recibida", {
+        metodoPago: "PAGO_MOVIL",
+        comprobanteUrl: "https://ik.imagekit.io/renacer/comprobante.jpg",
+        pagoVerificado: false,
+      }),
+    ]);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /ver comprobante de la orden 12/i })
+    );
+
+    expect(screen.getByText(/comprobante de la orden #12/i)).toBeInTheDocument();
+  });
+
+  it("no muestra datos de pago en órdenes sin método", () => {
+    render(<PanelOrdenes />);
+    emitir([ordenMock("a", 12, "recibida")]);
+
+    expect(screen.queryByText(/pago pendiente/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /verificar pago/i })
+    ).not.toBeInTheDocument();
   });
 });
