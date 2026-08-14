@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { Toaster } from "@/components/ui/sonner";
 import { useCartStore } from "@/store/useCartStore";
+import { formatearBs } from "@/lib/utils";
 import type { ProductoPublico } from "@/types/product";
 import type { MetodoPagoConfig } from "@/types/payment";
 
@@ -28,6 +29,13 @@ vi.mock("@/services/metodosPago", () => ({
           { etiqueta: "Teléfono", valor: "0414-1234567" },
           { etiqueta: "Cédula", valor: "V-12.345.678" },
         ],
+      },
+      {
+        id: "ZELLE",
+        label: "Zelle",
+        activo: true,
+        requiereComprobante: true,
+        datos: [{ etiqueta: "Correo", valor: "pagos@renacer.com" }],
       },
       {
         id: "EFECTIVO",
@@ -261,8 +269,41 @@ describe("CartDrawer", () => {
       await screen.findByRole("button", { name: /datos copiados/i })
     ).toBeInTheDocument();
     expect(clipboardMock).toHaveBeenCalledWith(
-      "Teléfono: 0414-1234567\nCédula: V-12.345.678"
+      `Monto a pagar: ${formatearBs(4.5 * 764.35)}\nTeléfono: 0414-1234567\nCédula: V-12.345.678`
     );
+  });
+
+  it("muestra el monto a pagar en Bs para Pago Móvil y Transferencia", () => {
+    useCartStore.getState().agregarProducto(productoMock, 1);
+
+    render(
+      <>
+        <Toaster />
+        <CartDrawer abierto onOpenChange={onOpenChange} tasaBCV={764.35} />
+      </>
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
+    fireEvent.click(screen.getByRole("button", { name: /pago móvil/i }));
+
+    expect(screen.getByText("Monto a pagar")).toBeInTheDocument();
+    expect(screen.getAllByText(formatearBs(4.5 * 764.35)).length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getByRole("button", { name: /copiar monto a pagar/i })
+    ).toBeInTheDocument();
+  });
+
+  it("no muestra el monto a pagar en métodos sin monto (Zelle)", () => {
+    useCartStore.getState().agregarProducto(productoMock, 1);
+
+    render(
+      <CartDrawer abierto onOpenChange={onOpenChange} tasaBCV={764.35} />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^zelle$/i }));
+
+    expect(screen.queryByText("Monto a pagar")).not.toBeInTheDocument();
   });
 
   it("no muestra Copiar todos en métodos sin datos", () => {
