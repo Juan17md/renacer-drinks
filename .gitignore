@@ -29,6 +29,12 @@ secrets/
 firebase-service-account*.json
 service-account*.json
 
+# Backups locales de Firestore (datos de la BD - nunca subir)
+backups/
+
+# Documento para el cliente (no es parte del repositorio)
+Explicacion_para_el_cliente.txt
+
 # Logs
 npm-debug.log*
 yarn-debug.log*
