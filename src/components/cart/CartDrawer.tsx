@@ -352,7 +352,7 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                           <Button
                             type="button"
                             variant="outline"
-                            className="w-full"
+                            className="h-11 w-full"
                             onClick={() =>
                               manejarCopiarTodos(metodoSeleccionado.datos)
                             }
@@ -400,7 +400,7 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                               <label
                                 htmlFor="comprobante-pago"
                                 className={cn(
-                                  "flex h-36 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-white text-muted-foreground transition-colors hover:border-brand-rose hover:text-brand-rose-deep",
+                                  "flex h-28 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-white text-muted-foreground transition-colors hover:border-brand-rose hover:text-brand-rose-deep",
                                   subiendo && "pointer-events-none opacity-60"
                                 )}
                               >
@@ -415,7 +415,7 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                                 <span className="text-sm font-medium">
                                   {subiendo
                                     ? "Cargando comprobante..."
-                                    : "Toca para cargar la imagen (JPG, PNG o WebP, máx. 5MB)"}
+                                    : "Toca para cargar imagen"}
                                 </span>
                               </label>
                             )}
