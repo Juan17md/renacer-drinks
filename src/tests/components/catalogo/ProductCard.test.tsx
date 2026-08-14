@@ -42,11 +42,11 @@ describe("ProductCard", () => {
     expect(screen.getByText("Bs. 3.439,58")).toBeInTheDocument();
   });
 
-  it("agrega el producto al carrito al hacer clic", () => {
+  it("agrega el producto al pedido al hacer clic", () => {
     render(<ProductCard producto={productoMock} tasaBCV={764.35} />);
 
     fireEvent.click(
-      screen.getByRole("button", { name: /agregar café mocca helado al carrito/i })
+      screen.getByRole("button", { name: /agregar café mocca helado al pedido/i })
     );
 
     expect(useCartStore.getState().items).toHaveLength(1);
@@ -57,7 +57,7 @@ describe("ProductCard", () => {
     render(<ProductCard producto={productoAgotadoMock} tasaBCV={764.35} />);
 
     const boton = screen.getByRole("button", {
-      name: /agregar frappé de oreo al carrito/i,
+      name: /agregar frappé de oreo al pedido/i,
     });
     expect(boton).toBeDisabled();
     expect(screen.getByText("Agotado")).toBeInTheDocument();

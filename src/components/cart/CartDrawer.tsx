@@ -86,7 +86,7 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
         <DrawerHeader>
           <DrawerTitle className="flex items-center gap-2 font-heading">
             <ShoppingBag className="h-5 w-5 text-brand-rose-deep" aria-hidden="true" />
-            Tu carrito
+            Tu pedido
           </DrawerTitle>
           <DrawerDescription>
             Revisa tu pedido y envíalo a la barra para prepararlo.
@@ -100,7 +100,7 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
             </div>
             <div>
               <p className="font-medium text-brand-coffee">
-                Tu carrito está vacío
+                Tu pedido está vacío
               </p>
               <p className="mt-1 text-sm font-small text-muted-foreground">
                 Agrega tus bebidas favoritas desde el menú.

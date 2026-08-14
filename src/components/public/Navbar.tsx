@@ -75,7 +75,7 @@ export function Navbar({ tasaBCV }: NavbarProps) {
             size="icon"
             className="relative h-12 w-12"
             onClick={() => setCarritoAbierto(true)}
-            aria-label={`Abrir carrito de compras (${cantidadItems} artículos)`}
+            aria-label={`Abrir pedido (${cantidadItems} artículos)`}
           >
             <ShoppingBag className="h-5 w-5" />
             {cantidadItems > 0 && (

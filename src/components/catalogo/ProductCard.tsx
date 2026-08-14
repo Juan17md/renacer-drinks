@@ -81,8 +81,8 @@ export function ProductCard({ producto, tasaBCV }: ProductCardProps) {
           className="h-12 w-full text-sm font-small sm:text-base"
           aria-label={
             agregado
-              ? `${producto.name} agregado al carrito`
-              : `Agregar ${producto.name} al carrito`
+              ? `${producto.name} agregado al pedido`
+              : `Agregar ${producto.name} al pedido`
           }
         >
           {agregado ? (
@@ -93,7 +93,7 @@ export function ProductCard({ producto, tasaBCV }: ProductCardProps) {
           ) : (
             <>
               <ShoppingBag className="mr-2 h-4 w-4" aria-hidden="true" />
-              Agregar al carrito
+              Agregar al pedido
             </>
           )}
         </Button>

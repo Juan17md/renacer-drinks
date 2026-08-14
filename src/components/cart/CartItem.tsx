@@ -54,7 +54,7 @@ export function CartItem({
             size="icon"
             className="h-9 w-9 text-muted-foreground hover:text-destructive"
             onClick={() => onEliminar(item.producto.id)}
-            aria-label={`Eliminar ${item.producto.name} del carrito`}
+            aria-label={`Eliminar ${item.producto.name} del pedido`}
           >
             <Trash2 className="h-4 w-4" aria-hidden="true" />
           </Button>

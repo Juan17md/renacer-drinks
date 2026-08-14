@@ -39,7 +39,7 @@ describe("CartDrawer", () => {
       <CartDrawer abierto onOpenChange={onOpenChange} tasaBCV={764.35} />
     );
 
-    expect(screen.getByText(/tu carrito está vacío/i)).toBeInTheDocument();
+    expect(screen.getByText(/tu pedido está vacío/i)).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /enviar pedido a la barra/i })
     ).not.toBeInTheDocument();
@@ -73,7 +73,7 @@ describe("CartDrawer", () => {
     expect(useCartStore.getState().items[0].cantidad).toBe(2);
   });
 
-  it("permite eliminar un item del carrito", () => {
+  it("permite eliminar un item del pedido", () => {
     useCartStore.getState().agregarProducto(productoMock, 1);
 
     render(
@@ -82,15 +82,15 @@ describe("CartDrawer", () => {
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: /eliminar café mocca helado del carrito/i,
+        name: /eliminar café mocca helado del pedido/i,
       })
     );
 
     expect(useCartStore.getState().items).toHaveLength(0);
-    expect(screen.getByText(/tu carrito está vacío/i)).toBeInTheDocument();
+    expect(screen.getByText(/tu pedido está vacío/i)).toBeInTheDocument();
   });
 
-  it("pide el nombre y envía el pedido a Firestore vaciando el carrito", async () => {
+  it("pide el nombre y envía el pedido a Firestore vaciando el pedido", async () => {
     crearOrdenMock.mockResolvedValue({ id: "orden_1", numero: 12 });
     useCartStore.getState().agregarProducto(productoMock, 1);
 
@@ -149,7 +149,7 @@ describe("CartDrawer", () => {
     expect(crearOrdenMock).not.toHaveBeenCalled();
   });
 
-  it("muestra error si Firestore falla y mantiene el carrito", async () => {
+  it("muestra error si Firestore falla y mantiene el pedido", async () => {
     crearOrdenMock.mockRejectedValue(new Error("firestore caído"));
     useCartStore.getState().agregarProducto(productoMock, 1);
 
