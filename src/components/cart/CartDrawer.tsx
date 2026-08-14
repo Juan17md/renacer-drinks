@@ -30,10 +30,12 @@ import { useCartStore } from "@/store/useCartStore";
 import { convertirUSDaBs } from "@/lib/utils";
 import { crearOrden } from "@/services/orders";
 import { escucharMetodosPago } from "@/services/metodosPago";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import type { MetodoPagoConfig } from "@/types/payment";
 import { cn } from "@/lib/utils";
 
 const URL_ENDPOINT = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT ?? "";
+const CONSULTA_ESCRITORIO = "(min-width: 768px)";
 
 interface CartDrawerProps {
   abierto: boolean;
@@ -42,6 +44,7 @@ interface CartDrawerProps {
 }
 
 export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) {
+  const esEscritorio = useMediaQuery(CONSULTA_ESCRITORIO);
   const items = useCartStore((estado) => estado.items);
   const actualizarCantidad = useCartStore((estado) => estado.actualizarCantidad);
   const eliminarProducto = useCartStore((estado) => estado.eliminarProducto);
@@ -154,7 +157,11 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
   );
 
   return (
-    <Drawer open={abierto} onOpenChange={onOpenChange}>
+    <Drawer
+      open={abierto}
+      onOpenChange={onOpenChange}
+      direction={esEscritorio ? "right" : "bottom"}
+    >
       <DrawerContent className="pb-[env(safe-area-inset-bottom)]">
         <DrawerHeader>
           <DrawerTitle className="flex items-center gap-2 font-heading">
