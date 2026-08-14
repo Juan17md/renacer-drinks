@@ -15,6 +15,7 @@ function convertirProducto(docSnapshot: {
     costo: Number(datos.costo ?? 0),
     category: String(datos.category ?? ""),
     isAvailable: Boolean(datos.isAvailable ?? true),
+    destacado: Boolean(datos.destacado ?? false),
     imageUrl: String(datos.imageUrl ?? ""),
     imageId: String(datos.imageId ?? ""),
     updatedAt:
@@ -47,6 +48,14 @@ export async function obtenerProductosCompletos(): Promise<Producto[]> {
 export async function obtenerProductosDisponibles(): Promise<ProductoPublico[]> {
   const productos = await obtenerProductos();
   return productos.filter((producto) => producto.isAvailable);
+}
+
+export async function obtenerProductosDestacados(): Promise<ProductoPublico[]> {
+  const productos = await obtenerProductosDisponibles();
+  const destacados = productos.filter((producto) => producto.destacado);
+  // Si no hay productos marcados, se mantiene el comportamiento anterior
+  // mostrando los primeros disponibles.
+  return (destacados.length > 0 ? destacados : productos).slice(0, 3);
 }
 
 export async function obtenerProductoPorId(id: string): Promise<Producto | null> {

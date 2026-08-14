@@ -385,6 +385,16 @@ service cloud.firestore {
     }
 
     // ===========================================================
+    // Promociones de la landing (lectura pública, escritura solo Admin SDK)
+    // ===========================================================
+    match /promociones/{promocionId} {
+      allow read: if true;
+      // Las escrituras se realizan únicamente desde el servidor
+      // (Server Actions con Admin SDK, que ignora estas reglas).
+      allow create, update, delete: if false;
+    }
+
+    // ===========================================================
     // Usuarios (lectura propia, escritura solo Admin SDK)
     // ===========================================================
     // Cada usuario autenticado puede leer su propio documento para

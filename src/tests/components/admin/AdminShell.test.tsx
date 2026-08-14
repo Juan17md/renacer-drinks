@@ -205,6 +205,9 @@ describe("AdminShell (protección de rutas)", () => {
       screen.getByRole("link", { name: /finanzas/i })
     ).toBeInTheDocument();
     expect(
+      screen.getByRole("link", { name: /promociones/i })
+    ).toBeInTheDocument();
+    expect(
       await screen.findByRole("link", { name: /usuarios/i })
     ).toBeInTheDocument();
     expect(

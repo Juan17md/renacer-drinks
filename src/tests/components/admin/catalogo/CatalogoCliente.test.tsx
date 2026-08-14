@@ -183,9 +183,45 @@ describe("CatalogoCliente", () => {
       costo: 2,
       category: "bebidas-frias",
       isAvailable: true,
+      destacado: false,
       imageUrl: "",
       imageId: "",
     });
+  });
+
+  it("marca el producto como destacado desde el modal", async () => {
+    render(
+      <CatalogoCliente productos={productosMock} categorias={categoriasMock} />
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /agregar producto/i })
+    );
+
+    fireEvent.change(screen.getByLabelText("Nombre *"), {
+      target: { value: "Batido Estrella" },
+    });
+    fireEvent.change(screen.getByLabelText(/precio \(costo\) usd/i), {
+      target: { value: "2" },
+    });
+    fireEvent.change(screen.getByLabelText(/precio de venta usd/i), {
+      target: { value: "3" },
+    });
+    fireEvent.click(
+      screen.getByRole("combobox", { name: /seleccionar categoría/i })
+    );
+    const opcionesCategoria = await screen.findAllByText("Bebidas Frías");
+    fireEvent.click(opcionesCategoria[opcionesCategoria.length - 1]);
+
+    fireEvent.click(
+      screen.getByRole("switch", { name: "Destacado en la landing" })
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /crear producto/i }));
+
+    expect(crearProductoMock).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Batido Estrella", destacado: true })
+    );
   });
 
   it("muestra la ganancia por unidad al llenar ambos precios", async () => {

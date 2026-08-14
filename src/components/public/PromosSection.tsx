@@ -1,27 +1,20 @@
-import { Clock, Zap, PartyPopper, Sparkles } from "lucide-react";
+import { Clock, Zap, PartyPopper, Sparkles, type LucideIcon } from "lucide-react";
+import { obtenerPromocionesActivas } from "@/services/promotions";
+import type { Promocion } from "@/types/promotion";
 
-const PROMOCIONES = [
-  {
-    titulo: "Happy Hours",
-    horario: "Lunes a Sábado de 8AM a 12PM",
-    descripcion: "Dos por el precio de uno en tus favoritas.",
-    ofertas: [
-      { nombre: "2 Merengadas", precio: "$4.50" },
-      { nombre: "2 Especiales", precio: "$5.60" },
-    ],
-    icono: PartyPopper,
-  },
-  {
-    titulo: "Tarde de Poder",
-    horario: "Por tiempo limitado",
-    descripcion:
-      "Añade extra de proteína a tu batido por $0.50.",
-    ofertas: [],
-    icono: Zap,
-  },
-] as const;
+const ICONOS_POR_INDICE: LucideIcon[] = [PartyPopper, Zap, Sparkles];
 
-export function PromosSection() {
+function iconoDePromocion(indice: number): LucideIcon {
+  return ICONOS_POR_INDICE[indice % ICONOS_POR_INDICE.length];
+}
+
+export async function PromosSection() {
+  const promociones = await obtenerPromocionesActivas();
+
+  if (promociones.length === 0) {
+    return null;
+  }
+
   return (
     <section
       aria-labelledby="promociones-titulo"
@@ -51,52 +44,55 @@ export function PromosSection() {
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2" data-reveal-stagger>
-          {PROMOCIONES.map((promo) => (
-            <article
-              key={promo.titulo}
-              className="flex flex-col rounded-2xl bg-white p-6 shadow-lg sm:p-7"
-            >
-              <div className="flex items-start gap-4">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-rose-light">
-                  <promo.icono
-                    className="h-6 w-6 text-brand-rose-deep"
-                    aria-hidden="true"
-                  />
-                </span>
-                <div>
-                  <h3 className="font-heading text-xl font-bold text-brand-coffee">
-                    {promo.titulo}
-                  </h3>
-                  <p className="mt-1 flex items-center gap-1.5 text-sm font-small font-medium text-brand-rose-deep">
-                    <Clock className="h-4 w-4" aria-hidden="true" />
-                    {promo.horario}
-                  </p>
+          {promociones.map((promo: Promocion, indice: number) => {
+            const Icono = iconoDePromocion(indice);
+            return (
+              <article
+                key={promo.id}
+                className="flex flex-col rounded-2xl bg-white p-6 shadow-lg sm:p-7"
+              >
+                <div className="flex items-start gap-4">
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-rose-light">
+                    <Icono
+                      className="h-6 w-6 text-brand-rose-deep"
+                      aria-hidden="true"
+                    />
+                  </span>
+                  <div>
+                    <h3 className="font-heading text-xl font-bold text-brand-coffee">
+                      {promo.titulo}
+                    </h3>
+                    <p className="mt-1 flex items-center gap-1.5 text-sm font-small font-medium text-brand-rose-deep">
+                      <Clock className="h-4 w-4" aria-hidden="true" />
+                      {promo.horario}
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              <p className="mt-4 text-sm font-small leading-relaxed text-muted-foreground">
-                {promo.descripcion}
-              </p>
+                <p className="mt-4 text-sm font-small leading-relaxed text-muted-foreground">
+                  {promo.descripcion}
+                </p>
 
-              {promo.ofertas.length > 0 && (
-                <ul className="mt-5 space-y-2.5">
-                  {promo.ofertas.map((oferta) => (
-                    <li
-                      key={oferta.nombre}
-                      className="flex items-center justify-between rounded-xl border border-dashed border-brand-rose/40 px-4 py-3"
-                    >
-                      <span className="font-medium text-brand-coffee">
-                        {oferta.nombre}
-                      </span>
-                      <span className="font-heading text-lg font-bold text-brand-rose-deep">
-                        {oferta.precio}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </article>
-          ))}
+                {promo.ofertas.length > 0 && (
+                  <ul className="mt-5 space-y-2.5">
+                    {promo.ofertas.map((oferta) => (
+                      <li
+                        key={oferta.nombre}
+                        className="flex items-center justify-between rounded-xl border border-dashed border-brand-rose/40 px-4 py-3"
+                      >
+                        <span className="font-medium text-brand-coffee">
+                          {oferta.nombre}
+                        </span>
+                        <span className="font-heading text-lg font-bold text-brand-rose-deep">
+                          {oferta.precio}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </article>
+            );
+          })}
         </div>
       </div>
     </section>

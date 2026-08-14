@@ -15,6 +15,7 @@ import {
   Menu,
   X,
   CreditCard,
+  TicketPercent,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -51,6 +52,11 @@ const ENLACES_ADMIN = [
     href: "/admin/pagos",
     label: "Pagos",
     icono: CreditCard,
+  },
+  {
+    href: "/admin/promociones",
+    label: "Promociones",
+    icono: TicketPercent,
   },
 ];
 

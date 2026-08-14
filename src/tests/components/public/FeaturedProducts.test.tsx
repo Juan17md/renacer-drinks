@@ -10,6 +10,7 @@ const { productoMock, tasaMock } = vi.hoisted(() => ({
     price: 2.0,
     category: "bebidas-frias",
     isAvailable: true,
+    destacado: false,
     imageUrl: "https://ik.imagekit.io/renacer/products/mocca.jpg",
     imageId: "ik_1",
     updatedAt: "2026-08-12T23:00:00Z",
@@ -23,7 +24,7 @@ const { productoMock, tasaMock } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/services/products", () => ({
-  obtenerProductosDisponibles: vi.fn().mockResolvedValue([productoMock]),
+  obtenerProductosDestacados: vi.fn().mockResolvedValue([productoMock]),
 }));
 
 vi.mock("@/lib/bcv", () => ({
@@ -42,7 +43,7 @@ describe("FeaturedProducts", () => {
 
   it("muestra mensaje de próximamente cuando no hay productos", async () => {
     vi.mocked(
-      (await import("@/services/products")).obtenerProductosDisponibles
+      (await import("@/services/products")).obtenerProductosDestacados
     ).mockResolvedValueOnce([]);
 
     const elemento = await FeaturedProducts();
