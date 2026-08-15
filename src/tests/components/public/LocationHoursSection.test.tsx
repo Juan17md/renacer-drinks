@@ -9,8 +9,10 @@ describe("LocationHoursSection", () => {
     expect(
       screen.getByText(/Dentro de Zona Gym/i)
     ).toBeInTheDocument();
-    expect(screen.getByText(/6:00 am – 12:00 pm/i)).toBeInTheDocument();
-    expect(screen.getByText(/2:00 pm – 9:00 pm/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Lunes a Viernes: 6:00 am – 12:00 pm y 2:00 pm – 9:00 pm/i)
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Sábados: 6:00 am – 2:00 pm/i)).toBeInTheDocument();
   });
 
   it("incluye el mapa embebido con las coordenadas de la cafetería", () => {
