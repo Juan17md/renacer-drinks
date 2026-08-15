@@ -29,9 +29,8 @@ describe("Página de Inicio (Landing)", () => {
     const elemento = await PaginaInicio();
     render(elemento);
 
-    expect(
-      screen.getByText(/Lunes a Viernes: 6:00 am – 12:00 pm y 2:00 pm – 9:00 pm/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Lunes a Viernes:/i)).toBeInTheDocument();
+    expect(screen.getByText(/6:00 am – 12:00 pm y 2:00 pm – 9:00 pm/i)).toBeInTheDocument();
     expect(screen.getByText(/Sábados: 6:00 am – 2:00 pm/i)).toBeInTheDocument();
   });
 
