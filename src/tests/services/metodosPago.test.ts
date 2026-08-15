@@ -7,7 +7,7 @@ import {
 
 const mocksFirestore = vi.hoisted(() => ({
   getDocs: vi.fn(),
-  onSnapshot: vi.fn(() => () => undefined),
+  onSnapshot: vi.fn((..._args: unknown[]) => () => undefined),
 }));
 
 vi.mock("firebase/firestore", () => ({
@@ -62,7 +62,9 @@ describe("metodosPago", () => {
     const callback = vi.fn();
     escucharMetodosPago(callback);
 
-    const ejecutarCallback = mocksFirestore.onSnapshot.mock.calls[0][1];
+    const ejecutarCallback = mocksFirestore.onSnapshot.mock.calls[0][1] as (
+      snapshot: unknown
+    ) => void;
     ejecutarCallback({
       docs: [
         {

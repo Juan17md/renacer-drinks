@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const { firestoreMock } = vi.hoisted(() => ({
   firestoreMock: {
     collection: vi.fn(),
-    addDoc: vi.fn(),
     getDocs: vi.fn(),
     doc: vi.fn(),
     runTransaction: vi.fn(),
@@ -30,6 +29,20 @@ import {
   obtenerResumenDiario,
 } from "@/services/transactions";
 
+// Localiza la escritura de la transacción financiera (payload con `type`),
+// ignorando la escritura del resumen diario que ocurre en el mismo commit.
+function transaccionEscrita(set: ReturnType<typeof vi.fn>) {
+  const llamadas = set.mock.calls as unknown[][];
+  const llamada = llamadas.find(
+    (call) =>
+      call[1] !== undefined &&
+      typeof call[1] === "object" &&
+      call[1] !== null &&
+      "type" in (call[1] as object)
+  );
+  return (llamada?.[1] ?? {}) as Record<string, unknown>;
+}
+
 describe("services/transactions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -37,21 +50,27 @@ describe("services/transactions", () => {
     firestoreMock.query.mockReturnValue("consulta");
     firestoreMock.orderBy.mockReturnValue("ordenado");
     firestoreMock.limit.mockReturnValue("limitado");
-    firestoreMock.doc.mockImplementation((_db, nombre, id) => ({ nombre, id }));
-    firestoreMock.addDoc.mockResolvedValue({ id: "tx_1" });
+    firestoreMock.doc.mockImplementation(
+      (_db: unknown, nombre?: string, id?: string) => ({
+        nombre: nombre ?? "coleccion",
+        id: id ?? "tx_auto",
+      })
+    );
     firestoreMock.getDocs.mockResolvedValue({ docs: [] });
     firestoreMock.updateDoc.mockResolvedValue(undefined);
   });
 
   describe("registrarTransaccion", () => {
-    it("guarda la transacción con conversión BCV y actualiza el resumen diario", async () => {
-      firestoreMock.runTransaction.mockImplementation(async (_db, callback) => {
-        await callback({
-          get: vi.fn().mockResolvedValue({ data: () => null }),
-          set: vi.fn(),
-        });
-        return undefined;
-      });
+    it("guarda la transacción y actualiza el resumen en una sola transacción atómica", async () => {
+      const set = vi.fn();
+      firestoreMock.runTransaction.mockImplementation(
+        async (_db: unknown, callback: (tx: unknown) => Promise<void>) => {
+          await callback({
+            get: vi.fn().mockResolvedValue({ data: () => null }),
+            set,
+          });
+        }
+      );
 
       const resultado = await registrarTransaccion(
         {
@@ -63,7 +82,8 @@ describe("services/transactions", () => {
         80
       );
 
-      expect(firestoreMock.addDoc).toHaveBeenCalledWith("coleccion", {
+      expect(firestoreMock.runTransaction).toHaveBeenCalledTimes(1);
+      expect(set).toHaveBeenCalledWith(expect.anything(), {
         type: "INGRESO",
         amount: 5,
         amountBs: 400,
@@ -74,9 +94,52 @@ describe("services/transactions", () => {
         createdBy: "admin",
         ganancia: 0,
       });
-      expect(firestoreMock.runTransaction).toHaveBeenCalled();
-      expect(resultado.id).toBe("tx_1");
+      // El resumen se actualiza dentro del mismo commit (netProfit correcto).
+      expect(set).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          totalIncome: 5,
+          totalExpense: 0,
+          netProfit: 5,
+          totalSales: 1,
+        }),
+        { merge: true }
+      );
+      expect(resultado.id).toBe("tx_auto");
       expect(resultado.amountBs).toBe(400);
+    });
+
+    it("suma al egreso sin afectar los ingresos", async () => {
+      const set = vi.fn();
+      firestoreMock.runTransaction.mockImplementation(
+        async (_db: unknown, callback: (tx: unknown) => Promise<void>) => {
+          await callback({
+            get: vi.fn().mockResolvedValue({ data: () => null }),
+            set,
+          });
+        }
+      );
+
+      await registrarTransaccion(
+        {
+          type: "EGRESO",
+          amount: 3,
+          concept: "Compra de leche",
+          paymentMethod: "EFECTIVO",
+        },
+        80
+      );
+
+      expect(set).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          totalIncome: 0,
+          totalExpense: 3,
+          netProfit: -3,
+          totalSales: 0,
+        }),
+        { merge: true }
+      );
     });
   });
 
@@ -84,36 +147,34 @@ describe("services/transactions", () => {
     it("registra ingreso automático si la orden no está en finanzas", async () => {
       const set = vi.fn();
       const update = vi.fn();
-      firestoreMock.runTransaction.mockImplementation(async (_db, callback) => {
-        await callback({
-          get: vi.fn().mockImplementation((ref) => {
-            if (ref.id === "orden_1") {
-              return {
-                data: () => ({
-                  numero: 12,
-                  totalUSD: 4.5,
-                  bcvRate: 80,
-                  estado: "entregada",
-                  items: [],
-                  createdAt: "2026-08-13T10:00:00",
-                  updatedAt: "2026-08-13T10:00:00",
-                }),
-              };
-            }
-            if (ref.id === "2026-08-13") {
+      firestoreMock.runTransaction.mockImplementation(
+        async (_db: unknown, callback: (tx: unknown) => Promise<void>) => {
+          await callback({
+            get: vi.fn().mockImplementation((ref: { id?: string }) => {
+              if (ref.id === "orden_1") {
+                return {
+                  data: () => ({
+                    numero: 12,
+                    totalUSD: 4.5,
+                    bcvRate: 80,
+                    estado: "entregada",
+                    items: [],
+                    createdAt: "2026-08-13T10:00:00",
+                    updatedAt: "2026-08-13T10:00:00",
+                  }),
+                };
+              }
               return { data: () => null };
-            }
-            return { data: () => null };
-          }),
-          set,
-          update,
-        });
-        return undefined;
-      });
+            }),
+            set,
+            update,
+          });
+        }
+      );
 
       await registrarIngresoPorOrden("orden_1", 4.5, "Venta orden #12");
 
-      expect(set).toHaveBeenCalled();
+      expect(transaccionEscrita(set)).toBeTruthy();
       expect(update).toHaveBeenCalledWith(
         expect.objectContaining({ id: "orden_1" }),
         { registradoEnFinanzas: true }
@@ -123,22 +184,23 @@ describe("services/transactions", () => {
     it("no registra dos veces si ya estaba registrada", async () => {
       const set = vi.fn();
       const update = vi.fn();
-      firestoreMock.runTransaction.mockImplementation(async (_db, callback) => {
-        await callback({
-          get: vi.fn().mockResolvedValue({
-            data: () => ({
-              numero: 13,
-              totalUSD: 3,
-              bcvRate: 80,
-              estado: "entregada",
-              registradoEnFinanzas: true,
+      firestoreMock.runTransaction.mockImplementation(
+        async (_db: unknown, callback: (tx: unknown) => Promise<void>) => {
+          await callback({
+            get: vi.fn().mockResolvedValue({
+              data: () => ({
+                numero: 13,
+                totalUSD: 3,
+                bcvRate: 80,
+                estado: "entregada",
+                registradoEnFinanzas: true,
+              }),
             }),
-          }),
-          set,
-          update,
-        });
-        return undefined;
-      });
+            set,
+            update,
+          });
+        }
+      );
 
       await registrarIngresoPorOrden("orden_2", 3, "Venta orden #13");
 
@@ -149,88 +211,81 @@ describe("services/transactions", () => {
     it("usa el método de pago del cliente en la transacción", async () => {
       const set = vi.fn();
       const update = vi.fn();
-      firestoreMock.runTransaction.mockImplementation(async (_db, callback) => {
-        await callback({
-          get: vi.fn().mockImplementation((ref) => {
-            if (ref.id === "orden_1") {
-              return {
-                data: () => ({
-                  numero: 12,
-                  totalUSD: 4.5,
-                  bcvRate: 80,
-                  estado: "entregada",
-                  metodoPago: "PAGO_MOVIL",
-                  items: [],
-                  createdAt: "2026-08-13T10:00:00",
-                  updatedAt: "2026-08-13T10:00:00",
-                }),
-              };
-            }
-            return { data: () => null };
-          }),
-          set,
-          update,
-        });
-        return undefined;
-      });
+      firestoreMock.runTransaction.mockImplementation(
+        async (_db: unknown, callback: (tx: unknown) => Promise<void>) => {
+          await callback({
+            get: vi.fn().mockImplementation((ref: { id?: string }) => {
+              if (ref.id === "orden_1") {
+                return {
+                  data: () => ({
+                    numero: 12,
+                    totalUSD: 4.5,
+                    bcvRate: 80,
+                    estado: "entregada",
+                    metodoPago: "PAGO_MOVIL",
+                    items: [],
+                    createdAt: "2026-08-13T10:00:00",
+                    updatedAt: "2026-08-13T10:00:00",
+                  }),
+                };
+              }
+              return { data: () => null };
+            }),
+            set,
+            update,
+          });
+        }
+      );
 
       await registrarIngresoPorOrden("orden_1", 4.5, "Venta orden #12");
 
-      const llamadaSet = set.mock.calls[0];
-      expect(llamadaSet[1].paymentMethod).toBe("PAGO_MOVIL");
+      expect(transaccionEscrita(set).paymentMethod).toBe("PAGO_MOVIL");
     });
 
     it("calcula la ganancia real con el costo del catálogo al registrar la orden", async () => {
       const set = vi.fn();
       const update = vi.fn();
-      firestoreMock.runTransaction.mockImplementation(async (_db, callback) => {
-        await callback({
-          get: vi.fn().mockImplementation((ref) => {
-            if (ref.id === "orden_1") {
-              return {
-                data: () => ({
-                  numero: 12,
-                  totalUSD: 9,
-                  bcvRate: 80,
-                  estado: "entregada",
-                  items: [
-                    {
-                      productId: "prod_1",
-                      nombre: "Café Mocca",
-                      precio: 4.5,
-                      cantidad: 2,
-                      subtotal: 9,
-                    },
-                  ],
-                  createdAt: "2026-08-13T10:00:00",
-                  updatedAt: "2026-08-13T10:00:00",
-                }),
-              };
-            }
-            return { data: () => null };
-          }),
-          set,
-          update,
-        });
-        return undefined;
-      });
-
-      firestoreMock.collection.mockImplementation((_db, nombre) => nombre);
-      firestoreMock.getDocs.mockResolvedValue({
-        docs: [
-          {
-            id: "prod_1",
-            data: () => ({ costo: 3.5 }),
-          },
-        ],
-      });
+      firestoreMock.runTransaction.mockImplementation(
+        async (_db: unknown, callback: (tx: unknown) => Promise<void>) => {
+          await callback({
+            get: vi.fn().mockImplementation((ref: { id?: string }) => {
+              if (ref.id === "orden_1") {
+                return {
+                  data: () => ({
+                    numero: 12,
+                    totalUSD: 9,
+                    bcvRate: 80,
+                    estado: "entregada",
+                    items: [
+                      {
+                        productId: "prod_1",
+                        nombre: "Café Mocca",
+                        precio: 4.5,
+                        cantidad: 2,
+                        subtotal: 9,
+                      },
+                    ],
+                    createdAt: "2026-08-13T10:00:00",
+                    updatedAt: "2026-08-13T10:00:00",
+                  }),
+                };
+              }
+              if (ref.id === "prod_1") {
+                return { data: () => ({ costo: 3.5 }) };
+              }
+              return { data: () => null };
+            }),
+            set,
+            update,
+          });
+        }
+      );
 
       await registrarIngresoPorOrden("orden_1", 9, "Venta orden #12");
 
-      const llamadaSet = set.mock.calls[0];
-      const transaccion = llamadaSet[1];
+      const transaccion = transaccionEscrita(set);
       expect(transaccion.ganancia).toBe(2);
-      expect(transaccion.items[0]).toMatchObject({
+      expect((transaccion.items as Record<string, unknown>[])[0]).toMatchObject({
         productId: "prod_1",
         nombre: "Café Mocca",
         precioVenta: 4.5,
@@ -242,13 +297,15 @@ describe("services/transactions", () => {
 
   describe("registrarVenta", () => {
     it("registra la venta con items, ganancia real y actualiza el resumen del día", async () => {
-      firestoreMock.runTransaction.mockImplementation(async (_db, callback) => {
-        await callback({
-          get: vi.fn().mockResolvedValue({ data: () => null }),
-          set: vi.fn(),
-        });
-        return undefined;
-      });
+      const set = vi.fn();
+      firestoreMock.runTransaction.mockImplementation(
+        async (_db: unknown, callback: (tx: unknown) => Promise<void>) => {
+          await callback({
+            get: vi.fn().mockResolvedValue({ data: () => null }),
+            set,
+          });
+        }
+      );
 
       const resultado = await registrarVenta(
         {
@@ -269,7 +326,8 @@ describe("services/transactions", () => {
         80
       );
 
-      expect(firestoreMock.addDoc).toHaveBeenCalledWith("coleccion", {
+      expect(firestoreMock.runTransaction).toHaveBeenCalledTimes(1);
+      expect(set).toHaveBeenCalledWith(expect.anything(), {
         type: "INGRESO",
         amount: 9,
         amountBs: 720,

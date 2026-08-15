@@ -66,7 +66,8 @@ rules_version = '2';
 //   - amountBs: number (required, >= 0)
 //   - bcvRate: number (required, >= 0)
 //   - concept: string (required, 1-200 chars)
-//   - paymentMethod: string (required, 1-30 chars)
+//   - paymentMethod: string (required, solo "EFECTIVO" | "PAGO_MOVIL" | "PUNTO" |
+//       "TRANSFERENCIA" | "BINANCE" | "ZELLE")
 //   - date: string ISO (required)
 //   - createdBy: string (required, 1-60 chars)
 //   - ordenId: string (optional)
@@ -115,9 +116,15 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function esAdmin() {
-      // Cualquier usuario autenticado por email/contraseña es admin.
-      return esAutenticado() && request.auth.token.email != null;
+    function esPersonal() {
+      // Personal autorizado: usuario autenticado con un documento en la
+      // colección `usuarios` y un rol válido (admin u operador). Sustituye a
+      // la antigua `esAdmin()` que confiaba en cualquier usuario autenticado
+      // por email; ahora el rol y la existencia del documento se verifican
+      // contra Firestore (los usuarios bloqueados se deshabilitan en Auth).
+      return esAutenticado() &&
+        exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol in ['admin', 'operador'];
     }
 
     function esCadenaValida(campo, minLen, maxLen) {
@@ -293,7 +300,7 @@ service cloud.firestore {
           esNumeroPositivo(data.amountBs) &&
           esNumeroPositivo(data.bcvRate) &&
           esCadenaValida(data.concept, 1, 200) &&
-          esCadenaValida(data.paymentMethod, 1, 30) &&
+          data.paymentMethod in ['EFECTIVO', 'PAGO_MOVIL', 'PUNTO', 'TRANSFERENCIA', 'BINANCE', 'ZELLE'] &&
           esCadenaValida(data.date, 8, 40) &&
           esCadenaValida(data.createdBy, 1, 60) &&
           (!('ordenId' in data) || esCadenaValida(data.ordenId, 1, 100)) &&
@@ -346,7 +353,7 @@ service cloud.firestore {
     // Materials (lectura solo admin, escritura solo Admin SDK)
     // ===========================================================
     match /materials/{materialId} {
-      allow read: if esAdmin();
+      allow read: if esPersonal();
       allow create, update, delete: if false;
     }
 
@@ -357,7 +364,7 @@ service cloud.firestore {
       // Lectura: solo admin (panel en tiempo real); el documento especial
       // contador_ordenes es público porque el checkout (sin login) lo lee
       // dentro de la transacción que crea la orden.
-      allow read: if esAdmin() || ordenId == "contador_ordenes";
+      allow read: if esPersonal() || ordenId == "contador_ordenes";
 
       // Creación: cualquier cliente sin login, con datos validados.
       // El contador_ordenes solo se crea la primera vez (numero == 1).
@@ -367,7 +374,7 @@ service cloud.firestore {
       // el flag de registro en finanzas o la verificación de pago;
       // el contador_ordenes solo puede incrementarse en +1 estricto
       // (diseño secuencial del checkout).
-      allow update: if ((esAdmin() &&
+      allow update: if ((esPersonal() &&
         (esTransicionEstadoValida() || esSoloRegistroFinanzas() || esSoloVerificarPago())) ||
         (ordenId == "contador_ordenes" && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['numero']) && request.resource.data.numero == resource.data.numero + 1));
 
@@ -410,8 +417,8 @@ service cloud.firestore {
     // Financial Transactions (solo admin)
     // ===========================================================
     match /financial_transactions/{transactionId} {
-      allow read: if esAdmin();
-      allow create: if esAdmin() && esTransaccionValida();
+      allow read: if esPersonal();
+      allow create: if esPersonal() && esTransaccionValida();
       allow update: if false;
       allow delete: if false;
     }
@@ -420,9 +427,9 @@ service cloud.firestore {
     // Daily Summaries (solo admin)
     // ===========================================================
     match /daily_summaries/{fecha} {
-      allow read: if esAdmin();
-      allow create: if esAdmin() && esResumenValido();
-      allow update: if esAdmin() && esResumenValido();
+      allow read: if esPersonal();
+      allow create: if esPersonal() && esResumenValido();
+      allow update: if esPersonal() && esResumenValido();
       allow delete: if false;
     }
   }

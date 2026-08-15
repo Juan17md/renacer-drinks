@@ -6,8 +6,7 @@ export type MetodoPago =
   | "PUNTO"
   | "TRANSFERENCIA"
   | "BINANCE"
-  | "ZELLE"
-  | "OTRO";
+  | "ZELLE";
 
 export const METODOS_PAGO: { valor: MetodoPago; label: string }[] = [
   { valor: "EFECTIVO", label: "Efectivo" },
@@ -16,7 +15,6 @@ export const METODOS_PAGO: { valor: MetodoPago; label: string }[] = [
   { valor: "TRANSFERENCIA", label: "Transferencia" },
   { valor: "BINANCE", label: "Binance" },
   { valor: "ZELLE", label: "Zelle" },
-  { valor: "OTRO", label: "Otro" },
 ];
 
 export interface ItemVenta {

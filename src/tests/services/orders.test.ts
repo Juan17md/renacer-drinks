@@ -8,7 +8,7 @@ import {
 
 const mocksFirestore = vi.hoisted(() => ({
   runTransaction: vi.fn(),
-  onSnapshot: vi.fn(() => () => undefined),
+  onSnapshot: vi.fn((..._args: unknown[]) => () => undefined),
   updateDoc: vi.fn(),
 }));
 
@@ -69,7 +69,9 @@ describe("escucharOrdenes", () => {
       ],
     };
 
-    const ejecutarCallback = mocksFirestore.onSnapshot.mock.calls[0][1];
+    const ejecutarCallback = mocksFirestore.onSnapshot.mock.calls[0][1] as (
+      snapshot: unknown
+    ) => void;
     ejecutarCallback(snapshotMock);
 
     expect(callback).toHaveBeenCalledWith([
@@ -111,8 +113,9 @@ describe("escucharOrdenes", () => {
       ],
     };
 
-    const ejecutarCallback =
-      mocksFirestore.onSnapshot.mock.calls.at(-1)![1];
+    const ejecutarCallback = mocksFirestore.onSnapshot.mock.calls.at(
+      -1
+    )![1] as (snapshot: unknown) => void;
     ejecutarCallback(snapshotMock);
 
     expect(callback).toHaveBeenCalledWith([
@@ -129,7 +132,9 @@ describe("escucharOrdenes", () => {
     const onError = vi.fn();
     escucharOrdenes(callback, onError);
 
-    const ejecutarError = mocksFirestore.onSnapshot.mock.calls[0][2];
+    const ejecutarError = mocksFirestore.onSnapshot.mock.calls[0][2] as (
+      error: unknown
+    ) => void;
     ejecutarError(new Error("sin conexión"));
 
     expect(onError).toHaveBeenCalledWith(expect.any(Error));
@@ -181,7 +186,7 @@ describe("crearOrden", () => {
 
     const resultado = await crearOrden({
       nombreCliente: "Pedro",
-      items: [{ nombre: "Tropical", precio: 3, cantidad: 1, subtotal: 3 }],
+      items: [{ productId: "prod_1", nombre: "Tropical", precio: 3, cantidad: 1, subtotal: 3 }],
       totalUSD: 3,
       totalBs: 2293.05,
       tasaBCV: 764.35,

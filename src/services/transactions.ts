@@ -1,6 +1,5 @@
 import {
   collection,
-  addDoc,
   doc,
   getDocs,
   query,
@@ -9,6 +8,7 @@ import {
   where,
   runTransaction,
   type DocumentSnapshot,
+  type Transaction,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type {
@@ -45,7 +45,7 @@ function transformarTransaccion(
     amountBs: Number(datos?.amountBs ?? 0),
     bcvRate: Number(datos?.bcvRate ?? 0),
     concept: String(datos?.concept ?? ""),
-    paymentMethod: (datos?.paymentMethod ?? "OTRO") as TransaccionFinanciera["paymentMethod"],
+    paymentMethod: (datos?.paymentMethod ?? "EFECTIVO") as TransaccionFinanciera["paymentMethod"],
     date: String(datos?.date ?? ""),
     createdBy: String(datos?.createdBy ?? ""),
     customerName: datos?.customerName ? String(datos.customerName) : undefined,
@@ -61,42 +61,42 @@ function calcularGanancia(items: ItemVenta[]): number {
   );
 }
 
-async function actualizarResumenDiario(
+interface IncrementoResumen {
+  income?: number;
+  expense?: number;
+  ventas?: number;
+  ganancia?: number;
+}
+
+async function actualizarResumenEnTransaccion(
+  transaccion: Transaction,
   fecha: string,
-  type: TipoTransaccion,
-  amount: number,
-  ganancia = 0
+  incremento: IncrementoResumen
 ): Promise<void> {
   const refResumen = doc(db, COLECCION_RESUMENES, fecha);
+  const snapshot = await transaccion.get(refResumen);
+  const actual = snapshot.data() ?? {
+    totalIncome: 0,
+    totalExpense: 0,
+    netProfit: 0,
+    totalSales: 0,
+    totalProfit: 0,
+  };
 
-  await runTransaction(db, async (transaccion) => {
-    const snapshot = await transaccion.get(refResumen);
-    const actual = snapshot.data() ?? {
-      totalIncome: 0,
-      totalExpense: 0,
-      netProfit: 0,
-      totalSales: 0,
-      totalProfit: 0,
-    };
-    const incremento =
-      type === "INGRESO"
-        ? {
-            totalIncome: Number(actual.totalIncome) + amount,
-            totalSales: Number(actual.totalSales) + 1,
-            totalProfit: Number(actual.totalProfit) + ganancia,
-          }
-        : { totalExpense: Number(actual.totalExpense) + amount };
+  const totalIncome = Number(actual.totalIncome) + (incremento.income ?? 0);
+  const totalExpense = Number(actual.totalExpense) + (incremento.expense ?? 0);
 
-    transaccion.set(
-      refResumen,
-      {
-        ...actual,
-        ...incremento,
-        netProfit: Number(actual.totalIncome) - Number(actual.totalExpense),
-      },
-      { merge: true }
-    );
-  });
+  transaccion.set(
+    refResumen,
+    {
+      totalIncome,
+      totalExpense,
+      netProfit: totalIncome - totalExpense,
+      totalSales: Number(actual.totalSales) + (incremento.ventas ?? 0),
+      totalProfit: Number(actual.totalProfit) + (incremento.ganancia ?? 0),
+    },
+    { merge: true }
+  );
 }
 
 export async function registrarTransaccion(
@@ -105,23 +105,31 @@ export async function registrarTransaccion(
 ): Promise<TransaccionFinanciera> {
   const fecha = obtenerFechaHoraLocalISO();
   const amountBs = datos.amount * tasaBCV;
+  const esIngreso = datos.type === "INGRESO";
+  const refTransaccion = doc(collection(db, COLECCION_TRANSACCIONES));
 
-  const referencia = await addDoc(collection(db, COLECCION_TRANSACCIONES), {
-    type: datos.type,
-    amount: datos.amount,
-    amountBs,
-    bcvRate: tasaBCV,
-    concept: datos.concept,
-    paymentMethod: datos.paymentMethod,
-    date: fecha,
-    createdBy: "admin",
-    ganancia: 0,
+  await runTransaction(db, async (transaccion) => {
+    await actualizarResumenEnTransaccion(transaccion, fecha.slice(0, 10), {
+      income: esIngreso ? datos.amount : 0,
+      expense: esIngreso ? 0 : datos.amount,
+      ventas: esIngreso ? 1 : 0,
+    });
+
+    transaccion.set(refTransaccion, {
+      type: datos.type,
+      amount: datos.amount,
+      amountBs,
+      bcvRate: tasaBCV,
+      concept: datos.concept,
+      paymentMethod: datos.paymentMethod,
+      date: fecha,
+      createdBy: "admin",
+      ganancia: 0,
+    });
   });
 
-  await actualizarResumenDiario(fecha.slice(0, 10), datos.type, datos.amount);
-
   return {
-    id: referencia.id,
+    id: refTransaccion.id,
     ...datos,
     amountBs,
     bcvRate: tasaBCV,
@@ -142,25 +150,32 @@ export async function registrarVenta(
   const concepto = nombreCliente
     ? `Venta directa - ${nombreCliente}`
     : "Venta directa";
+  const refTransaccion = doc(collection(db, COLECCION_TRANSACCIONES));
 
-  const referencia = await addDoc(collection(db, COLECCION_TRANSACCIONES), {
-    type: "INGRESO",
-    amount: datos.amount,
-    amountBs,
-    bcvRate: tasaBCV,
-    concept: concepto,
-    paymentMethod: datos.paymentMethod,
-    date: fecha,
-    createdBy: "admin",
-    customerName: nombreCliente || undefined,
-    ganancia,
-    items: datos.items,
+  await runTransaction(db, async (transaccion) => {
+    await actualizarResumenEnTransaccion(transaccion, fecha.slice(0, 10), {
+      income: datos.amount,
+      ventas: 1,
+      ganancia,
+    });
+
+    transaccion.set(refTransaccion, {
+      type: "INGRESO",
+      amount: datos.amount,
+      amountBs,
+      bcvRate: tasaBCV,
+      concept: concepto,
+      paymentMethod: datos.paymentMethod,
+      date: fecha,
+      createdBy: "admin",
+      customerName: nombreCliente || undefined,
+      ganancia,
+      items: datos.items,
+    });
   });
 
-  await actualizarResumenDiario(fecha.slice(0, 10), "INGRESO", datos.amount, ganancia);
-
   return {
-    id: referencia.id,
+    id: refTransaccion.id,
     type: "INGRESO",
     amount: datos.amount,
     amountBs,
@@ -212,8 +227,17 @@ export async function registrarIngresoPorOrden(
       })
       .filter((item) => item.nombre && item.cantidad > 0);
 
+    const ganancia = await calcularGananciaPorOrden(transaccion, items);
+
+    // Resumen diario: se resuelve antes de la escritura de la transacción para
+    // respetar la regla de Firestore "todas las lecturas antes de las escrituras".
+    await actualizarResumenEnTransaccion(transaccion, fecha.slice(0, 10), {
+      income: totalUSD,
+      ventas: 1,
+      ganancia,
+    });
+
     const refTransaccion = doc(collection(db, COLECCION_TRANSACCIONES));
-    const ganancia = await calcularGananciaPorOrden(items);
     transaccion.set(refTransaccion, {
       type: "INGRESO",
       amount: totalUSD,
@@ -227,28 +251,6 @@ export async function registrarIngresoPorOrden(
       ganancia,
       items,
     });
-
-    const refResumen = doc(db, COLECCION_RESUMENES, fecha.slice(0, 10));
-    const snapshotResumen = await transaccion.get(refResumen);
-    const resumen = snapshotResumen.data() ?? {
-      totalIncome: 0,
-      totalExpense: 0,
-      netProfit: 0,
-      totalSales: 0,
-      totalProfit: 0,
-    };
-    transaccion.set(
-      refResumen,
-      {
-        ...resumen,
-        totalIncome: Number(resumen.totalIncome) + totalUSD,
-        totalSales: Number(resumen.totalSales) + 1,
-        totalProfit: Number(resumen.totalProfit) + ganancia,
-        netProfit:
-          Number(resumen.totalIncome) + totalUSD - Number(resumen.totalExpense),
-      },
-      { merge: true }
-    );
 
     transaccion.update(refOrden, { registradoEnFinanzas: true });
   });
@@ -298,6 +300,7 @@ export async function obtenerResumenDiario(
 }
 
 async function calcularGananciaPorOrden(
+  transaccion: Transaction,
   items: {
     productId?: string;
     precioVenta: number;
@@ -305,21 +308,20 @@ async function calcularGananciaPorOrden(
     costo: number;
   }[]
 ): Promise<number> {
-  const ids = items.map((item) => item.productId).filter(Boolean);
+  const ids = items
+    .map((item) => item.productId)
+    .filter((productId): productId is string => Boolean(productId));
+
   if (ids.length === 0) return 0;
 
   const costos = new Map<string, number>();
-  try {
-    const consulta = query(
-      collection(db, "products"),
-      where("__name__", "in", ids)
-    );
-    const snapshot = await getDocs(consulta);
-    snapshot.docs.forEach((documento) => {
-      costos.set(documento.id, Number(documento.data().costo ?? 0));
-    });
-  } catch (error) {
-    console.error("Error al resolver costos de la orden:", error);
+  for (const id of ids) {
+    try {
+      const snapshot = await transaccion.get(doc(db, "products", id));
+      costos.set(id, Number(snapshot.data()?.costo ?? 0));
+    } catch (error) {
+      console.error(`Error al resolver el costo del producto ${id}:`, error);
+    }
   }
 
   let gananciaTotal = 0;

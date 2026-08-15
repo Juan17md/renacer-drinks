@@ -70,7 +70,7 @@ describe("obtenerPromociones", () => {
   });
 
   it("usa activo=true por defecto cuando no viene el campo", async () => {
-    const sinActivo = { ...promocionDatos };
+    const sinActivo: Record<string, unknown> = { ...promocionDatos };
     delete sinActivo.activo;
     mocksFirestore.getDocs.mockResolvedValue(
       crearSnapshot([sinActivo], ["happy_hours"])
