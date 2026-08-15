@@ -32,6 +32,10 @@ service-account*.json
 # Backups locales de Firestore (datos de la BD - nunca subir)
 backups/
 
+# Scripts de siembra de datos de prueba (no subir)
+scripts/sembrar-operaciones-prueba.mjs
+scripts/sembrar-materiales-prueba.mjs
+
 # Documento para el cliente (no es parte del repositorio)
 Explicacion_para_el_cliente.txt
 

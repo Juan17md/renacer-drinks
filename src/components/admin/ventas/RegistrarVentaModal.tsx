@@ -309,12 +309,19 @@ export function RegistrarVentaModal({
             <div className="space-y-2">
               <Label htmlFor="venta-metodo">Método de pago</Label>
               <Select value={metodo} onValueChange={(v) => setMetodo(v as MetodoPago)}>
-                <SelectTrigger id="venta-metodo" className="h-12 text-base">
+                <SelectTrigger
+                  id="venta-metodo"
+                  className="h-12 w-full text-base"
+                >
                   <SelectValue placeholder="Selecciona..." />
                 </SelectTrigger>
                 <SelectContent>
                   {METODOS_PAGO.map((metodoPago) => (
-                    <SelectItem key={metodoPago.valor} value={metodoPago.valor}>
+                    <SelectItem
+                      key={metodoPago.valor}
+                      value={metodoPago.valor}
+                      className="text-base"
+                    >
                       {metodoPago.label}
                     </SelectItem>
                   ))}
