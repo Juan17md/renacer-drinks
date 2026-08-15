@@ -22,10 +22,10 @@ export interface DatosProducto {
 
 function validarProducto(datos: DatosProducto): string | null {
   if (!datos.name.trim()) return "El nombre es obligatorio.";
-  if (!datos.price || Number.isNaN(datos.price) || datos.price <= 0) {
+  if (!Number.isFinite(datos.price) || datos.price <= 0) {
     return "Ingresa un precio de venta válido en USD.";
   }
-  if (!datos.costo || Number.isNaN(datos.costo) || datos.costo < 0) {
+  if (!Number.isFinite(datos.costo) || datos.costo < 0) {
     return "Ingresa un precio (costo) válido en USD.";
   }
   if (datos.price < datos.costo) {
@@ -125,7 +125,30 @@ export async function crearCategoria(datos: { name: string }) {
 export async function eliminarCategoria(id: string) {
   try {
     const db = getAdminFirestore();
-    await db.doc(`categories/${id}`).delete();
+    const refCategoria = db.doc(`categories/${id}`);
+    const snapshotCategoria = await refCategoria.get();
+
+    // Evita categorías huérfanas: si hay productos que usan el slug de esta
+    // categoría, no se permite eliminarla.
+    if (snapshotCategoria.exists) {
+      const slug = String(snapshotCategoria.data()?.slug ?? "");
+      if (slug) {
+        const productos = await db
+          .collection("products")
+          .where("category", "==", slug)
+          .limit(1)
+          .get();
+        if (!productos.empty) {
+          return {
+            ok: false as const,
+            error:
+              "No se puede eliminar la categoría porque aún hay productos que la usan.",
+          };
+        }
+      }
+    }
+
+    await refCategoria.delete();
     revalidatePath("/catalogo");
     revalidatePath("/admin/catalogo");
     return { ok: true as const };

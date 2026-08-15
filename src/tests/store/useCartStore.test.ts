@@ -1,20 +1,21 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { useCartStore } from "@/store/useCartStore";
-import type { Producto } from "@/types/product";
+import type { ProductoPublico } from "@/types/product";
 
-const productoBase: Producto = {
+const productoBase: ProductoPublico = {
   id: "prod_1",
   name: "Café Mocca Helado",
   description: "Espresso doble con chocolate artesanal",
   price: 4.5,
   category: "bebidas-frias",
   isAvailable: true,
+  destacado: false,
   imageUrl: "https://ik.imagekit.io/renacer/products/mocca.jpg",
   imageId: "ik_1",
   updatedAt: "2026-08-12T23:00:00Z",
 };
 
-const producto2: Producto = {
+const producto2: ProductoPublico = {
   ...productoBase,
   id: "prod_2",
   name: "Capuchino",

@@ -11,6 +11,7 @@ const productoMock: ProductoPublico = {
   price: 2.25,
   category: "Bebidas",
   isAvailable: true,
+  destacado: false,
   imageUrl: "",
   imageId: "",
   updatedAt: "",

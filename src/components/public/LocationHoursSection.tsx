@@ -58,11 +58,15 @@ export function LocationHoursSection() {
               <ul className="mt-1 space-y-1 text-sm font-small text-muted-foreground sm:text-base">
                 <li className="flex items-center gap-2">
                   <CalendarDays className="h-4 w-4 text-brand-rose-deep" aria-hidden="true" />
-                  Lunes a Domingo: 6:00 am – 12:00 pm
+                  <span>
+                    Lunes a Viernes:
+                    <br />
+                    6:00 am – 12:00 pm y 2:00 pm – 9:00 pm
+                  </span>
                 </li>
                 <li className="flex items-center gap-2">
                   <CalendarDays className="h-4 w-4 text-brand-rose-deep" aria-hidden="true" />
-                  Lunes a Domingo: 2:00 pm – 9:00 pm
+                  Sábados: 6:00 am – 2:00 pm
                 </li>
               </ul>
             </div>

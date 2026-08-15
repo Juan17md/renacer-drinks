@@ -127,16 +127,25 @@ export function MaterialFormModal({
             <div className="space-y-2">
               <Label htmlFor="material-unidad">Unidad de medida</Label>
               <Select value={unidad} onValueChange={setUnidad}>
-                <SelectTrigger id="material-unidad" className="h-12 text-base">
+                <SelectTrigger
+                  id="material-unidad"
+                  className="h-12 w-full text-base"
+                >
                   <SelectValue placeholder="Selecciona..." />
                 </SelectTrigger>
                 <SelectContent>
                   {UNIDADES_MEDIDA.map((unidadDisponible) => (
-                    <SelectItem key={unidadDisponible} value={unidadDisponible}>
+                    <SelectItem
+                      key={unidadDisponible}
+                      value={unidadDisponible}
+                      className="text-base"
+                    >
                       {unidadDisponible}
                     </SelectItem>
                   ))}
-                  <SelectItem value={OPCION_OTRA}>Otra...</SelectItem>
+                  <SelectItem value={OPCION_OTRA} className="text-base">
+                    Otra...
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>

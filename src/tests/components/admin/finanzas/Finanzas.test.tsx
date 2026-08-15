@@ -59,9 +59,10 @@ describe("TransactionsTable", () => {
       amountBs: 360,
       bcvRate: 80,
       concept: "Venta orden #12",
-      paymentMethod: "EFECTIVO",
+      paymentMethod: "EFECTIVO" as const,
       date: "2026-08-13T10:30:00",
       createdBy: "admin",
+      ganancia: 0,
     },
     {
       id: "tx_2",
@@ -70,9 +71,10 @@ describe("TransactionsTable", () => {
       amountBs: 160,
       bcvRate: 80,
       concept: "Compra de leche",
-      paymentMethod: "PUNTO",
+      paymentMethod: "PUNTO" as const,
       date: "2026-08-13T11:00:00",
       createdBy: "admin",
+      ganancia: 0,
     },
   ];
 

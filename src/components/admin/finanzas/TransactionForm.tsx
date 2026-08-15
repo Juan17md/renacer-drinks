@@ -122,12 +122,19 @@ export function TransactionForm({ tasaBCV, onRegistrada }: TransactionFormProps)
         <div className="space-y-2">
           <Label htmlFor="transaccion-metodo">Método de pago</Label>
           <Select value={metodo} onValueChange={(v) => setMetodo(v as MetodoPago)}>
-            <SelectTrigger id="transaccion-metodo" className="h-12 text-base">
+            <SelectTrigger
+              id="transaccion-metodo"
+              className="h-12 w-full text-base"
+            >
               <SelectValue placeholder="Selecciona..." />
             </SelectTrigger>
             <SelectContent>
               {METODOS_PAGO.map((metodoPago) => (
-                <SelectItem key={metodoPago.valor} value={metodoPago.valor}>
+                <SelectItem
+                  key={metodoPago.valor}
+                  value={metodoPago.valor}
+                  className="text-base"
+                >
                   {metodoPago.label}
                 </SelectItem>
               ))}

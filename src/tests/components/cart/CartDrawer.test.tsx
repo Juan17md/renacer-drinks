@@ -72,6 +72,7 @@ const productoMock: ProductoPublico = {
   price: 4.5,
   category: "bebidas-frias",
   isAvailable: true,
+  destacado: false,
   imageUrl: "",
   imageId: "",
   updatedAt: "",
