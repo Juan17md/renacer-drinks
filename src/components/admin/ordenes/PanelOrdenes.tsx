@@ -6,15 +6,12 @@ import {
   ReceiptText,
   Loader2,
   CheckCheck,
-  UtensilsCrossed,
-  ChevronRight,
   User,
   Clock,
   RefreshCw,
   XCircle,
   CreditCard,
   ImageIcon,
-  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,11 +45,10 @@ import { METODOS_PAGO } from "@/types/transaction";
 import { formatearUSD, formatearBs, obtenerFechaLocalISO } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
-const ORDEN_POR_ESTADO: EstadoOrden[] = ["recibida", "lista", "entregada", "cancelada"];
+const ORDEN_POR_ESTADO: EstadoOrden[] = ["recibida", "entregada", "cancelada"];
 
 const COLOR_ESTADO: Record<EstadoOrden, string> = {
   recibida: "bg-amber-100 text-amber-800",
-  lista: "bg-emerald-100 text-emerald-800",
   entregada: "bg-muted text-muted-foreground",
   cancelada: "bg-red-100 text-red-700",
 };
@@ -81,7 +77,7 @@ export function PanelOrdenes() {
   const [cargando, setCargando] = useState(true);
   const [cambiando, setCambiando] = useState<string | null>(null);
   const [cancelando, setCancelando] = useState<string | null>(null);
-  const [verificando, setVerificando] = useState<string | null>(null);
+  const [procesando, setProcesando] = useState<string | null>(null);
   const [comprobanteVisible, setComprobanteVisible] = useState<Orden | null>(
     null
   );
@@ -111,35 +107,28 @@ export function PanelOrdenes() {
     toast.error("No se pudo actualizar el estado de la orden");
   }, []);
 
-  const manejarAvanzar = async (orden: Orden) => {
-    const estadoActual = ESTADOS_ORDEN[orden.estado];
-    if (!estadoActual?.siguiente) return;
-
-    setCambiando(orden.id);
+  const manejarProcesarPago = async (orden: Orden) => {
+    setProcesando(orden.id);
     try {
-      await actualizarEstadoOrden(orden.id, estadoActual.siguiente);
-      toast.success(
-        `Orden #${orden.numero} → ${ESTADOS_ORDEN[estadoActual.siguiente].label}`
-      );
-
-      if (estadoActual.siguiente === "entregada") {
-        try {
-          await registrarIngresoPorOrden(
-            orden.id,
-            orden.totalUSD,
-            `Venta orden #${orden.numero}`
-          );
-          toast.success(
-            `Ingreso de ${formatearUSD(orden.totalUSD)} registrado en finanzas`
-          );
-        } catch {
-          toast.error("La orden se entregó pero no se registró el ingreso");
-        }
+      if (orden.pagoVerificado !== true) {
+        await verificarPagoOrden(orden.id);
       }
+      await actualizarEstadoOrden(orden.id, "entregada");
+      await registrarIngresoPorOrden(
+        orden.id,
+        orden.totalUSD,
+        `Venta orden #${orden.numero}`
+      );
+      toast.success(
+        `Orden #${orden.numero} entregada y ${formatearUSD(
+          orden.totalUSD
+        )} registrados en finanzas`
+      );
     } catch (error) {
-      avisarError(error);
+      console.error("Error al procesar el pago:", error);
+      toast.error("No se pudo procesar el pago de la orden");
     } finally {
-      setCambiando(null);
+      setProcesando(null);
     }
   };
 
@@ -170,23 +159,6 @@ export function PanelOrdenes() {
       toast.error("No se pudo cancelar la orden");
     } finally {
       setCancelando(null);
-    }
-  };
-
-  const manejarVerificarPago = async (orden: Orden) => {
-    setVerificando(orden.id);
-    try {
-      await verificarPagoOrden(orden.id);
-      toast.success(
-        `Pago de la orden #${orden.numero} verificado (${obtenerLabelMetodoPago(
-          orden.metodoPago
-        )})`
-      );
-    } catch (error) {
-      console.error("Error al verificar pago:", error);
-      toast.error("No se pudo verificar el pago");
-    } finally {
-      setVerificando(null);
     }
   };
 
@@ -332,28 +304,17 @@ export function PanelOrdenes() {
                         Ver comprobante
                       </Button>
                     )}
-                    {orden.pagoVerificado === false && (
-                      <Button
-                        size="sm"
-                        className="h-8"
-                        onClick={() => manejarVerificarPago(orden)}
-                        disabled={verificando === orden.id}
-                        aria-label={`Verificar pago de la orden ${orden.numero}`}
-                      >
-                        {verificando === orden.id ? (
-                          <Loader2
-                            className="mr-1.5 h-3.5 w-3.5 animate-spin"
-                            aria-hidden="true"
-                          />
-                        ) : (
-                          <ShieldCheck
-                            className="mr-1.5 h-3.5 w-3.5"
-                            aria-hidden="true"
-                          />
-                        )}
-                        Verificar pago
-                      </Button>
-                    )}
+                  </div>
+                )}
+
+                {orden.referencia && (
+                  <div className="mt-3 flex items-start gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-2">
+                    <span className="shrink-0 text-sm font-small text-muted-foreground">
+                      Referencia:
+                    </span>
+                    <span className="break-all text-base font-medium text-brand-coffee">
+                      {orden.referencia}
+                    </span>
                   </div>
                 )}
 
@@ -368,6 +329,22 @@ export function PanelOrdenes() {
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {orden.estado === "recibida" && (
+                      <Button
+                        size="sm"
+                        className="h-10"
+                        onClick={() => manejarProcesarPago(orden)}
+                        disabled={procesando === orden.id}
+                        aria-label={`Procesar pago de la orden ${orden.numero}`}
+                      >
+                        {procesando === orden.id ? (
+                          <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
+                        ) : (
+                          <CheckCheck className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                        )}
+                        Procesar pago
+                      </Button>
+                    )}
                     {estado.anterior && (
                       <Button
                         variant="outline"
@@ -381,38 +358,7 @@ export function PanelOrdenes() {
                         {ESTADOS_ORDEN[estado.anterior].label}
                       </Button>
                     )}
-                    {estado.siguiente && (
-                      <Button
-                        size="sm"
-                        className="h-10"
-                        onClick={() => manejarAvanzar(orden)}
-                        disabled={
-                          cambiando === orden.id ||
-                          (estado.siguiente === "lista" &&
-                            orden.pagoVerificado === false)
-                        }
-                        title={
-                          estado.siguiente === "lista" &&
-                          orden.pagoVerificado === false
-                            ? "Verifica el pago antes de avanzar"
-                            : undefined
-                        }
-                        aria-label={`Marcar orden ${orden.numero} como ${ESTADOS_ORDEN[estado.siguiente].label}`}
-                      >
-                        {cambiando === orden.id ? (
-                          <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
-                        ) : estado.siguiente === "entregada" ? (
-                          <CheckCheck className="mr-1.5 h-4 w-4" aria-hidden="true" />
-                        ) : (
-                          <UtensilsCrossed className="mr-1.5 h-4 w-4" aria-hidden="true" />
-                        )}
-                        {ESTADOS_ORDEN[estado.siguiente].label}
-                        {estado.siguiente !== "entregada" && (
-                          <ChevronRight className="h-4 w-4" aria-hidden="true" />
-                        )}
-                      </Button>
-                    )}
-                    {(orden.estado === "recibida" || orden.estado === "lista") && (
+                    {orden.estado === "recibida" && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
@@ -475,7 +421,7 @@ export function PanelOrdenes() {
               {obtenerLabelMetodoPago(comprobanteVisible?.metodoPago)}.
             </DialogDescription>
           </DialogHeader>
-          {comprobanteVisible?.comprobanteUrl && (
+          {comprobanteVisible?.comprobanteUrl ? (
             <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/30">
               <Image
                 src={comprobanteVisible.comprobanteUrl}
@@ -485,27 +431,36 @@ export function PanelOrdenes() {
                 className="h-auto w-full object-contain"
               />
             </div>
-          )}
-          {comprobanteVisible && comprobanteVisible.pagoVerificado === false && (
+          ) : comprobanteVisible?.referencia ? (
+            <div className="rounded-xl border border-border/60 bg-muted/30 px-4 py-3">
+              <p className="text-sm font-small text-muted-foreground">
+                Referencia del pago
+              </p>
+              <p className="mt-1 break-all text-base font-medium text-brand-coffee">
+                {comprobanteVisible.referencia}
+              </p>
+            </div>
+          ) : null}
+          {comprobanteVisible && comprobanteVisible.estado === "recibida" && (
             <Button
               type="button"
               className="mt-4 w-full"
               onClick={() => {
-                manejarVerificarPago(comprobanteVisible);
+                manejarProcesarPago(comprobanteVisible);
                 setComprobanteVisible(null);
               }}
-              disabled={verificando === comprobanteVisible.id}
-              aria-label={`Verificar pago de la orden ${comprobanteVisible.numero}`}
+              disabled={procesando === comprobanteVisible.id}
+              aria-label={`Procesar pago de la orden ${comprobanteVisible.numero}`}
             >
-              {verificando === comprobanteVisible.id ? (
+              {procesando === comprobanteVisible.id ? (
                 <Loader2
                   className="mr-1.5 h-4 w-4 animate-spin"
                   aria-hidden="true"
                 />
               ) : (
-                <ShieldCheck className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                <CheckCheck className="mr-1.5 h-4 w-4" aria-hidden="true" />
               )}
-              Verificar pago
+              Procesar pago
             </Button>
           )}
         </DialogContent>

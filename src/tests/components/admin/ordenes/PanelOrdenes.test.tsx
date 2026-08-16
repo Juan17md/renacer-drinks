@@ -3,22 +3,23 @@ import React from "react";
 import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import { PanelOrdenes } from "@/components/admin/ordenes/PanelOrdenes";
 
-const { suscriptorMock, actualizarEstadoMock, verificarPagoMock, toastMock } =
-  vi.hoisted(() => {
-    let callbackActual: ((ordenes: unknown[]) => void) | null = null;
-    return {
-      suscriptorMock: vi.fn((callback: (ordenes: unknown[]) => void) => {
-        callbackActual = callback;
-        return () => undefined;
-      }),
-      actualizarEstadoMock: vi.fn().mockResolvedValue(undefined),
-      verificarPagoMock: vi.fn().mockResolvedValue(undefined),
-      toastMock: { success: vi.fn(), error: vi.fn() },
-      emitir: (ordenes: unknown[]) => {
-        callbackActual?.(ordenes);
-      },
-    };
-  });
+const {
+  suscriptorMock,
+  actualizarEstadoMock,
+  verificarPagoMock,
+  registrarIngresoMock,
+  toastMock,
+} = vi.hoisted(() => {
+  return {
+    suscriptorMock: vi.fn((_callback: (ordenes: unknown[]) => void) => {
+      return () => undefined;
+    }),
+    actualizarEstadoMock: vi.fn().mockResolvedValue(undefined),
+    verificarPagoMock: vi.fn().mockResolvedValue(undefined),
+    registrarIngresoMock: vi.fn().mockResolvedValue(undefined),
+    toastMock: { success: vi.fn(), error: vi.fn() },
+  };
+});
 
 vi.mock("@/services/orders", () => ({
   escucharOrdenes: (callback: (ordenes: unknown[]) => void) =>
@@ -28,7 +29,7 @@ vi.mock("@/services/orders", () => ({
 }));
 
 vi.mock("@/services/transactions", () => ({
-  registrarIngresoPorOrden: vi.fn().mockResolvedValue(undefined),
+  registrarIngresoPorOrden: registrarIngresoMock,
 }));
 
 vi.mock("sonner", () => ({
@@ -49,8 +50,13 @@ vi.mock("next/image", () => ({
 function ordenMock(
   id: string,
   numero: number,
-  estado: "recibida" | "lista" | "entregada" | "cancelada",
-  pago?: { metodoPago?: string; comprobanteUrl?: string; pagoVerificado?: boolean }
+  estado: "recibida" | "entregada" | "cancelada",
+  pago?: {
+    metodoPago?: string;
+    comprobanteUrl?: string;
+    referencia?: string;
+    pagoVerificado?: boolean;
+  }
 ) {
   return {
     id,
@@ -68,7 +74,9 @@ function ordenMock(
 }
 
 function emitir(ordenes: unknown[]) {
-  const callback = suscriptorMock.mock.calls[0][0] as (ordenes: unknown[]) => void;
+  const callback = suscriptorMock.mock.calls[0][0] as (
+    ordenes: unknown[]
+  ) => void;
   act(() => callback(ordenes));
 }
 
@@ -100,33 +108,58 @@ describe("PanelOrdenes", () => {
     expect(screen.getByText(/sin órdenes en esta vista/i)).toBeInTheDocument();
   });
 
-  it("avanza una orden de recibida a lista", async () => {
+  it("procesa el pago: verifica, entrega y registra finanzas", async () => {
     render(<PanelOrdenes />);
-    emitir([ordenMock("a", 12, "recibida")]);
+    emitir([
+      ordenMock("a", 12, "recibida", {
+        metodoPago: "PAGO_MOVIL",
+        comprobanteUrl: "https://ik.imagekit.io/renacer/comprobante.jpg",
+        pagoVerificado: false,
+      }),
+    ]);
 
     fireEvent.click(
-      screen.getByRole("button", { name: /marcar orden 12 como lista/i })
+      screen.getByRole("button", { name: /procesar pago de la orden 12/i })
     );
 
-    expect(actualizarEstadoMock).toHaveBeenCalledWith("a", "lista");
+    await waitFor(() => {
+      expect(verificarPagoMock).toHaveBeenCalledWith("a");
+      expect(actualizarEstadoMock).toHaveBeenCalledWith("a", "entregada");
+      expect(registrarIngresoMock).toHaveBeenCalledWith(
+        "a",
+        6,
+        "Venta orden #12"
+      );
+    });
+    expect(toastMock.success).toHaveBeenCalledWith(
+      expect.stringContaining("registrados en finanzas")
+    );
   });
 
-  it("marca una orden como entregada desde lista", async () => {
+  it("no vuelve a verificar el pago si ya estaba verificado", async () => {
     render(<PanelOrdenes />);
-    emitir([ordenMock("a", 12, "lista")]);
-    fireEvent.click(screen.getByRole("button", { name: "Lista" }));
+    emitir([
+      ordenMock("a", 12, "recibida", {
+        metodoPago: "EFECTIVO",
+        pagoVerificado: true,
+      }),
+    ]);
 
     fireEvent.click(
-      screen.getByRole("button", { name: /marcar orden 12 como entregada/i })
+      screen.getByRole("button", { name: /procesar pago de la orden 12/i })
     );
 
-    expect(actualizarEstadoMock).toHaveBeenCalledWith("a", "entregada");
+    await waitFor(() => {
+      expect(verificarPagoMock).not.toHaveBeenCalled();
+      expect(actualizarEstadoMock).toHaveBeenCalledWith("a", "entregada");
+    });
   });
 
-  it("permite regresar una orden de lista a recibida", async () => {
+  it("permite regresar una orden de entregada a recibida", async () => {
     render(<PanelOrdenes />);
-    emitir([ordenMock("a", 12, "lista")]);
-    fireEvent.click(screen.getByRole("button", { name: "Lista" }));
+    emitir([ordenMock("a", 12, "entregada")]);
+
+    fireEvent.click(screen.getByRole("button", { name: /entregada/i }));
 
     fireEvent.click(
       screen.getByRole("button", { name: /regresar orden 12 a recibida/i })
@@ -209,78 +242,25 @@ describe("PanelOrdenes", () => {
       screen.getByRole("button", { name: /ver comprobante de la orden 12/i })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /verificar pago de la orden 12/i })
+      screen.getByRole("button", { name: /procesar pago de la orden 12/i })
     ).toBeInTheDocument();
   });
 
-  it("muestra badge de pago verificado sin botón de verificación", () => {
+  it("muestra la referencia del pago en la tarjeta cuando no hay imagen", () => {
     render(<PanelOrdenes />);
     emitir([
       ordenMock("a", 12, "recibida", {
-        metodoPago: "EFECTIVO",
-        pagoVerificado: true,
-      }),
-    ]);
-
-    expect(screen.getByText("Efectivo")).toBeInTheDocument();
-    expect(screen.getByText("Pago verificado")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /verificar pago/i })
-    ).not.toBeInTheDocument();
-  });
-
-  it("bloquea el avance a lista cuando el pago está pendiente", () => {
-    render(<PanelOrdenes />);
-    emitir([
-      ordenMock("a", 12, "recibida", {
-        metodoPago: "ZELLE",
-        comprobanteUrl: "https://ik.imagekit.io/renacer/comprobante.jpg",
+        metodoPago: "TRANSFERENCIA",
+        referencia: "1234567890",
         pagoVerificado: false,
       }),
     ]);
 
-    const botonAvanzar = screen.getByRole("button", {
-      name: /marcar orden 12 como lista/i,
-    });
-    expect(botonAvanzar).toBeDisabled();
+    expect(screen.getByText("Referencia:")).toBeInTheDocument();
+    expect(screen.getByText("1234567890")).toBeInTheDocument();
   });
 
-  it("permite avanzar a lista con el pago verificado", () => {
-    render(<PanelOrdenes />);
-    emitir([
-      ordenMock("a", 12, "recibida", {
-        metodoPago: "PAGO_MOVIL",
-        comprobanteUrl: "https://ik.imagekit.io/renacer/comprobante.jpg",
-        pagoVerificado: true,
-      }),
-    ]);
-
-    const botonAvanzar = screen.getByRole("button", {
-      name: /marcar orden 12 como lista/i,
-    });
-    expect(botonAvanzar).not.toBeDisabled();
-  });
-
-  it("verifica el pago de una orden", async () => {
-    render(<PanelOrdenes />);
-    emitir([
-      ordenMock("a", 12, "recibida", {
-        metodoPago: "PAGO_MOVIL",
-        comprobanteUrl: "https://ik.imagekit.io/renacer/comprobante.jpg",
-        pagoVerificado: false,
-      }),
-    ]);
-
-    fireEvent.click(
-      screen.getByRole("button", { name: /verificar pago de la orden 12/i })
-    );
-
-    await waitFor(() => {
-      expect(verificarPagoMock).toHaveBeenCalledWith("a");
-    });
-  });
-
-  it("abre el comprobante de pago en un diálogo", () => {
+  it("abre el comprobante en un diálogo y muestra el botón de procesar pago", () => {
     render(<PanelOrdenes />);
     emitir([
       ordenMock("a", 12, "recibida", {
@@ -296,11 +276,24 @@ describe("PanelOrdenes", () => {
 
     expect(screen.getByText(/comprobante de la orden #12/i)).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /verificar pago de la orden 12/i })
+      screen.getByRole("button", { name: /procesar pago de la orden 12/i })
     ).toBeInTheDocument();
   });
 
-  it("verifica el pago desde el diálogo del comprobante y lo cierra", async () => {
+  it("muestra la referencia en el diálogo cuando no hay imagen", () => {
+    render(<PanelOrdenes />);
+    emitir([
+      ordenMock("a", 12, "recibida", {
+        metodoPago: "TRANSFERENCIA",
+        referencia: "987654",
+        pagoVerificado: false,
+      }),
+    ]);
+
+    expect(screen.getByText("987654")).toBeInTheDocument();
+  });
+
+  it("procesa el pago desde el diálogo y lo cierra", async () => {
     render(<PanelOrdenes />);
     emitir([
       ordenMock("a", 12, "recibida", {
@@ -315,14 +308,15 @@ describe("PanelOrdenes", () => {
     );
 
     fireEvent.click(
-      screen.getByRole("button", { name: /verificar pago de la orden 12/i })
+      screen.getByRole("button", { name: /procesar pago de la orden 12/i })
     );
 
     await waitFor(() =>
-      expect(verificarPagoMock).toHaveBeenCalledWith("a")
-    );
-    expect(toastMock.success).toHaveBeenCalledWith(
-      expect.stringContaining("verificado")
+      expect(registrarIngresoMock).toHaveBeenCalledWith(
+        "a",
+        6,
+        "Venta orden #12"
+      )
     );
     await waitFor(() =>
       expect(
@@ -331,32 +325,13 @@ describe("PanelOrdenes", () => {
     );
   });
 
-  it("no muestra el botón verificar en el diálogo cuando el pago ya está verificado", () => {
-    render(<PanelOrdenes />);
-    emitir([
-      ordenMock("a", 12, "recibida", {
-        metodoPago: "PAGO_MOVIL",
-        comprobanteUrl: "https://ik.imagekit.io/renacer/comprobante.jpg",
-        pagoVerificado: true,
-      }),
-    ]);
-
-    fireEvent.click(
-      screen.getByRole("button", { name: /ver comprobante de la orden 12/i })
-    );
-
-    expect(
-      screen.queryByRole("button", { name: /verificar pago de la orden 12/i })
-    ).not.toBeInTheDocument();
-  });
-
   it("no muestra datos de pago en órdenes sin método", () => {
     render(<PanelOrdenes />);
     emitir([ordenMock("a", 12, "recibida")]);
 
     expect(screen.queryByText(/pago pendiente/i)).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /verificar pago/i })
-    ).not.toBeInTheDocument();
+      screen.queryByRole("button", { name: /procesar pago/i })
+    ).toBeInTheDocument();
   });
 });

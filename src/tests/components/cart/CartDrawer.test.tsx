@@ -346,7 +346,7 @@ describe("CartDrawer", () => {
     fireEvent.click(screen.getByRole("button", { name: /pago móvil/i }));
 
     const botonCargar = screen.getByRole("button", {
-      name: /cargar comprobante/i,
+      name: /sube comprobante o referencia/i,
     });
     expect(botonCargar).toBeDisabled();
     expect(
@@ -404,7 +404,7 @@ describe("CartDrawer", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  it("envía directo con Efectivo sin comprobante y pago verificado", async () => {
+  it("envía directo con Efectivo sin comprobante y con pago pendiente", async () => {
     crearOrdenMock.mockResolvedValue({ id: "orden_2", numero: 13 });
     useCartStore.getState().agregarProducto(productoMock, 1);
 
@@ -432,7 +432,46 @@ describe("CartDrawer", () => {
         nombreCliente: "Pedro",
         metodoPago: "EFECTIVO",
         comprobanteUrl: undefined,
-        pagoVerificado: true,
+        pagoVerificado: false,
+      })
+    );
+  });
+
+  it("envía el pedido con referencia en lugar de comprobante", async () => {
+    crearOrdenMock.mockResolvedValue({ id: "orden_3", numero: 14 });
+    useCartStore.getState().agregarProducto(productoMock, 1);
+
+    render(
+      <>
+        <Toaster />
+        <CartDrawer abierto onOpenChange={onOpenChange} tasaBCV={764.35} />
+      </>
+    );
+
+    fireEvent.change(screen.getByLabelText(/tu nombre/i), {
+      target: { value: "María" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
+    fireEvent.click(screen.getByRole("button", { name: /pago móvil/i }));
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /continuar con referencia/i })
+    );
+
+    fireEvent.change(screen.getByLabelText(/referencia del pago/i), {
+      target: { value: "9876543210" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /enviar pedido/i }));
+
+    expect(await screen.findByText(/pedido #14 recibido/i)).toBeInTheDocument();
+    expect(crearOrdenMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nombreCliente: "María",
+        metodoPago: "PAGO_MOVIL",
+        comprobanteUrl: undefined,
+        referencia: "9876543210",
+        pagoVerificado: false,
       })
     );
   });

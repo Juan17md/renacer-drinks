@@ -222,7 +222,7 @@ service cloud.firestore {
       return request.resource.data.keys().hasOnly([
             'numero', 'nombreCliente', 'items', 'totalUSD', 'totalBs',
             'tasaBCV', 'estado', 'createdAt', 'updatedAt',
-            'metodoPago', 'comprobanteUrl', 'pagoVerificado'
+            'metodoPago', 'comprobanteUrl', 'referencia', 'pagoVerificado'
           ]) &&
           data.numero is int && data.numero >= 1 &&
           esCadenaValida(data.nombreCliente, 1, 60) &&
@@ -238,15 +238,17 @@ service cloud.firestore {
           (!('comprobanteUrl' in data) ||
             (data.comprobanteUrl is string &&
              (data.comprobanteUrl.size() == 0 || data.comprobanteUrl.matches('^https://.*')))) &&
+          (!('referencia' in data) || esCadenaValida(data.referencia, 1, 100)) &&
           (!('pagoVerificado' in data) || data.pagoVerificado is bool) &&
           (!('pagoVerificado' in data && data.pagoVerificado == true) ||
             ('metodoPago' in data && data.metodoPago in ['EFECTIVO', 'PUNTO'])) &&
           (('metodoPago' in data &&
             data.metodoPago in ['PAGO_MOVIL', 'TRANSFERENCIA', 'BINANCE', 'ZELLE']) ?
-            ('comprobanteUrl' in data &&
-             data.comprobanteUrl is string &&
-             data.comprobanteUrl.size() > 0 &&
-             data.comprobanteUrl.matches('^https://.*')) : true);
+            (('comprobanteUrl' in data &&
+              data.comprobanteUrl is string &&
+              data.comprobanteUrl.size() > 0 &&
+              data.comprobanteUrl.matches('^https://.*')) ||
+             ('referencia' in data && esCadenaValida(data.referencia, 1, 100))) : true);
     }
 
     function esFechaValida(campo) {
@@ -261,12 +263,9 @@ service cloud.firestore {
       let camposModificados = request.resource.data.diff(resource.data).affectedKeys();
 
       return camposModificados.hasOnly(['estado', 'updatedAt']) &&
-        ((anterior == 'recibida' && nuevo == 'lista') ||
-         (anterior == 'lista' && nuevo == 'entregada') ||
-         (anterior == 'lista' && nuevo == 'recibida') ||
-         (anterior == 'entregada' && nuevo == 'lista') ||
-         (anterior == 'recibida' && nuevo == 'cancelada') ||
-         (anterior == 'lista' && nuevo == 'cancelada'));
+        ((anterior == 'recibida' && nuevo == 'entregada') ||
+         (anterior == 'entregada' && nuevo == 'recibida') ||
+         (anterior == 'recibida' && nuevo == 'cancelada'));
     }
 
     // Actualización solo del flag de registro en finanzas (sin cambiar estado).

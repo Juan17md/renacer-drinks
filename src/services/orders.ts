@@ -13,7 +13,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Orden, DatosNuevaOrden, EstadoOrden } from "@/types/order";
-import { obtenerFechaLocalISO } from "@/lib/utils";
+import { obtenerFechaHoraLocalISO } from "@/lib/utils";
 
 const COLECCION_ORDENES = "ordenes";
 const DOC_CONTADOR = "contador_ordenes";
@@ -38,6 +38,7 @@ function transformarOrden(docSnapshot: {
     comprobanteUrl: datos.comprobanteUrl
       ? String(datos.comprobanteUrl)
       : undefined,
+    referencia: datos.referencia ? String(datos.referencia) : undefined,
     pagoVerificado:
       datos.pagoVerificado === undefined
         ? undefined
@@ -46,7 +47,7 @@ function transformarOrden(docSnapshot: {
 }
 
 export async function crearOrden(datos: DatosNuevaOrden): Promise<Orden> {
-  const ahora = obtenerFechaLocalISO();
+  const ahora = obtenerFechaHoraLocalISO();
 
   const nuevaOrden = await runTransaction(db, async (transaccion) => {
     const refContador = doc(db, COLECCION_ORDENES, DOC_CONTADOR);
@@ -66,6 +67,7 @@ export async function crearOrden(datos: DatosNuevaOrden): Promise<Orden> {
       updatedAt: ahora,
       ...(datos.metodoPago ? { metodoPago: datos.metodoPago } : {}),
       ...(datos.comprobanteUrl ? { comprobanteUrl: datos.comprobanteUrl } : {}),
+      ...(datos.referencia ? { referencia: datos.referencia } : {}),
       ...(typeof datos.pagoVerificado === "boolean"
         ? { pagoVerificado: datos.pagoVerificado }
         : {}),
@@ -88,7 +90,7 @@ export async function crearOrden(datos: DatosNuevaOrden): Promise<Orden> {
 export async function verificarPagoOrden(id: string): Promise<void> {
   await updateDoc(doc(db, COLECCION_ORDENES, id), {
     pagoVerificado: true,
-    updatedAt: obtenerFechaLocalISO(),
+    updatedAt: obtenerFechaHoraLocalISO(),
   });
 }
 
@@ -98,7 +100,7 @@ export async function actualizarEstadoOrden(
 ): Promise<void> {
   await updateDoc(doc(db, COLECCION_ORDENES, id), {
     estado,
-    updatedAt: obtenerFechaLocalISO(),
+    updatedAt: obtenerFechaHoraLocalISO(),
   });
 }
 

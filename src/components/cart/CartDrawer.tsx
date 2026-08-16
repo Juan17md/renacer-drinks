@@ -68,6 +68,8 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
   const [metodoSeleccionado, setMetodoSeleccionado] =
     useState<MetodoPagoConfig | null>(null);
   const [comprobanteUrl, setComprobanteUrl] = useState("");
+  const [referencia, setReferencia] = useState("");
+  const [usarReferencia, setUsarReferencia] = useState(false);
   const [subiendo, setSubiendo] = useState(false);
   const [copiado, setCopiado] = useState<string | null>(null);
   const [ofertaProteina, setOfertaProteina] = useState<{
@@ -233,8 +235,8 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
       setError("Selecciona un método de pago.");
       return;
     }
-    if (metodoSeleccionado.requiereComprobante && !comprobanteUrl) {
-      setError("Carga el comprobante de pago para enviar el pedido.");
+    if (metodoSeleccionado.requiereComprobante && !comprobanteUrl && !referencia.trim()) {
+      setError("Sube el comprobante de pago o escribe la referencia.");
       return;
     }
 
@@ -254,14 +256,22 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
         tasaBCV,
         metodoPago: metodoSeleccionado.id,
         comprobanteUrl:
-          metodoSeleccionado.requiereComprobante ? comprobanteUrl : undefined,
-        pagoVerificado: !metodoSeleccionado.requiereComprobante,
+          metodoSeleccionado.requiereComprobante && comprobanteUrl
+            ? comprobanteUrl
+            : undefined,
+        referencia:
+          metodoSeleccionado.requiereComprobante && referencia.trim()
+            ? referencia.trim()
+            : undefined,
+        pagoVerificado: false,
       });
 
       vaciarCarrito();
       setNombreCliente("");
       setMetodoSeleccionado(null);
       setComprobanteUrl("");
+      setReferencia("");
+      setUsarReferencia(false);
       onOpenChange(false);
       toast.success(
         `¡Pedido #${orden.numero} recibido! Espera tu aviso en la barra.`
@@ -275,7 +285,9 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
 
   const botonListoParaEnviar = Boolean(
     metodoSeleccionado &&
-      (!metodoSeleccionado.requiereComprobante || Boolean(comprobanteUrl))
+      (!metodoSeleccionado.requiereComprobante ||
+        Boolean(comprobanteUrl) ||
+        Boolean(referencia.trim()))
   );
 
   return (
@@ -386,6 +398,8 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                         onClick={() => {
                           setMetodoSeleccionado(metodo);
                           setComprobanteUrl("");
+                          setReferencia("");
+                          setUsarReferencia(false);
                           setPagoVisible(true);
                           requestAnimationFrame(() =>
                             desplazarHacia(refDatosMetodo.current)
@@ -466,54 +480,93 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                           authenticator={autenticarImageKit}
                         >
                           <div className="space-y-2">
-                            <Label>Comprobante de pago *</Label>
-                            {comprobanteUrl ? (
-                              <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-white p-2">
-                                <Image
-                                  src={comprobanteUrl}
-                                  alt="Vista previa del comprobante"
-                                  width={64}
-                                  height={64}
-                                  className="h-16 w-16 rounded-lg object-cover"
+                            {usarReferencia ? (
+                              <div className="space-y-2">
+                                <Label htmlFor="referencia-pago">
+                                  Referencia del pago *
+                                </Label>
+                                <Input
+                                  id="referencia-pago"
+                                  value={referencia}
+                                  onChange={(evento) =>
+                                    setReferencia(evento.target.value)
+                                  }
+                                  placeholder="Ej. 1234567890"
+                                  autoComplete="off"
+                                  className="h-12 text-base"
+                                  maxLength={60}
                                 />
-                                <div className="min-w-0 flex-1">
-                                  <p className="flex items-center gap-1.5 text-base font-medium text-emerald-700">
-                                    <Check className="h-4 w-4" aria-hidden="true" />
-                                    Comprobante cargado
-                                  </p>
-                                  <button
-                                    type="button"
-                                    onClick={() => setComprobanteUrl("")}
-                                    className="text-sm font-small text-destructive underline"
-                                  >
-                                    Quitar y cargar otro
-                                  </button>
-                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setUsarReferencia(false);
+                                    setReferencia("");
+                                  }}
+                                  className="text-sm font-small text-brand-rose-deep underline"
+                                >
+                                  Prefiero subir la imagen del comprobante
+                                </button>
                               </div>
                             ) : (
-                              <label
-                                htmlFor="comprobante-pago"
-                                className={cn(
-                                  "flex h-28 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-white text-muted-foreground transition-colors hover:border-brand-rose hover:text-brand-rose-deep",
-                                  subiendo && "pointer-events-none opacity-60"
-                                )}
-                              >
-                                {subiendo ? (
-                                  <Loader2
-                                    className="h-5 w-5 animate-spin"
-                                    aria-hidden="true"
-                                  />
+                              <>
+                                <Label>Comprobante de pago *</Label>
+                                {comprobanteUrl ? (
+                                  <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-white p-2">
+                                    <Image
+                                      src={comprobanteUrl}
+                                      alt="Vista previa del comprobante"
+                                      width={64}
+                                      height={64}
+                                      className="h-16 w-16 rounded-lg object-cover"
+                                    />
+                                    <div className="min-w-0 flex-1">
+                                      <p className="flex items-center gap-1.5 text-base font-medium text-emerald-700">
+                                        <Check className="h-4 w-4" aria-hidden="true" />
+                                        Comprobante cargado
+                                      </p>
+                                      <button
+                                        type="button"
+                                        onClick={() => setComprobanteUrl("")}
+                                        className="text-sm font-small text-destructive underline"
+                                      >
+                                        Quitar y cargar otro
+                                      </button>
+                                    </div>
+                                  </div>
                                 ) : (
-                                  <Upload className="h-5 w-5" aria-hidden="true" />
+                                  <label
+                                    htmlFor="comprobante-pago"
+                                    className={cn(
+                                      "flex h-28 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-white text-muted-foreground transition-colors hover:border-brand-rose hover:text-brand-rose-deep",
+                                      subiendo && "pointer-events-none opacity-60"
+                                    )}
+                                  >
+                                    {subiendo ? (
+                                      <Loader2
+                                        className="h-5 w-5 animate-spin"
+                                        aria-hidden="true"
+                                      />
+                                    ) : (
+                                      <Upload className="h-5 w-5" aria-hidden="true" />
+                                    )}
+                                    <span className="text-sm font-medium">
+                                      {subiendo
+                                        ? "Cargando comprobante..."
+                                        : "Toca para cargar imagen"}
+                                    </span>
+                                  </label>
                                 )}
-                                <span className="text-sm font-medium">
-                                  {subiendo
-                                    ? "Cargando comprobante..."
-                                    : "Toca para cargar imagen"}
-                                </span>
-                              </label>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  className="h-10 w-full text-sm font-medium text-brand-coffee underline underline-offset-2 hover:text-brand-rose-deep"
+                                  onClick={() => setUsarReferencia(true)}
+                                >
+                                  Continuar con referencia
+                                </Button>
+                              </>
                             )}
-                            {!comprobanteUrl && (
+                            {!comprobanteUrl && !usarReferencia && (
                               <IKUpload
                                 id="comprobante-pago"
                                 fileName={`comprobante-${Date.now()}`}
@@ -572,7 +625,7 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                   disabled
                 >
                   <Upload className="mr-2 h-5 w-5" aria-hidden="true" />
-                  Cargar comprobante
+                  Sube comprobante o referencia
                 </Button>
               ) : (
                 <Button
