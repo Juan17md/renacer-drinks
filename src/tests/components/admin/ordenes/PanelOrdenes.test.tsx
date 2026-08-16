@@ -391,4 +391,61 @@ describe("PanelOrdenes", () => {
       screen.getByRole("button", { name: /entregar orden 12/i })
     ).toBeDisabled();
   });
+
+  it("pagina las órdenes de 15 en 15 con controles anterior/siguiente", () => {
+    const muchas = Array.from({ length: 32 }, (_, indice) =>
+      ordenMock(`o${indice}`, indice + 1, "recibida")
+    );
+    render(<PanelOrdenes />);
+    emitir(muchas);
+
+    expect(screen.getByText("Página 1 de 3")).toBeInTheDocument();
+    expect(screen.getByText("#1")).toBeInTheDocument();
+    expect(screen.queryByText("#16")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /página anterior/i })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: /página siguiente/i }));
+    expect(screen.getByText("Página 2 de 3")).toBeInTheDocument();
+    expect(screen.getByText("#16")).toBeInTheDocument();
+    expect(screen.queryByText("#1")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /página anterior/i })).toBeEnabled();
+
+    fireEvent.click(screen.getByRole("button", { name: /página siguiente/i }));
+    fireEvent.click(screen.getByRole("button", { name: /página siguiente/i }));
+    expect(screen.getByText("Página 3 de 3")).toBeInTheDocument();
+    expect(screen.getByText("#32")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /página siguiente/i })
+    ).toBeDisabled();
+  });
+
+  it("oculta la paginación cuando hay 15 órdenes o menos", () => {
+    const quince = Array.from({ length: 15 }, (_, indice) =>
+      ordenMock(`o${indice}`, indice + 1, "recibida")
+    );
+    render(<PanelOrdenes />);
+    emitir(quince);
+
+    expect(screen.queryByText(/página \d+ de \d+/i)).not.toBeInTheDocument();
+    expect(screen.getByText("#15")).toBeInTheDocument();
+  });
+
+  it("reinicia a la primera página al cambiar el filtro", () => {
+    const muchas = Array.from({ length: 20 }, (_, indice) =>
+      ordenMock(`o${indice}`, indice + 1, "recibida")
+    );
+    const entregadas = Array.from({ length: 2 }, (_, indice) =>
+      ordenMock(`e${indice}`, indice + 30, "entregada")
+    );
+    render(<PanelOrdenes />);
+    emitir([...muchas, ...entregadas]);
+
+    fireEvent.click(screen.getByRole("button", { name: /todas/i }));
+    fireEvent.click(screen.getByRole("button", { name: /página siguiente/i }));
+    expect(screen.getByText("Página 2 de 2")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /^recibida$/i }));
+    expect(screen.getByText("Página 1 de 2")).toBeInTheDocument();
+    expect(screen.getByText("#1")).toBeInTheDocument();
+  });
 });

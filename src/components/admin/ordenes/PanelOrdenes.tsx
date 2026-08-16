@@ -48,6 +48,8 @@ import { cn } from "@/lib/utils";
 
 const ORDEN_POR_ESTADO: EstadoOrden[] = ["recibida", "entregada", "cancelada"];
 
+const ORDENES_POR_PAGINA = 15;
+
 const COLOR_ESTADO: Record<EstadoOrden, string> = {
   recibida: "bg-amber-100 text-amber-800",
   entregada: "bg-muted text-muted-foreground",
@@ -95,6 +97,7 @@ export function PanelOrdenes() {
   const [comprobanteVisible, setComprobanteVisible] = useState<Orden | null>(
     null
   );
+  const [pagina, setPagina] = useState(1);
 
   useEffect(() => {
     const desuscribir = escucharOrdenes(
@@ -111,10 +114,24 @@ export function PanelOrdenes() {
     return desuscribir;
   }, []);
 
+  useEffect(() => {
+    setPagina(1);
+  }, [filtro]);
+
   const ordenesVisibles =
     filtro === "todas"
       ? ordenes
       : ordenes.filter((orden) => orden.estado === filtro);
+
+  const totalPaginas = Math.max(
+    1,
+    Math.ceil(ordenesVisibles.length / ORDENES_POR_PAGINA)
+  );
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const ordenesPaginadas = ordenesVisibles.slice(
+    (paginaActual - 1) * ORDENES_POR_PAGINA,
+    paginaActual * ORDENES_POR_PAGINA
+  );
 
   const avisarError = useCallback((error: unknown) => {
     console.error("Error al actualizar orden:", error);
@@ -244,7 +261,7 @@ export function PanelOrdenes() {
         </div>
       ) : (
         <ul className="grid gap-4 lg:grid-cols-2">
-          {ordenesVisibles.map((orden) => {
+          {ordenesPaginadas.map((orden) => {
             const estado = ESTADOS_ORDEN[orden.estado];
             const hora = formatearHora(orden.createdAt);
             const hoy = obtenerFechaLocalISO().slice(0, 10);
@@ -449,6 +466,32 @@ export function PanelOrdenes() {
             );
           })}
         </ul>
+      )}
+
+      {totalPaginas > 1 && (
+        <div className="flex items-center justify-center gap-4">
+          <Button
+            variant="outline"
+            className="h-10"
+            onClick={() => setPagina(paginaActual - 1)}
+            disabled={paginaActual === 1}
+            aria-label="Página anterior"
+          >
+            Anterior
+          </Button>
+          <p className="text-base font-medium text-muted-foreground">
+            Página {paginaActual} de {totalPaginas}
+          </p>
+          <Button
+            variant="outline"
+            className="h-10"
+            onClick={() => setPagina(paginaActual + 1)}
+            disabled={paginaActual === totalPaginas}
+            aria-label="Página siguiente"
+          >
+            Siguiente
+          </Button>
+        </div>
       )}
 
       <Dialog
