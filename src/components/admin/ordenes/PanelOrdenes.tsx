@@ -41,8 +41,10 @@ import {
   verificarPagoOrden,
 } from "@/services/orders";
 import { registrarIngresoPorOrden } from "@/services/transactions";
+import { escucharMetodosPago } from "@/services/metodosPago";
 import { ESTADOS_ORDEN, type Orden, type EstadoOrden } from "@/types/order";
 import { METODOS_PAGO } from "@/types/transaction";
+import type { MetodoPagoConfig } from "@/types/payment";
 import { formatearUSD, formatearBs, obtenerFechaLocalISO } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -66,8 +68,13 @@ function formatearHora(iso: string): string {
   });
 }
 
-function obtenerLabelMetodoPago(metodoPago?: string): string {
+function obtenerLabelMetodoPago(
+  metodoPago?: string,
+  metodos?: MetodoPagoConfig[]
+): string {
   if (!metodoPago) return "";
+  const metodoReal = metodos?.find((metodo) => metodo.id === metodoPago);
+  if (metodoReal?.label) return metodoReal.label;
   return (
     METODOS_PAGO.find((metodo) => metodo.valor === metodoPago)?.label ??
     metodoPago
@@ -81,7 +88,14 @@ const METODOS_CON_COMPROBANTE = new Set([
   "ZELLE",
 ]);
 
-function obtenerEtiquetaAccionPago(metodoPago?: string): string {
+function obtenerEtiquetaAccionPago(
+  metodoPago?: string,
+  metodos?: MetodoPagoConfig[]
+): string {
+  const metodoReal = metodos?.find((metodo) => metodo.id === metodoPago);
+  if (metodoReal) {
+    return metodoReal.requiereComprobante ? "Validar pago" : "Procesar pago";
+  }
   return metodoPago && METODOS_CON_COMPROBANTE.has(metodoPago)
     ? "Validar pago"
     : "Procesar pago";
@@ -89,6 +103,7 @@ function obtenerEtiquetaAccionPago(metodoPago?: string): string {
 
 export function PanelOrdenes() {
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
+  const [metodosPago, setMetodosPago] = useState<MetodoPagoConfig[]>([]);
   const [filtro, setFiltro] = useState<EstadoOrden | "todas">("recibida");
   const [cargando, setCargando] = useState(true);
   const [cambiando, setCambiando] = useState<string | null>(null);
@@ -111,6 +126,11 @@ export function PanelOrdenes() {
       }
     );
 
+    return desuscribir;
+  }, []);
+
+  useEffect(() => {
+    const desuscribir = escucharMetodosPago(setMetodosPago);
     return desuscribir;
   }, []);
 
@@ -322,7 +342,7 @@ export function PanelOrdenes() {
                         className="h-4 w-4 text-muted-foreground"
                         aria-hidden="true"
                       />
-                      {obtenerLabelMetodoPago(orden.metodoPago)}
+                      {obtenerLabelMetodoPago(orden.metodoPago, metodosPago)}
                     </span>
                     {orden.pagoVerificado ? (
                       <Badge className="bg-emerald-100 text-emerald-800">
@@ -379,7 +399,8 @@ export function PanelOrdenes() {
                             onClick={() => manejarValidarPago(orden)}
                             disabled={procesando === orden.id}
                             aria-label={`${obtenerEtiquetaAccionPago(
-                              orden.metodoPago
+                              orden.metodoPago,
+                              metodosPago
                             )} de la orden ${orden.numero}`}
                           >
                             {procesando === orden.id ? (
@@ -387,7 +408,10 @@ export function PanelOrdenes() {
                             ) : (
                               <CheckCheck className="mr-1.5 h-4 w-4" aria-hidden="true" />
                             )}
-                            {obtenerEtiquetaAccionPago(orden.metodoPago)}
+                            {obtenerEtiquetaAccionPago(
+                              orden.metodoPago,
+                              metodosPago
+                            )}
                           </Button>
                         )}
                         <Button
@@ -508,7 +532,7 @@ export function PanelOrdenes() {
             </DialogTitle>
             <DialogDescription>
               Pago de {comprobanteVisible?.nombreCliente} por{" "}
-              {obtenerLabelMetodoPago(comprobanteVisible?.metodoPago)}.
+              {obtenerLabelMetodoPago(comprobanteVisible?.metodoPago, metodosPago)}.
             </DialogDescription>
           </DialogHeader>
           {comprobanteVisible?.comprobanteUrl ? (
@@ -543,7 +567,8 @@ export function PanelOrdenes() {
                 }}
                 disabled={procesando === comprobanteVisible.id}
                 aria-label={`${obtenerEtiquetaAccionPago(
-                  comprobanteVisible.metodoPago
+                  comprobanteVisible.metodoPago,
+                  metodosPago
                 )} de la orden ${comprobanteVisible.numero}`}
               >
                 {procesando === comprobanteVisible.id ? (
@@ -554,7 +579,10 @@ export function PanelOrdenes() {
                 ) : (
                   <CheckCheck className="mr-1.5 h-4 w-4" aria-hidden="true" />
                 )}
-                {obtenerEtiquetaAccionPago(comprobanteVisible.metodoPago)}
+                {obtenerEtiquetaAccionPago(
+                  comprobanteVisible.metodoPago,
+                  metodosPago
+                )}
               </Button>
             )}
         </DialogContent>

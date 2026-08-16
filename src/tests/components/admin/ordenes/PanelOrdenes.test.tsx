@@ -5,6 +5,7 @@ import { PanelOrdenes } from "@/components/admin/ordenes/PanelOrdenes";
 
 const {
   suscriptorMock,
+  suscriptorMetodosMock,
   actualizarEstadoMock,
   verificarPagoMock,
   registrarIngresoMock,
@@ -14,6 +15,11 @@ const {
     suscriptorMock: vi.fn((_callback: (ordenes: unknown[]) => void) => {
       return () => undefined;
     }),
+    suscriptorMetodosMock: vi.fn(
+      (_callback: (metodos: unknown[]) => void) => {
+        return () => undefined;
+      }
+    ),
     actualizarEstadoMock: vi.fn().mockResolvedValue(undefined),
     verificarPagoMock: vi.fn().mockResolvedValue(undefined),
     registrarIngresoMock: vi.fn().mockResolvedValue(undefined),
@@ -26,6 +32,11 @@ vi.mock("@/services/orders", () => ({
     suscriptorMock(callback),
   actualizarEstadoOrden: actualizarEstadoMock,
   verificarPagoOrden: verificarPagoMock,
+}));
+
+vi.mock("@/services/metodosPago", () => ({
+  escucharMetodosPago: (callback: (metodos: unknown[]) => void) =>
+    suscriptorMetodosMock(callback),
 }));
 
 vi.mock("@/services/transactions", () => ({
@@ -78,6 +89,13 @@ function emitir(ordenes: unknown[]) {
     ordenes: unknown[]
   ) => void;
   act(() => callback(ordenes));
+}
+
+function emitirMetodos(metodos: unknown[]) {
+  const callback = suscriptorMetodosMock.mock.calls[0][0] as (
+    metodos: unknown[]
+  ) => void;
+  act(() => callback(metodos));
 }
 
 beforeEach(() => {
@@ -447,5 +465,74 @@ describe("PanelOrdenes", () => {
     fireEvent.click(screen.getByRole("button", { name: /^recibida$/i }));
     expect(screen.getByText("Página 1 de 2")).toBeInTheDocument();
     expect(screen.getByText("#1")).toBeInTheDocument();
+  });
+
+  it("usa el requiereComprobante real para un método personalizado", () => {
+    render(<PanelOrdenes />);
+    emitirMetodos([
+      {
+        id: "pago-bolivares",
+        label: "Pago en Bolívares",
+        activo: true,
+        requiereComprobante: true,
+        datos: [],
+      },
+    ]);
+    emitir([
+      ordenMock("a", 12, "recibida", {
+        metodoPago: "pago-bolivares",
+        pagoVerificado: false,
+      }),
+    ]);
+
+    expect(screen.getByText("Pago en Bolívares")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /validar pago de la orden 12/i })
+    ).toBeInTheDocument();
+  });
+
+  it("procesa el pago de un método personalizado sin comprobante", () => {
+    render(<PanelOrdenes />);
+    emitirMetodos([
+      {
+        id: "pago-bolivares",
+        label: "Pago en Bolívares",
+        activo: true,
+        requiereComprobante: false,
+        datos: [],
+      },
+    ]);
+    emitir([
+      ordenMock("a", 12, "recibida", {
+        metodoPago: "pago-bolivares",
+        pagoVerificado: false,
+      }),
+    ]);
+
+    expect(
+      screen.getByRole("button", { name: /procesar pago de la orden 12/i })
+    ).toBeInTheDocument();
+  });
+
+  it("reemplaza el label del método por el de Firestore cuando existe", () => {
+    render(<PanelOrdenes />);
+    emitirMetodos([
+      {
+        id: "PAGO_MOVIL",
+        label: "Pago Móvil (Banesco)",
+        activo: true,
+        requiereComprobante: true,
+        datos: [],
+      },
+    ]);
+    emitir([
+      ordenMock("a", 12, "recibida", {
+        metodoPago: "PAGO_MOVIL",
+        comprobanteUrl: "https://ik.imagekit.io/renacer/comprobante.jpg",
+        pagoVerificado: false,
+      }),
+    ]);
+
+    expect(screen.getByText("Pago Móvil (Banesco)")).toBeInTheDocument();
   });
 });

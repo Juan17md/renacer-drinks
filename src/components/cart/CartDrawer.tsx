@@ -35,7 +35,6 @@ import { escucharMetodosPago } from "@/services/metodosPago";
 import { obtenerPromocionesActivas } from "@/services/promotions";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import type { MetodoPagoConfig, DatoMetodoPago } from "@/types/payment";
-import type { MetodoPago } from "@/types/transaction";
 import type { OfertaPromocion } from "@/types/promotion";
 import type { ProductoPublico } from "@/types/product";
 import { cn } from "@/lib/utils";
@@ -44,7 +43,7 @@ const URL_ENDPOINT = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT ?? "";
 const CONSULTA_ESCRITORIO = "(min-width: 768px)";
 
 // Métodos que se pagan en bolívares y exigen indicar el monto al transferir
-const METODOS_CON_MONTO: MetodoPago[] = ["PAGO_MOVIL", "TRANSFERENCIA"];
+const METODOS_CON_MONTO: string[] = ["PAGO_MOVIL", "TRANSFERENCIA"];
 
 interface CartDrawerProps {
   abierto: boolean;

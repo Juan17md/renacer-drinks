@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Loader2, Plus, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { registrarTransaccion } from "@/services/transactions";
-import { METODOS_PAGO, type MetodoPago } from "@/types/transaction";
+import { obtenerMetodosPago } from "@/services/metodosPago";
+import { METODOS_PAGO } from "@/types/transaction";
+import type { MetodoPagoConfig } from "@/types/payment";
 
 interface TransactionFormProps {
   tasaBCV: number;
@@ -25,9 +27,37 @@ export function TransactionForm({ tasaBCV, onRegistrada }: TransactionFormProps)
   const [tipo, setTipo] = useState<"INGRESO" | "EGRESO">("INGRESO");
   const [monto, setMonto] = useState("");
   const [concepto, setConcepto] = useState("");
-  const [metodo, setMetodo] = useState<MetodoPago>("EFECTIVO");
+  const [metodo, setMetodo] = useState("EFECTIVO");
+  const [metodosPago, setMetodosPago] = useState<MetodoPagoConfig[]>([]);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
+
+  const opcionesMetodos = useMemo(() => {
+    const activos = metodosPago.filter((metodoPago) => metodoPago.activo);
+    if (activos.length > 0) return activos;
+    return METODOS_PAGO.map((metodoPago) => ({
+      id: metodoPago.valor,
+      label: metodoPago.label,
+      activo: true,
+      requiereComprobante: false,
+      datos: [],
+    }));
+  }, [metodosPago]);
+
+  useEffect(() => {
+    obtenerMetodosPago()
+      .then(setMetodosPago)
+      .catch(() => setMetodosPago([]));
+  }, []);
+
+  useEffect(() => {
+    if (
+      opcionesMetodos.length > 0 &&
+      !opcionesMetodos.some((metodoPago) => metodoPago.id === metodo)
+    ) {
+      setMetodo(opcionesMetodos[0].id);
+    }
+  }, [opcionesMetodos, metodo]);
 
   const montoNumerico = Number(monto);
 
@@ -121,7 +151,7 @@ export function TransactionForm({ tasaBCV, onRegistrada }: TransactionFormProps)
 
         <div className="space-y-2">
           <Label htmlFor="transaccion-metodo">Método de pago</Label>
-          <Select value={metodo} onValueChange={(v) => setMetodo(v as MetodoPago)}>
+          <Select value={metodo} onValueChange={setMetodo}>
             <SelectTrigger
               id="transaccion-metodo"
               className="h-12 w-full text-base"
@@ -129,10 +159,10 @@ export function TransactionForm({ tasaBCV, onRegistrada }: TransactionFormProps)
               <SelectValue placeholder="Selecciona..." />
             </SelectTrigger>
             <SelectContent>
-              {METODOS_PAGO.map((metodoPago) => (
+              {opcionesMetodos.map((metodoPago) => (
                 <SelectItem
-                  key={metodoPago.valor}
-                  value={metodoPago.valor}
+                  key={metodoPago.id}
+                  value={metodoPago.id}
                   className="text-base"
                 >
                   {metodoPago.label}

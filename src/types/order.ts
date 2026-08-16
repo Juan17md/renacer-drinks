@@ -1,5 +1,3 @@
-import type { MetodoPago } from "@/types/transaction";
-
 export type EstadoOrden = "recibida" | "entregada" | "cancelada";
 
 export const ESTADOS_ORDEN = {
@@ -27,7 +25,7 @@ export interface Orden {
   estado: EstadoOrden;
   createdAt: string;
   updatedAt: string;
-  metodoPago?: MetodoPago;
+  metodoPago?: string;
   comprobanteUrl?: string;
   referencia?: string;
   pagoVerificado?: boolean;
@@ -41,7 +39,7 @@ export interface DatosNuevaOrden {
   totalUSD: number;
   totalBs: number;
   tasaBCV: number;
-  metodoPago?: MetodoPago;
+  metodoPago?: string;
   comprobanteUrl?: string;
   referencia?: string;
   pagoVerificado?: boolean;

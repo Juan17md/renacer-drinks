@@ -1,12 +1,10 @@
-import type { MetodoPago } from "@/types/transaction";
-
 export interface DatoMetodoPago {
   etiqueta: string;
   valor: string;
 }
 
 export interface MetodoPagoConfig {
-  id: MetodoPago;
+  id: string;
   label: string;
   activo: boolean;
   requiereComprobante: boolean;

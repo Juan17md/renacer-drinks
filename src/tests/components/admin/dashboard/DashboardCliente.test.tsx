@@ -33,6 +33,10 @@ vi.mock("@/services/products", () => ({
   obtenerProductosCompletos: obtenerProductosCompletosMock,
 }));
 
+vi.mock("@/services/metodosPago", () => ({
+  obtenerMetodosPago: vi.fn().mockResolvedValue([]),
+}));
+
 beforeEach(() => {
   vi.clearAllMocks();
 });

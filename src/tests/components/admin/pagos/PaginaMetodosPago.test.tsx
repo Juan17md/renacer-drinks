@@ -5,13 +5,19 @@ import { PaginaMetodosPago } from "@/components/admin/pagos/PaginaMetodosPago";
 const {
   obtenerMetodosMock,
   guardarMetodoMock,
+  crearMetodoMock,
+  eliminarMetodoMock,
   sembrarMetodosMock,
   toastMock,
+  useAuthMock,
 } = vi.hoisted(() => ({
   obtenerMetodosMock: vi.fn(),
   guardarMetodoMock: vi.fn().mockResolvedValue({ ok: true }),
+  crearMetodoMock: vi.fn().mockResolvedValue({ ok: true, id: "pago-bolivares" }),
+  eliminarMetodoMock: vi.fn().mockResolvedValue({ ok: true }),
   sembrarMetodosMock: vi.fn().mockResolvedValue({ ok: true }),
   toastMock: { success: vi.fn(), error: vi.fn() },
+  useAuthMock: vi.fn(),
 }));
 
 vi.mock("@/services/metodosPago", () => ({
@@ -20,11 +26,17 @@ vi.mock("@/services/metodosPago", () => ({
 
 vi.mock("@/actions/metodosPago", () => ({
   guardarMetodoPago: guardarMetodoMock,
+  crearMetodoPago: crearMetodoMock,
+  eliminarMetodoPago: eliminarMetodoMock,
   sembrarMetodosPagoPorDefecto: sembrarMetodosMock,
 }));
 
 vi.mock("sonner", () => ({
   toast: toastMock,
+}));
+
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: useAuthMock,
 }));
 
 const metodosMock = [
@@ -44,8 +56,39 @@ const metodosMock = [
   },
 ];
 
+function mockAuthAdmin() {
+  useAuthMock.mockReturnValue({
+    usuario: {
+      uid: "uid_admin",
+      getIdToken: vi.fn().mockResolvedValue("token_admin"),
+    },
+    datosUsuario: null,
+    esAdmin: true,
+    cargando: false,
+    cargandoDatos: false,
+    iniciarSesion: vi.fn(),
+    cerrarSesion: vi.fn(),
+  });
+}
+
+function mockAuthOperador() {
+  useAuthMock.mockReturnValue({
+    usuario: {
+      uid: "uid_operador",
+      getIdToken: vi.fn().mockResolvedValue("token_operador"),
+    },
+    datosUsuario: null,
+    esAdmin: false,
+    cargando: false,
+    cargandoDatos: false,
+    iniciarSesion: vi.fn(),
+    cerrarSesion: vi.fn(),
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
+  mockAuthAdmin();
   Object.defineProperty(window, "location", {
     value: { reload: vi.fn() },
     writable: true,
@@ -204,5 +247,137 @@ describe("PaginaMetodosPago", () => {
     });
     expect(screen.getAllByText("Activo")).toHaveLength(2);
     expect(screen.queryByText("Inactivo")).not.toBeInTheDocument();
+  });
+
+  it("abre el modal para crear un método nuevo", async () => {
+    obtenerMetodosMock.mockResolvedValue(metodosMock);
+
+    render(<PaginaMetodosPago />);
+    await screen.findByDisplayValue("Pago Móvil");
+
+    fireEvent.click(screen.getByRole("button", { name: /agregar método/i }));
+
+    expect(screen.getByText("Nuevo método de pago")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /crear método/i })
+    ).toBeInTheDocument();
+  });
+
+  it("crea un método nuevo con el formulario del modal", async () => {
+    obtenerMetodosMock.mockResolvedValue(metodosMock);
+
+    render(<PaginaMetodosPago />);
+    await screen.findByDisplayValue("Pago Móvil");
+
+    fireEvent.click(screen.getByRole("button", { name: /agregar método/i }));
+    fireEvent.change(screen.getByLabelText(/nombre \*/i), {
+      target: { value: "Pago en Bolívares" },
+    });
+    fireEvent.click(
+      screen.getByRole("switch", {
+        name: /requerir comprobante para el nuevo método/i,
+      })
+    );
+    fireEvent.click(screen.getByRole("button", { name: /crear método/i }));
+
+    await waitFor(() => {
+      expect(crearMetodoMock).toHaveBeenCalledWith({
+        label: "Pago en Bolívares",
+        activo: true,
+        requiereComprobante: true,
+        datos: [],
+      });
+    });
+    expect(toastMock.success).toHaveBeenCalledWith("Método de pago creado");
+  });
+
+  it("muestra el error del servidor si falla la creación", async () => {
+    obtenerMetodosMock.mockResolvedValue(metodosMock);
+    crearMetodoMock.mockResolvedValueOnce({
+      ok: false,
+      error: "Ya existe un método de pago con ese nombre.",
+    });
+
+    render(<PaginaMetodosPago />);
+    await screen.findByDisplayValue("Pago Móvil");
+
+    fireEvent.click(screen.getByRole("button", { name: /agregar método/i }));
+    fireEvent.change(screen.getByLabelText(/nombre \*/i), {
+      target: { value: "Pago en Bolívares" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /crear método/i }));
+
+    await waitFor(() => {
+      expect(toastMock.error).toHaveBeenCalledWith(
+        "Ya existe un método de pago con ese nombre."
+      );
+    });
+  });
+
+  it("elimina un método tras confirmar en el diálogo (solo admin)", async () => {
+    obtenerMetodosMock.mockResolvedValue(metodosMock);
+
+    render(<PaginaMetodosPago />);
+    await screen.findByDisplayValue("Pago Móvil");
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /eliminar método de pago pago móvil/i,
+      })
+    );
+
+    expect(
+      screen.getByText(/¿eliminar el método pago móvil\?/i)
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /^eliminar método$/i })
+    );
+
+    await waitFor(() => {
+      expect(eliminarMetodoMock).toHaveBeenCalledWith("PAGO_MOVIL", "token_admin");
+    });
+    expect(toastMock.success).toHaveBeenCalledWith("Método de pago eliminado");
+  });
+
+  it("muestra error si falla la eliminación", async () => {
+    obtenerMetodosMock.mockResolvedValue(metodosMock);
+    eliminarMetodoMock.mockResolvedValueOnce({
+      ok: false,
+      error: "Solo el administrador puede eliminar métodos de pago.",
+    });
+
+    render(<PaginaMetodosPago />);
+    await screen.findByDisplayValue("Pago Móvil");
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /eliminar método de pago pago móvil/i,
+      })
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: /^eliminar método$/i })
+    );
+
+    await waitFor(() => {
+      expect(toastMock.error).toHaveBeenCalledWith(
+        "Solo el administrador puede eliminar métodos de pago."
+      );
+    });
+  });
+
+  it("no muestra el botón de eliminar para operadores", async () => {
+    mockAuthOperador();
+    obtenerMetodosMock.mockResolvedValue(metodosMock);
+
+    render(<PaginaMetodosPago />);
+    await screen.findByDisplayValue("Pago Móvil");
+
+    expect(
+      screen.queryByRole("button", { name: /eliminar método de pago/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /agregar método/i })
+    ).toBeInTheDocument();
   });
 });
