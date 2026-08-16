@@ -6,6 +6,7 @@ import {
   ReceiptText,
   Loader2,
   CheckCheck,
+  PackageCheck,
   User,
   Clock,
   RefreshCw,
@@ -71,6 +72,19 @@ function obtenerLabelMetodoPago(metodoPago?: string): string {
   );
 }
 
+const METODOS_CON_COMPROBANTE = new Set([
+  "PAGO_MOVIL",
+  "TRANSFERENCIA",
+  "BINANCE",
+  "ZELLE",
+]);
+
+function obtenerEtiquetaAccionPago(metodoPago?: string): string {
+  return metodoPago && METODOS_CON_COMPROBANTE.has(metodoPago)
+    ? "Validar pago"
+    : "Procesar pago";
+}
+
 export function PanelOrdenes() {
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
   const [filtro, setFiltro] = useState<EstadoOrden | "todas">("recibida");
@@ -107,12 +121,22 @@ export function PanelOrdenes() {
     toast.error("No se pudo actualizar el estado de la orden");
   }, []);
 
-  const manejarProcesarPago = async (orden: Orden) => {
+  const manejarValidarPago = async (orden: Orden) => {
     setProcesando(orden.id);
     try {
-      if (orden.pagoVerificado !== true) {
-        await verificarPagoOrden(orden.id);
-      }
+      await verificarPagoOrden(orden.id);
+      toast.success(`Pago de la orden #${orden.numero} validado`);
+    } catch (error) {
+      console.error("Error al validar el pago:", error);
+      toast.error("No se pudo validar el pago de la orden");
+    } finally {
+      setProcesando(null);
+    }
+  };
+
+  const manejarEntregar = async (orden: Orden) => {
+    setProcesando(orden.id);
+    try {
       await actualizarEstadoOrden(orden.id, "entregada");
       await registrarIngresoPorOrden(
         orden.id,
@@ -125,8 +149,8 @@ export function PanelOrdenes() {
         )} registrados en finanzas`
       );
     } catch (error) {
-      console.error("Error al procesar el pago:", error);
-      toast.error("No se pudo procesar el pago de la orden");
+      console.error("Error al entregar la orden:", error);
+      toast.error("No se pudo entregar la orden");
     } finally {
       setProcesando(null);
     }
@@ -330,20 +354,43 @@ export function PanelOrdenes() {
 
                   <div className="flex items-center gap-2">
                     {orden.estado === "recibida" && (
-                      <Button
-                        size="sm"
-                        className="h-10"
-                        onClick={() => manejarProcesarPago(orden)}
-                        disabled={procesando === orden.id}
-                        aria-label={`Procesar pago de la orden ${orden.numero}`}
-                      >
-                        {procesando === orden.id ? (
-                          <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
-                        ) : (
-                          <CheckCheck className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                      <>
+                        {orden.pagoVerificado !== true && (
+                          <Button
+                            size="sm"
+                            className="h-10"
+                            onClick={() => manejarValidarPago(orden)}
+                            disabled={procesando === orden.id}
+                            aria-label={`${obtenerEtiquetaAccionPago(
+                              orden.metodoPago
+                            )} de la orden ${orden.numero}`}
+                          >
+                            {procesando === orden.id ? (
+                              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
+                            ) : (
+                              <CheckCheck className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                            )}
+                            {obtenerEtiquetaAccionPago(orden.metodoPago)}
+                          </Button>
                         )}
-                        Procesar pago
-                      </Button>
+                        <Button
+                          size="sm"
+                          className="h-10"
+                          onClick={() => manejarEntregar(orden)}
+                          disabled={
+                            procesando === orden.id ||
+                            orden.pagoVerificado !== true
+                          }
+                          aria-label={`Entregar orden ${orden.numero}`}
+                        >
+                          {procesando === orden.id ? (
+                            <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
+                          ) : (
+                            <PackageCheck className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                          )}
+                          Entregar
+                        </Button>
+                      </>
                     )}
                     {estado.anterior && (
                       <Button
@@ -441,28 +488,32 @@ export function PanelOrdenes() {
               </p>
             </div>
           ) : null}
-          {comprobanteVisible && comprobanteVisible.estado === "recibida" && (
-            <Button
-              type="button"
-              className="mt-4 w-full"
-              onClick={() => {
-                manejarProcesarPago(comprobanteVisible);
-                setComprobanteVisible(null);
-              }}
-              disabled={procesando === comprobanteVisible.id}
-              aria-label={`Procesar pago de la orden ${comprobanteVisible.numero}`}
-            >
-              {procesando === comprobanteVisible.id ? (
-                <Loader2
-                  className="mr-1.5 h-4 w-4 animate-spin"
-                  aria-hidden="true"
-                />
-              ) : (
-                <CheckCheck className="mr-1.5 h-4 w-4" aria-hidden="true" />
-              )}
-              Procesar pago
-            </Button>
-          )}
+          {comprobanteVisible &&
+            comprobanteVisible.estado === "recibida" &&
+            comprobanteVisible.pagoVerificado !== true && (
+              <Button
+                type="button"
+                className="mt-4 w-full"
+                onClick={() => {
+                  manejarValidarPago(comprobanteVisible);
+                  setComprobanteVisible(null);
+                }}
+                disabled={procesando === comprobanteVisible.id}
+                aria-label={`${obtenerEtiquetaAccionPago(
+                  comprobanteVisible.metodoPago
+                )} de la orden ${comprobanteVisible.numero}`}
+              >
+                {procesando === comprobanteVisible.id ? (
+                  <Loader2
+                    className="mr-1.5 h-4 w-4 animate-spin"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <CheckCheck className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                )}
+                {obtenerEtiquetaAccionPago(comprobanteVisible.metodoPago)}
+              </Button>
+            )}
         </DialogContent>
       </Dialog>
     </div>

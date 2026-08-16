@@ -108,7 +108,7 @@ describe("PanelOrdenes", () => {
     expect(screen.getByText(/sin órdenes en esta vista/i)).toBeInTheDocument();
   });
 
-  it("procesa el pago: verifica, entrega y registra finanzas", async () => {
+  it("valida el pago de un método digital sin entregar ni registrar finanzas", async () => {
     render(<PanelOrdenes />);
     emitir([
       ordenMock("a", 12, "recibida", {
@@ -119,24 +119,58 @@ describe("PanelOrdenes", () => {
     ]);
 
     fireEvent.click(
+      screen.getByRole("button", { name: /validar pago de la orden 12/i })
+    );
+
+    await waitFor(() => {
+      expect(verificarPagoMock).toHaveBeenCalledWith("a");
+    });
+    expect(actualizarEstadoMock).not.toHaveBeenCalled();
+    expect(registrarIngresoMock).not.toHaveBeenCalled();
+    expect(toastMock.success).toHaveBeenCalledWith(
+      "Pago de la orden #12 validado"
+    );
+  });
+
+  it("procesa el pago en efectivo sin entregar ni registrar finanzas", async () => {
+    render(<PanelOrdenes />);
+    emitir([
+      ordenMock("a", 12, "recibida", {
+        metodoPago: "EFECTIVO",
+        pagoVerificado: false,
+      }),
+    ]);
+
+    fireEvent.click(
       screen.getByRole("button", { name: /procesar pago de la orden 12/i })
     );
 
     await waitFor(() => {
       expect(verificarPagoMock).toHaveBeenCalledWith("a");
-      expect(actualizarEstadoMock).toHaveBeenCalledWith("a", "entregada");
-      expect(registrarIngresoMock).toHaveBeenCalledWith(
-        "a",
-        6,
-        "Venta orden #12"
-      );
     });
+    expect(actualizarEstadoMock).not.toHaveBeenCalled();
+    expect(registrarIngresoMock).not.toHaveBeenCalled();
     expect(toastMock.success).toHaveBeenCalledWith(
-      expect.stringContaining("registrados en finanzas")
+      "Pago de la orden #12 validado"
     );
   });
 
-  it("no vuelve a verificar el pago si ya estaba verificado", async () => {
+  it("bloquea el botón Entregar mientras el pago esté pendiente", () => {
+    render(<PanelOrdenes />);
+    emitir([
+      ordenMock("a", 12, "recibida", {
+        metodoPago: "PAGO_MOVIL",
+        comprobanteUrl: "https://ik.imagekit.io/renacer/comprobante.jpg",
+        pagoVerificado: false,
+      }),
+    ]);
+
+    expect(
+      screen.getByRole("button", { name: /entregar orden 12/i })
+    ).toBeDisabled();
+  });
+
+  it("entrega una orden con pago verificado y registra finanzas", async () => {
     render(<PanelOrdenes />);
     emitir([
       ordenMock("a", 12, "recibida", {
@@ -146,13 +180,39 @@ describe("PanelOrdenes", () => {
     ]);
 
     fireEvent.click(
-      screen.getByRole("button", { name: /procesar pago de la orden 12/i })
+      screen.getByRole("button", { name: /entregar orden 12/i })
     );
 
     await waitFor(() => {
-      expect(verificarPagoMock).not.toHaveBeenCalled();
       expect(actualizarEstadoMock).toHaveBeenCalledWith("a", "entregada");
+      expect(registrarIngresoMock).toHaveBeenCalledWith(
+        "a",
+        6,
+        "Venta orden #12"
+      );
     });
+    expect(verificarPagoMock).not.toHaveBeenCalled();
+    expect(toastMock.success).toHaveBeenCalledWith(
+      expect.stringContaining("registrados en finanzas")
+    );
+  });
+
+  it("no muestra el botón de validar pago si el pago ya está verificado", () => {
+    render(<PanelOrdenes />);
+    emitir([
+      ordenMock("a", 12, "recibida", {
+        metodoPago: "PAGO_MOVIL",
+        comprobanteUrl: "https://ik.imagekit.io/renacer/comprobante.jpg",
+        pagoVerificado: true,
+      }),
+    ]);
+
+    expect(
+      screen.queryByRole("button", { name: /validar pago de la orden 12/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /entregar orden 12/i })
+    ).toBeEnabled();
   });
 
   it("permite regresar una orden de entregada a recibida", async () => {
@@ -226,7 +286,7 @@ describe("PanelOrdenes", () => {
     expect(toastMock.success).toHaveBeenCalledWith("Orden #12 cancelada");
   });
 
-  it("muestra el método de pago con badge de pago pendiente", () => {
+  it("muestra el método de pago con badge de pago pendiente y botón validar", () => {
     render(<PanelOrdenes />);
     emitir([
       ordenMock("a", 12, "recibida", {
@@ -242,7 +302,7 @@ describe("PanelOrdenes", () => {
       screen.getByRole("button", { name: /ver comprobante de la orden 12/i })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /procesar pago de la orden 12/i })
+      screen.getByRole("button", { name: /validar pago de la orden 12/i })
     ).toBeInTheDocument();
   });
 
@@ -260,7 +320,7 @@ describe("PanelOrdenes", () => {
     expect(screen.getByText("1234567890")).toBeInTheDocument();
   });
 
-  it("abre el comprobante en un diálogo y muestra el botón de procesar pago", () => {
+  it("abre el comprobante en un diálogo y muestra el botón de validar pago", () => {
     render(<PanelOrdenes />);
     emitir([
       ordenMock("a", 12, "recibida", {
@@ -276,7 +336,7 @@ describe("PanelOrdenes", () => {
 
     expect(screen.getByText(/comprobante de la orden #12/i)).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /procesar pago de la orden 12/i })
+      screen.getByRole("button", { name: /validar pago de la orden 12/i })
     ).toBeInTheDocument();
   });
 
@@ -293,7 +353,7 @@ describe("PanelOrdenes", () => {
     expect(screen.getByText("987654")).toBeInTheDocument();
   });
 
-  it("procesa el pago desde el diálogo y lo cierra", async () => {
+  it("valida el pago desde el diálogo y lo cierra sin entregar", async () => {
     render(<PanelOrdenes />);
     emitir([
       ordenMock("a", 12, "recibida", {
@@ -308,16 +368,11 @@ describe("PanelOrdenes", () => {
     );
 
     fireEvent.click(
-      screen.getByRole("button", { name: /procesar pago de la orden 12/i })
+      screen.getByRole("button", { name: /validar pago de la orden 12/i })
     );
 
-    await waitFor(() =>
-      expect(registrarIngresoMock).toHaveBeenCalledWith(
-        "a",
-        6,
-        "Venta orden #12"
-      )
-    );
+    await waitFor(() => expect(verificarPagoMock).toHaveBeenCalledWith("a"));
+    expect(registrarIngresoMock).not.toHaveBeenCalled();
     await waitFor(() =>
       expect(
         screen.queryByText(/comprobante de la orden #12/i)
@@ -325,13 +380,15 @@ describe("PanelOrdenes", () => {
     );
   });
 
-  it("no muestra datos de pago en órdenes sin método", () => {
+  it("muestra el botón de entregar deshabilitado en órdenes sin método", () => {
     render(<PanelOrdenes />);
     emitir([ordenMock("a", 12, "recibida")]);
 
-    expect(screen.queryByText(/pago pendiente/i)).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /procesar pago/i })
+      screen.getByRole("button", { name: /procesar pago de la orden 12/i })
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /entregar orden 12/i })
+    ).toBeDisabled();
   });
 });
