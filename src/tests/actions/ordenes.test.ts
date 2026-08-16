@@ -24,25 +24,42 @@ vi.mock("@/lib/firebaseAdmin", () => ({
 }));
 
 function configurarDb() {
-  const deleteOrdenMock = vi.fn();
-  const deleteTransaccionMock = vi.fn();
+  const deleteMock = vi.fn();
+  const updateMock = vi.fn();
   const commitMock = vi.fn().mockResolvedValue(undefined);
   const batchMock = vi.fn(() => ({
-    delete: vi.fn((ref: { ruta: string }) => {
-      if (ref.ruta.startsWith("ordenes/")) deleteOrdenMock(ref.ruta);
-      else deleteTransaccionMock(ref.ruta);
-    }),
+    delete: deleteMock,
+    update: updateMock,
     commit: commitMock,
   }));
-  const getMock = vi
-    .fn()
-    .mockResolvedValue({ exists: true, data: () => ({ rol: "admin" }) });
-  const docMock = vi.fn((ruta: string) => ({ ruta, get: getMock }));
+  const docMock = vi.fn((ruta: string) => {
+    const esResumen = ruta.startsWith("daily_summaries/");
+    const get = vi.fn().mockResolvedValue(
+      esResumen
+        ? { exists: true, data: () => ({ totalIncome: 100, totalProfit: 20 }) }
+        : { exists: true, data: () => ({ rol: "admin" }) }
+    );
+    return { ruta, get };
+  });
   const transaccionesMock = vi.fn().mockResolvedValue({
-    forEach: (callback: (transaccion: { ref: { ruta: string } }) => void) => {
-      callback({ ref: { ruta: "financial_transactions/transaccion-1" } });
-      callback({ ref: { ruta: "financial_transactions/transaccion-2" } });
-    },
+    docs: [
+      {
+        ref: { ruta: "financial_transactions/transaccion-1" },
+        data: () => ({
+          date: "2026-08-16T10:30:00",
+          amount: 6,
+          ganancia: 2,
+        }),
+      },
+      {
+        ref: { ruta: "financial_transactions/transaccion-2" },
+        data: () => ({
+          date: "2026-08-15T18:00:00",
+          amount: 3,
+          ganancia: 1,
+        }),
+      },
+    ],
   });
   const collectionMock = vi.fn(() => ({
     where: vi.fn(() => ({ get: transaccionesMock })),
@@ -53,10 +70,9 @@ function configurarDb() {
     collection: collectionMock,
   });
   return {
-    deleteOrdenMock,
-    deleteTransaccionMock,
+    deleteMock,
+    updateMock,
     commitMock,
-    getMock,
     docMock,
     collectionMock,
   };
@@ -122,39 +138,119 @@ describe("eliminarOrden", () => {
     });
   });
 
-  it("elimina la orden y sus transacciones financieras vinculadas", async () => {
-    const { deleteOrdenMock, deleteTransaccionMock, commitMock, docMock } =
-      configurarDb();
+  it("elimina la orden, sus transacciones y descuenta el resumen de cada día", async () => {
+    const { deleteMock, updateMock, commitMock, docMock } = configurarDb();
 
     const resultado = await eliminarOrden("orden-1", "token-admin");
 
     expect(resultado).toEqual({ ok: true });
     expect(docMock).toHaveBeenCalledWith("usuarios/uid-123");
-    expect(deleteOrdenMock).toHaveBeenCalledWith("ordenes/orden-1");
-    expect(deleteTransaccionMock).toHaveBeenCalledWith(
-      "financial_transactions/transaccion-1"
+    expect(docMock).toHaveBeenCalledWith("daily_summaries/2026-08-16");
+    expect(docMock).toHaveBeenCalledWith("daily_summaries/2026-08-15");
+
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ ruta: "daily_summaries/2026-08-16" }),
+      expect.objectContaining({
+        totalIncome: expect.objectContaining({ operand: -6 }),
+        totalProfit: expect.objectContaining({ operand: -2 }),
+        totalSales: expect.objectContaining({ operand: -1 }),
+        netProfit: expect.objectContaining({ operand: -6 }),
+      })
     );
-    expect(deleteTransaccionMock).toHaveBeenCalledWith(
-      "financial_transactions/transaccion-2"
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ ruta: "daily_summaries/2026-08-15" }),
+      expect.objectContaining({
+        totalIncome: expect.objectContaining({ operand: -3 }),
+        totalProfit: expect.objectContaining({ operand: -1 }),
+        totalSales: expect.objectContaining({ operand: -1 }),
+        netProfit: expect.objectContaining({ operand: -3 }),
+      })
+    );
+
+    expect(deleteMock).toHaveBeenCalledWith(
+      expect.objectContaining({ ruta: "ordenes/orden-1" })
+    );
+    expect(deleteMock).toHaveBeenCalledWith(
+      expect.objectContaining({ ruta: "financial_transactions/transaccion-1" })
+    );
+    expect(deleteMock).toHaveBeenCalledWith(
+      expect.objectContaining({ ruta: "financial_transactions/transaccion-2" })
     );
     expect(commitMock).toHaveBeenCalled();
     expect(mocksAdmin.revalidatePath).toHaveBeenCalledWith("/admin/ordenes");
   });
 
-  it("elimina la orden aunque no tenga transacciones vinculadas", async () => {
-    const { deleteOrdenMock, deleteTransaccionMock, commitMock, collectionMock } =
-      configurarDb();
+  it("no descuenta el resumen si el documento del día no existe", async () => {
+    const { deleteMock, updateMock, collectionMock } = configurarDb();
     collectionMock.mockReturnValue({
       where: vi.fn(() => ({
-        get: vi.fn().mockResolvedValue({ forEach: () => undefined }),
+        get: vi.fn().mockResolvedValue({
+          docs: [
+            {
+              ref: { ruta: "financial_transactions/transaccion-1" },
+              data: () => ({ date: "2026-08-16T10:30:00", amount: 6, ganancia: 2 }),
+            },
+          ],
+        }),
+      })),
+    });
+    mocksAdmin.getAdminFirestore.mockReturnValue({
+      doc: vi.fn((ruta: string) => ({
+        ruta,
+        get: vi.fn().mockResolvedValue(
+          ruta.startsWith("daily_summaries/")
+            ? { exists: false, data: () => null }
+            : { exists: true, data: () => ({ rol: "admin" }) }
+        ),
+      })),
+      batch: vi.fn(() => ({ delete: deleteMock, update: updateMock, commit: vi.fn() })),
+      collection: collectionMock,
+    });
+
+    const resultado = await eliminarOrden("orden-1", "token-admin");
+
+    expect(resultado).toEqual({ ok: true });
+    expect(updateMock).not.toHaveBeenCalled();
+    expect(deleteMock).toHaveBeenCalledWith(
+      expect.objectContaining({ ruta: "ordenes/orden-1" })
+    );
+  });
+
+  it("no descuenta el resumen si la transacción no tiene fecha", async () => {
+    const { updateMock, collectionMock } = configurarDb();
+    collectionMock.mockReturnValue({
+      where: vi.fn(() => ({
+        get: vi.fn().mockResolvedValue({
+          docs: [
+            {
+              ref: { ruta: "financial_transactions/transaccion-1" },
+              data: () => ({ amount: 6, ganancia: 2 }),
+            },
+          ],
+        }),
       })),
     });
 
     const resultado = await eliminarOrden("orden-1", "token-admin");
 
     expect(resultado).toEqual({ ok: true });
-    expect(deleteOrdenMock).toHaveBeenCalledWith("ordenes/orden-1");
-    expect(deleteTransaccionMock).not.toHaveBeenCalled();
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it("elimina la orden aunque no tenga transacciones vinculadas", async () => {
+    const { deleteMock, commitMock, collectionMock } = configurarDb();
+    collectionMock.mockReturnValue({
+      where: vi.fn(() => ({
+        get: vi.fn().mockResolvedValue({ docs: [] }),
+      })),
+    });
+
+    const resultado = await eliminarOrden("orden-1", "token-admin");
+
+    expect(resultado).toEqual({ ok: true });
+    expect(deleteMock).toHaveBeenCalledWith(
+      expect.objectContaining({ ruta: "ordenes/orden-1" })
+    );
     expect(commitMock).toHaveBeenCalled();
   });
 
