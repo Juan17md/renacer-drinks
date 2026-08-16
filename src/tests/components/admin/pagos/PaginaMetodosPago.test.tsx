@@ -96,26 +96,51 @@ beforeEach(() => {
 });
 
 describe("PaginaMetodosPago", () => {
-  it("muestra los métodos de pago con sus datos", async () => {
+  it("muestra los métodos de pago en una tabla con sus columnas", async () => {
     obtenerMetodosMock.mockResolvedValue(metodosMock);
 
     render(<PaginaMetodosPago />);
 
-    expect(await screen.findByDisplayValue("Pago Móvil")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("Efectivo")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("0414-1234567")).toBeInTheDocument();
+    expect(await screen.findByText("Pago Móvil")).toBeInTheDocument();
+    expect(screen.getByText("Efectivo")).toBeInTheDocument();
+    expect(screen.getByText("1 dato")).toBeInTheDocument();
+    expect(screen.getByText("0 datos")).toBeInTheDocument();
+    expect(screen.getByText("Sí")).toBeInTheDocument();
+    expect(screen.getByText("No")).toBeInTheDocument();
   });
 
-  it("guarda los cambios editados de un método", async () => {
+  it("abre el modal de edición con los datos del método precargados", async () => {
     obtenerMetodosMock.mockResolvedValue(metodosMock);
 
     render(<PaginaMetodosPago />);
-    await screen.findByDisplayValue("Pago Móvil");
+    await screen.findByText("Pago Móvil");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /editar método pago móvil/i })
+    );
+
+    expect(screen.getByText("Editar método de pago")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Pago Móvil")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("0414-1234567")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /guardar cambios/i })
+    ).toBeInTheDocument();
+  });
+
+  it("guarda los cambios editados de un método desde el modal", async () => {
+    obtenerMetodosMock.mockResolvedValue(metodosMock);
+
+    render(<PaginaMetodosPago />);
+    await screen.findByText("Pago Móvil");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /editar método pago móvil/i })
+    );
 
     const inputTelefono = screen.getByDisplayValue("0414-1234567");
     fireEvent.change(inputTelefono, { target: { value: "0424-7654321" } });
     fireEvent.click(
-      screen.getAllByRole("button", { name: /guardar cambios/i })[0]
+      screen.getByRole("button", { name: /guardar cambios/i })
     );
 
     await waitFor(() => {
@@ -129,16 +154,23 @@ describe("PaginaMetodosPago", () => {
     expect(toastMock.success).toHaveBeenCalledWith("Método de pago guardado");
   });
 
-  it("permite agregar un dato nuevo al método", async () => {
+  it("permite agregar un dato nuevo al método desde el modal", async () => {
     obtenerMetodosMock.mockResolvedValue([metodosMock[1]]);
 
     render(<PaginaMetodosPago />);
-    await screen.findByDisplayValue("Efectivo");
+    await screen.findByText("Efectivo");
 
+    fireEvent.click(
+      screen.getByRole("button", { name: /editar método efectivo/i })
+    );
     fireEvent.click(screen.getByRole("button", { name: /agregar dato/i }));
 
-    expect(screen.getByLabelText(/etiqueta del dato 1/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/valor del dato 1/i)).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/etiqueta del nuevo dato 1/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/valor del nuevo dato 1/i)
+    ).toBeInTheDocument();
   });
 
   it("ofrece cargar los métodos por defecto cuando no hay ninguno", async () => {
@@ -172,7 +204,7 @@ describe("PaginaMetodosPago", () => {
     obtenerMetodosMock.mockResolvedValue(metodosMock);
 
     render(<PaginaMetodosPago />);
-    await screen.findByDisplayValue("Pago Móvil");
+    await screen.findByText("Pago Móvil");
 
     expect(screen.getAllByText("Activo")).toHaveLength(2);
 
@@ -202,7 +234,7 @@ describe("PaginaMetodosPago", () => {
     ]);
 
     render(<PaginaMetodosPago />);
-    await screen.findByDisplayValue("Efectivo");
+    await screen.findByText("Efectivo");
 
     expect(screen.getByText("Inactivo")).toBeInTheDocument();
 
@@ -232,7 +264,7 @@ describe("PaginaMetodosPago", () => {
     });
 
     render(<PaginaMetodosPago />);
-    await screen.findByDisplayValue("Pago Móvil");
+    await screen.findByText("Pago Móvil");
 
     fireEvent.click(
       screen.getByRole("switch", {
@@ -253,7 +285,7 @@ describe("PaginaMetodosPago", () => {
     obtenerMetodosMock.mockResolvedValue(metodosMock);
 
     render(<PaginaMetodosPago />);
-    await screen.findByDisplayValue("Pago Móvil");
+    await screen.findByText("Pago Móvil");
 
     fireEvent.click(screen.getByRole("button", { name: /agregar método/i }));
 
@@ -267,7 +299,7 @@ describe("PaginaMetodosPago", () => {
     obtenerMetodosMock.mockResolvedValue(metodosMock);
 
     render(<PaginaMetodosPago />);
-    await screen.findByDisplayValue("Pago Móvil");
+    await screen.findByText("Pago Móvil");
 
     fireEvent.click(screen.getByRole("button", { name: /agregar método/i }));
     fireEvent.change(screen.getByLabelText(/nombre \*/i), {
@@ -299,7 +331,7 @@ describe("PaginaMetodosPago", () => {
     });
 
     render(<PaginaMetodosPago />);
-    await screen.findByDisplayValue("Pago Móvil");
+    await screen.findByText("Pago Móvil");
 
     fireEvent.click(screen.getByRole("button", { name: /agregar método/i }));
     fireEvent.change(screen.getByLabelText(/nombre \*/i), {
@@ -318,7 +350,7 @@ describe("PaginaMetodosPago", () => {
     obtenerMetodosMock.mockResolvedValue(metodosMock);
 
     render(<PaginaMetodosPago />);
-    await screen.findByDisplayValue("Pago Móvil");
+    await screen.findByText("Pago Móvil");
 
     fireEvent.click(
       screen.getByRole("button", {
@@ -348,7 +380,7 @@ describe("PaginaMetodosPago", () => {
     });
 
     render(<PaginaMetodosPago />);
-    await screen.findByDisplayValue("Pago Móvil");
+    await screen.findByText("Pago Móvil");
 
     fireEvent.click(
       screen.getByRole("button", {
@@ -371,7 +403,7 @@ describe("PaginaMetodosPago", () => {
     obtenerMetodosMock.mockResolvedValue(metodosMock);
 
     render(<PaginaMetodosPago />);
-    await screen.findByDisplayValue("Pago Móvil");
+    await screen.findByText("Pago Móvil");
 
     expect(
       screen.queryByRole("button", { name: /eliminar método de pago/i })
