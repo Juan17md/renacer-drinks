@@ -10,6 +10,7 @@ import {
   Package,
   ReceiptText,
   Wallet,
+  History,
   Users,
   LogOut,
   Menu,
@@ -47,6 +48,11 @@ const ENLACES_ADMIN = [
     href: "/admin/finanzas",
     label: "Finanzas",
     icono: Wallet,
+  },
+  {
+    href: "/admin/transacciones",
+    label: "Transacciones",
+    icono: History,
   },
   {
     href: "/admin/pagos",

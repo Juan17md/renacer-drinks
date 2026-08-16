@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import React from "react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { FinancialKPIs } from "@/components/admin/finanzas/FinancialKPIs";
 import { SalesChart, type DatoPunto } from "@/components/admin/finanzas/SalesChart";
-import { TransactionsTable } from "@/components/admin/finanzas/TransactionsTable";
+import { PaginaFinanzasCliente } from "@/components/admin/finanzas/PaginaFinanzasCliente";
 
 vi.mock("recharts", () => {
   const Nodo = () => null;
@@ -20,6 +21,23 @@ vi.mock("recharts", () => {
     CartesianGrid: Nodo,
   };
 });
+
+const mocksServicios = vi.hoisted(() => ({
+  obtenerTransacciones: vi.fn().mockResolvedValue([]),
+  obtenerTasaBCV: vi.fn().mockResolvedValue({ promedio: 80 }),
+}));
+
+vi.mock("@/lib/bcv", () => ({
+  obtenerTasaBCV: mocksServicios.obtenerTasaBCV,
+}));
+
+vi.mock("@/services/transactions", () => ({
+  obtenerTransacciones: mocksServicios.obtenerTransacciones,
+}));
+
+vi.mock("@/components/admin/finanzas/TransactionForm", () => ({
+  TransactionForm: () => <div>Formulario de transacción</div>,
+}));
 
 describe("FinancialKPIs", () => {
   it("muestra ingresos, egresos y balance con conversión Bs", () => {
@@ -50,88 +68,16 @@ describe("SalesChart", () => {
   });
 });
 
-describe("TransactionsTable", () => {
-  const transacciones = [
-    {
-      id: "tx_1",
-      type: "INGRESO" as const,
-      amount: 4.5,
-      amountBs: 360,
-      bcvRate: 80,
-      concept: "Venta orden #12",
-      paymentMethod: "EFECTIVO" as const,
-      date: "2026-08-13T10:30:00",
-      createdBy: "admin",
-      ganancia: 0,
-    },
-    {
-      id: "tx_2",
-      type: "EGRESO" as const,
-      amount: 2,
-      amountBs: 160,
-      bcvRate: 80,
-      concept: "Compra de leche",
-      paymentMethod: "PUNTO" as const,
-      date: "2026-08-13T11:00:00",
-      createdBy: "admin",
-      ganancia: 0,
-    },
-  ];
-
+describe("PaginaFinanzasCliente", () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
-  it("muestra el historial con conceptos y montos", () => {
-    render(<TransactionsTable transacciones={transacciones} />);
-    expect(screen.getByText("Venta orden #12")).toBeInTheDocument();
-    expect(screen.getByText("Compra de leche")).toBeInTheDocument();
-    expect(screen.getByText("+$4.50")).toBeInTheDocument();
-    expect(screen.getByText("−$2.00")).toBeInTheDocument();
-  });
-
-  it("filtra por tipo de transacción", () => {
-    render(<TransactionsTable transacciones={transacciones} />);
-    fireEvent.click(screen.getByRole("button", { name: /ingresos/i }));
-    expect(screen.getByText("Venta orden #12")).toBeInTheDocument();
-    expect(screen.queryByText("Compra de leche")).not.toBeInTheDocument();
-  });
-
-  it("muestra mensaje cuando no hay transacciones", () => {
-    render(<TransactionsTable transacciones={[]} />);
-    expect(screen.getByText(/no hay transacciones/i)).toBeInTheDocument();
-  });
-
-  it("pagina el historial de 15 en 15 y reinicia al filtrar", () => {
-    const muchas = Array.from({ length: 32 }, (_, indice) => ({
-      id: `tx_${indice}`,
-      type: "INGRESO" as const,
-      amount: 4.5,
-      amountBs: 360,
-      bcvRate: 80,
-      concept: `Venta #${indice + 1}`,
-      paymentMethod: "EFECTIVO" as const,
-      date: "2026-08-13T10:30:00",
-      createdBy: "admin",
-      ganancia: 0,
-    }));
-
-    render(<TransactionsTable transacciones={muchas} />);
-
-    expect(screen.getByText("Página 1 de 3")).toBeInTheDocument();
-    expect(screen.getByText("Venta #1")).toBeInTheDocument();
-    expect(screen.queryByText("Venta #16")).not.toBeInTheDocument();
+  it("enlaza al historial completo de transacciones", async () => {
+    render(<PaginaFinanzasCliente />);
     expect(
-      screen.getByRole("button", { name: /página anterior/i })
-    ).toBeDisabled();
-
-    fireEvent.click(screen.getByRole("button", { name: /página siguiente/i }));
-    expect(screen.getByText("Página 2 de 3")).toBeInTheDocument();
-    expect(screen.getByText("Venta #16")).toBeInTheDocument();
-    expect(screen.queryByText("Venta #1")).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /egresos/i }));
-    expect(screen.queryByText(/página \d+ de \d+/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/no hay transacciones/i)).toBeInTheDocument();
+      await screen.findByRole("link", { name: /ver historial completo/i })
+    ).toHaveAttribute("href", "/admin/transacciones");
+    expect(mocksServicios.obtenerTransacciones).toHaveBeenCalledWith(200);
   });
 });

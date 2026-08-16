@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { History } from "lucide-react";
 import { obtenerTasaBCV } from "@/lib/bcv";
 import { obtenerTransacciones } from "@/services/transactions";
 import type { TransaccionFinanciera } from "@/types/transaction";
@@ -8,7 +10,6 @@ import { TransactionForm } from "./TransactionForm";
 import { BcvRateIndicator } from "./BcvRateIndicator";
 import { FinancialKPIs } from "./FinancialKPIs";
 import { SalesChart, type DatoPunto } from "./SalesChart";
-import { TransactionsTable } from "./TransactionsTable";
 
 const DIAS_VENTANA = 14;
 
@@ -89,7 +90,16 @@ export function PaginaFinanzasCliente() {
             Control de ingresos y egresos del día a día.
           </p>
         </div>
-        <BcvRateIndicator tasaBCV={tasaBCV} />
+        <div className="flex items-center gap-3">
+          <BcvRateIndicator tasaBCV={tasaBCV} />
+          <Link
+            href="/admin/transacciones"
+            className="inline-flex items-center gap-2 rounded-full bg-brand-rose px-4 py-2 text-base font-semibold text-white transition-colors hover:bg-brand-rose/90"
+          >
+            <History className="h-4 w-4" aria-hidden="true" />
+            Ver historial completo
+          </Link>
+        </div>
       </div>
 
       {cargando ? (
@@ -106,7 +116,6 @@ export function PaginaFinanzasCliente() {
             <SalesChart datos={datosGrafico} />
             <TransactionForm tasaBCV={tasaBCV} onRegistrada={cargarDatos} />
           </div>
-          <TransactionsTable transacciones={transacciones} />
         </>
       )}
     </div>

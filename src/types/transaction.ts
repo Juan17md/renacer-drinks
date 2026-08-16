@@ -37,6 +37,7 @@ export interface TransaccionFinanciera {
   date: string;
   createdBy: string;
   customerName?: string;
+  ordenId?: string;
   ganancia: number;
   items?: ItemVenta[];
 }
