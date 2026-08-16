@@ -281,6 +281,7 @@ export function ProductFormModal({
                   <IKUpload
                     fileName={`producto-${Date.now()}`}
                     useUniqueFileName
+                    folder="/Renacer/productos"
                     onUploadStart={() => setSubiendo(true)}
                     onSuccess={manejarExitoSubida}
                     onError={manejarErrorSubida}

@@ -570,7 +570,7 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                                 id="comprobante-pago"
                                 fileName={`comprobante-${Date.now()}`}
                                 useUniqueFileName
-                                folder="/comprobantes"
+                                folder="/Renacer/comprobantes"
                                 onUploadStart={() => setSubiendo(true)}
                                 onSuccess={manejarExitoSubida}
                                 onError={manejarErrorSubida}
