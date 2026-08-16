@@ -10,6 +10,8 @@ const {
   verificarPagoMock,
   registrarIngresoMock,
   toastMock,
+  useAuthMock,
+  eliminarOrdenMock,
 } = vi.hoisted(() => {
   return {
     suscriptorMock: vi.fn((_callback: (ordenes: unknown[]) => void) => {
@@ -24,8 +26,21 @@ const {
     verificarPagoMock: vi.fn().mockResolvedValue(undefined),
     registrarIngresoMock: vi.fn().mockResolvedValue(undefined),
     toastMock: { success: vi.fn(), error: vi.fn() },
+    useAuthMock: vi.fn(() => ({
+      usuario: { getIdToken: vi.fn().mockResolvedValue("token-admin") },
+      esAdmin: false,
+    })),
+    eliminarOrdenMock: vi.fn().mockResolvedValue({ ok: true }),
   };
 });
+
+vi.mock("@/actions/ordenes", () => ({
+  eliminarOrden: eliminarOrdenMock,
+}));
+
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: useAuthMock,
+}));
 
 vi.mock("@/services/orders", () => ({
   escucharOrdenes: (callback: (ordenes: unknown[]) => void) =>
@@ -534,5 +549,85 @@ describe("PanelOrdenes", () => {
     ]);
 
     expect(screen.getByText("Pago Móvil (Banesco)")).toBeInTheDocument();
+  });
+
+  it("no muestra el botón de eliminar para un operador", () => {
+    useAuthMock.mockReturnValue({
+      usuario: { getIdToken: vi.fn().mockResolvedValue("token-operador") },
+      esAdmin: false,
+    });
+    render(<PanelOrdenes />);
+    emitir([ordenMock("a", 12, "entregada")]);
+
+    expect(
+      screen.queryByRole("button", { name: /eliminar orden 12/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("muestra el botón de eliminar para el admin en cualquier estado", () => {
+    useAuthMock.mockReturnValue({
+      usuario: { getIdToken: vi.fn().mockResolvedValue("token-admin") },
+      esAdmin: true,
+    });
+    render(<PanelOrdenes />);
+    emitir([
+      ordenMock("a", 12, "entregada"),
+      ordenMock("b", 13, "cancelada"),
+      ordenMock("c", 14, "recibida"),
+    ]);
+    fireEvent.click(screen.getByRole("button", { name: /todas/i }));
+
+    expect(
+      screen.getAllByRole("button", { name: /eliminar orden \d+/i })
+    ).toHaveLength(3);
+  });
+
+  it("elimina la orden tras confirmar en el diálogo", async () => {
+    useAuthMock.mockReturnValue({
+      usuario: { getIdToken: vi.fn().mockResolvedValue("token-admin") },
+      esAdmin: true,
+    });
+    render(<PanelOrdenes />);
+    emitir([ordenMock("a", 12, "entregada")]);
+    fireEvent.click(screen.getByRole("button", { name: /todas/i }));
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /eliminar orden 12/i })
+    );
+
+    expect(
+      screen.getByText(/se eliminará permanentemente, junto con su registro en finanzas/i)
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /^eliminar orden$/i }));
+
+    await waitFor(() => {
+      expect(eliminarOrdenMock).toHaveBeenCalledWith("a", "token-admin");
+    });
+    expect(toastMock.success).toHaveBeenCalledWith("Orden #12 eliminada");
+  });
+
+  it("muestra el error si la eliminación falla", async () => {
+    useAuthMock.mockReturnValue({
+      usuario: { getIdToken: vi.fn().mockResolvedValue("token-admin") },
+      esAdmin: true,
+    });
+    eliminarOrdenMock.mockResolvedValue({
+      ok: false,
+      error: "Solo el administrador puede eliminar órdenes.",
+    });
+    render(<PanelOrdenes />);
+    emitir([ordenMock("a", 12, "recibida")]);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /eliminar orden 12/i })
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^eliminar orden$/i }));
+
+    await waitFor(() => {
+      expect(toastMock.error).toHaveBeenCalledWith(
+        "Solo el administrador puede eliminar órdenes."
+      );
+    });
   });
 });

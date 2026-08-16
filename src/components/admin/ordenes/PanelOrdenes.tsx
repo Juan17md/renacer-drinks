@@ -11,6 +11,7 @@ import {
   Clock,
   RefreshCw,
   XCircle,
+  Trash2,
   CreditCard,
   ImageIcon,
 } from "lucide-react";
@@ -42,6 +43,8 @@ import {
 } from "@/services/orders";
 import { registrarIngresoPorOrden } from "@/services/transactions";
 import { escucharMetodosPago } from "@/services/metodosPago";
+import { eliminarOrden } from "@/actions/ordenes";
+import { useAuth } from "@/hooks/useAuth";
 import { ESTADOS_ORDEN, type Orden, type EstadoOrden } from "@/types/order";
 import { METODOS_PAGO } from "@/types/transaction";
 import type { MetodoPagoConfig } from "@/types/payment";
@@ -102,6 +105,7 @@ function obtenerEtiquetaAccionPago(
 }
 
 export function PanelOrdenes() {
+  const { usuario, esAdmin } = useAuth();
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
   const [metodosPago, setMetodosPago] = useState<MetodoPagoConfig[]>([]);
   const [filtro, setFiltro] = useState<EstadoOrden | "todas">("recibida");
@@ -109,6 +113,7 @@ export function PanelOrdenes() {
   const [cambiando, setCambiando] = useState<string | null>(null);
   const [cancelando, setCancelando] = useState<string | null>(null);
   const [procesando, setProcesando] = useState<string | null>(null);
+  const [eliminando, setEliminando] = useState<string | null>(null);
   const [comprobanteVisible, setComprobanteVisible] = useState<Orden | null>(
     null
   );
@@ -220,6 +225,25 @@ export function PanelOrdenes() {
       toast.error("No se pudo cancelar la orden");
     } finally {
       setCancelando(null);
+    }
+  };
+
+  const manejarEliminar = async (orden: Orden) => {
+    if (!usuario) return;
+    setEliminando(orden.id);
+    try {
+      const idToken = await usuario.getIdToken();
+      const resultado = await eliminarOrden(orden.id, idToken);
+      if (resultado.ok) {
+        toast.success(`Orden #${orden.numero} eliminada`);
+      } else {
+        toast.error(resultado.error);
+      }
+    } catch (error) {
+      console.error("Error al eliminar la orden:", error);
+      toast.error("No se pudo eliminar la orden");
+    } finally {
+      setEliminando(null);
     }
   };
 
@@ -479,6 +503,52 @@ export function PanelOrdenes() {
                               {cancelando === orden.id
                                 ? "Cancelando..."
                                 : "Cancelar orden"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                    {esAdmin && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-10 w-10 text-muted-foreground hover:bg-red-50 hover:text-destructive"
+                            disabled={
+                              cambiando === orden.id ||
+                              cancelando === orden.id ||
+                              eliminando === orden.id
+                            }
+                            aria-label={`Eliminar orden ${orden.numero}`}
+                          >
+                            <Trash2 className="h-4 w-4" aria-hidden="true" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              ¿Eliminar la orden #{orden.numero}?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              La orden de {orden.nombreCliente} se eliminará
+                              permanentemente
+                              {orden.estado === "entregada"
+                                ? ", junto con su registro en finanzas"
+                                : ""}
+                              . Esta acción no se puede deshacer.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Volver</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => manejarEliminar(orden)}
+                              disabled={eliminando === orden.id}
+                              className="bg-destructive text-white hover:bg-destructive/90"
+                            >
+                              {eliminando === orden.id
+                                ? "Eliminando..."
+                                : "Eliminar orden"}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
