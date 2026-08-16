@@ -101,4 +101,37 @@ describe("TransactionsTable", () => {
     render(<TransactionsTable transacciones={[]} />);
     expect(screen.getByText(/no hay transacciones/i)).toBeInTheDocument();
   });
+
+  it("pagina el historial de 15 en 15 y reinicia al filtrar", () => {
+    const muchas = Array.from({ length: 32 }, (_, indice) => ({
+      id: `tx_${indice}`,
+      type: "INGRESO" as const,
+      amount: 4.5,
+      amountBs: 360,
+      bcvRate: 80,
+      concept: `Venta #${indice + 1}`,
+      paymentMethod: "EFECTIVO" as const,
+      date: "2026-08-13T10:30:00",
+      createdBy: "admin",
+      ganancia: 0,
+    }));
+
+    render(<TransactionsTable transacciones={muchas} />);
+
+    expect(screen.getByText("Página 1 de 3")).toBeInTheDocument();
+    expect(screen.getByText("Venta #1")).toBeInTheDocument();
+    expect(screen.queryByText("Venta #16")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /página anterior/i })
+    ).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: /página siguiente/i }));
+    expect(screen.getByText("Página 2 de 3")).toBeInTheDocument();
+    expect(screen.getByText("Venta #16")).toBeInTheDocument();
+    expect(screen.queryByText("Venta #1")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /egresos/i }));
+    expect(screen.queryByText(/página \d+ de \d+/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/no hay transacciones/i)).toBeInTheDocument();
+  });
 });

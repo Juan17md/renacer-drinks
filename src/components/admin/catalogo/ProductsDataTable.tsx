@@ -56,6 +56,9 @@ export function ProductsDataTable({
 }: ProductsDataTableProps) {
   const [ordenamiento, setOrdenamiento] = useState<SortingState>([]);
   const [filtroGlobal, setFiltroGlobal] = useState("");
+  const [pagina, setPagina] = useState(1);
+
+  const ELEMENTOS_POR_PAGINA = 30;
 
   const columnas: ColumnDef<Producto>[] = [
     {
@@ -198,6 +201,22 @@ export function ProductsDataTable({
     },
   });
 
+  const filasFiltradas = tabla.getFilteredRowModel().rows;
+  const totalPaginas = Math.max(
+    1,
+    Math.ceil(filasFiltradas.length / ELEMENTOS_POR_PAGINA)
+  );
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const filasPaginadas = filasFiltradas.slice(
+    (paginaActual - 1) * ELEMENTOS_POR_PAGINA,
+    paginaActual * ELEMENTOS_POR_PAGINA
+  );
+
+  const manejarFiltro = (valor: string) => {
+    setFiltroGlobal(valor);
+    setPagina(1);
+  };
+
   return (
     <div className="space-y-4">
       <div className="relative max-w-sm">
@@ -208,7 +227,7 @@ export function ProductsDataTable({
         <input
           type="search"
           value={filtroGlobal}
-          onChange={(evento) => setFiltroGlobal(evento.target.value)}
+          onChange={(evento) => manejarFiltro(evento.target.value)}
           placeholder="Buscar producto..."
           aria-label="Buscar producto en el inventario"
           className="h-11 w-full rounded-lg border border-input bg-white pl-10 pr-3 text-base text-brand-coffee placeholder:text-muted-foreground focus:border-brand-rose focus:outline-none focus:ring-2 focus:ring-brand-rose/40"
@@ -234,8 +253,8 @@ export function ProductsDataTable({
             ))}
           </TableHeader>
           <TableBody>
-            {tabla.getRowModel().rows.length > 0 ? (
-              tabla.getRowModel().rows.map((fila) => (
+            {filasPaginadas.length > 0 ? (
+              filasPaginadas.map((fila) => (
                 <TableRow key={fila.id}>
                   {fila.getVisibleCells().map((celda) => (
                     <TableCell key={celda.id}>
@@ -260,6 +279,32 @@ export function ProductsDataTable({
           </TableBody>
         </Table>
       </div>
+
+      {totalPaginas > 1 && (
+        <div className="flex items-center justify-center gap-4">
+          <Button
+            variant="outline"
+            className="h-10"
+            onClick={() => setPagina(paginaActual - 1)}
+            disabled={paginaActual === 1}
+            aria-label="Página anterior"
+          >
+            Anterior
+          </Button>
+          <p className="text-base font-medium text-muted-foreground">
+            Página {paginaActual} de {totalPaginas}
+          </p>
+          <Button
+            variant="outline"
+            className="h-10"
+            onClick={() => setPagina(paginaActual + 1)}
+            disabled={paginaActual === totalPaginas}
+            aria-label="Página siguiente"
+          >
+            Siguiente
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

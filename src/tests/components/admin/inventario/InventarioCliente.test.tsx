@@ -121,4 +121,31 @@ describe("InventarioCliente (materiales)", () => {
       screen.getByLabelText(/escribe la unidad \*/i)
     ).toBeInTheDocument();
   });
+
+  it("pagina los materiales de 30 en 30", async () => {
+    const muchos = Array.from({ length: 65 }, (_, indice) => ({
+      id: `mat_${indice}`,
+      nombre: `Material ${indice + 1}`,
+      unidad: "kg",
+      cantidad: 1,
+      updatedAt: "2026-08-13T10:00:00Z",
+    }));
+    obtenerMaterialesMock.mockResolvedValueOnce(muchos);
+
+    render(<InventarioCliente />);
+
+    expect(
+      await screen.findByText("Página 1 de 3")
+    ).toBeInTheDocument();
+    expect(screen.getByText("Material 1")).toBeInTheDocument();
+    expect(screen.queryByText("Material 31")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /página anterior/i })
+    ).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: /página siguiente/i }));
+    expect(screen.getByText("Página 2 de 3")).toBeInTheDocument();
+    expect(screen.getByText("Material 31")).toBeInTheDocument();
+    expect(screen.queryByText("Material 1")).not.toBeInTheDocument();
+  });
 });
