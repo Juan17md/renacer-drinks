@@ -269,20 +269,21 @@ service cloud.firestore {
          (anterior == 'lista' && nuevo == 'cancelada'));
     }
 
-    // Actualización solo del flag de registro en finanzas (sin cambiar estado)
+    // Actualización solo del flag de registro en finanzas (sin cambiar estado).
+    // Nota: con el canal REST, request.resource.data solo incluye los campos
+    // del updateMask, por lo que el estado debe leerse de resource.data.
     function esSoloRegistroFinanzas() {
       let camposModificados = request.resource.data.diff(resource.data).affectedKeys();
       return camposModificados.hasOnly(['registradoEnFinanzas']) &&
-        resource.data.estado == request.resource.data.estado &&
+        resource.data.estado == 'entregada' &&
         request.resource.data.registradoEnFinanzas == true &&
-        resource.data.registradoEnFinanzas != true;
+        (!('registradoEnFinanzas' in resource.data) || resource.data.registradoEnFinanzas != true);
     }
 
     // Actualización solo de la verificación de pago por el admin (sin cambiar estado)
     function esSoloVerificarPago() {
       let camposModificados = request.resource.data.diff(resource.data).affectedKeys();
       return camposModificados.hasOnly(['pagoVerificado', 'updatedAt']) &&
-        resource.data.estado == request.resource.data.estado &&
         request.resource.data.pagoVerificado == true &&
         (!('pagoVerificado' in resource.data) || resource.data.pagoVerificado != true);
     }
