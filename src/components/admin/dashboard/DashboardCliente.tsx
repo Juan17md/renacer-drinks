@@ -67,28 +67,28 @@ export function DashboardCliente({
         {tarjetas.map((tarjeta) => (
           <div
             key={tarjeta.titulo}
-            className="rounded-2xl border border-border/60 bg-white p-5"
+            className="rounded-2xl border border-border/60 bg-white p-4 sm:p-5"
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <span
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tarjeta.color}`}
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:h-10 sm:w-10 ${tarjeta.color}`}
               >
-                <tarjeta.icono className="h-5 w-5" aria-hidden="true" />
+                <tarjeta.icono className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
               </span>
-              <h2 className="font-heading text-base font-semibold uppercase tracking-wider text-muted-foreground">
+              <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-muted-foreground sm:text-base">
                 {tarjeta.titulo}
               </h2>
             </div>
             {"contador" in tarjeta ? (
-              <p className="mt-3 font-heading text-2xl font-bold text-brand-coffee">
+              <p className="mt-3 font-heading text-xl font-bold text-brand-coffee sm:text-2xl">
                 {tarjeta.contador}
               </p>
             ) : (
               <>
-                <p className="mt-3 font-heading text-2xl font-bold text-brand-coffee">
+                <p className="mt-3 font-heading text-xl font-bold text-brand-coffee sm:text-2xl">
                   {formatearUSD(tarjeta.valorUSD)}
                 </p>
-                <p className="mt-1 text-base text-muted-foreground">
+                <p className="mt-1 text-sm text-muted-foreground sm:text-base">
                   {formatearBs(tarjeta.valorUSD * tasaBCV)}
                 </p>
               </>
@@ -97,40 +97,40 @@ export function DashboardCliente({
         ))}
 
         <div
-          className={`rounded-2xl border border-border/60 bg-white p-5 ${
+          className={`rounded-2xl border border-border/60 bg-white p-4 sm:p-5 ${
             masVendido
               ? "sm:col-start-3 sm:row-start-2"
               : "sm:col-span-3 sm:row-start-2"
           }`}
         >
-          <h2 className="font-heading text-base font-semibold uppercase tracking-wider text-muted-foreground">
+          <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-muted-foreground sm:text-base">
             Tasa BCV del día
           </h2>
           {tasaBCV > 0 ? (
-            <p className="mt-2 font-heading text-3xl font-bold text-brand-rose-deep">
+            <p className="mt-2 font-heading text-2xl font-bold text-brand-rose-deep sm:text-3xl">
               {formatearBs(tasaBCV)}
             </p>
           ) : (
-            <p className="mt-2 text-base text-muted-foreground">
+            <p className="mt-2 text-sm text-muted-foreground sm:text-base">
               No disponible en este momento
             </p>
           )}
         </div>
 
         {masVendido && (
-          <div className="col-span-2 rounded-2xl border border-border/60 bg-white p-5 sm:col-span-2">
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
-                <Trophy className="h-5 w-5" aria-hidden="true" />
+          <div className="col-span-2 rounded-2xl border border-border/60 bg-white p-4 sm:col-span-2 sm:p-5">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 sm:h-10 sm:w-10">
+                <Trophy className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
               </span>
-              <h2 className="font-heading text-base font-semibold uppercase tracking-wider text-muted-foreground">
+              <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-muted-foreground sm:text-base">
                 Más vendido de la semana
               </h2>
             </div>
-            <p className="mt-3 font-heading text-2xl font-bold text-brand-coffee">
+            <p className="mt-3 font-heading text-xl font-bold text-brand-coffee sm:text-2xl">
               {masVendido.nombre}
             </p>
-            <p className="mt-1 text-base text-muted-foreground">
+            <p className="mt-1 text-sm text-muted-foreground sm:text-base">
               {masVendido.cantidad} unidad{masVendido.cantidad !== 1 ? "es" : ""} vendida{masVendido.cantidad !== 1 ? "s" : ""}
             </p>
           </div>
