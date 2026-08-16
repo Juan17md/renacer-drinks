@@ -45,6 +45,7 @@ import {
   registrarVenta,
   obtenerTransacciones,
   obtenerResumenDiario,
+  obtenerProductoMasVendidoSemana,
 } from "@/services/transactions";
 
 // Localiza la escritura de la transacción financiera (payload con `type`),
@@ -576,6 +577,123 @@ describe("services/transactions", () => {
       firestoreMock.getDocs.mockResolvedValue({ docs: [] });
       const resumen = await obtenerResumenDiario("2026-08-13");
       expect(resumen).toBeNull();
+    });
+  });
+
+  describe("obtenerProductoMasVendidoSemana", () => {
+    it("devuelve el producto con más unidades acumuladas de la semana", async () => {
+      firestoreMock.getDocs.mockResolvedValue({
+        docs: [
+          {
+            id: "tx_1",
+            data: () => ({
+              type: "INGRESO",
+              amount: 9,
+              amountBs: 720,
+              bcvRate: 80,
+              concept: "Venta orden #12",
+              paymentMethod: "EFECTIVO",
+              date: "2026-08-13T10:00:00",
+              createdBy: "admin",
+              ganancia: 2,
+              items: [
+                { productId: "prod_1", nombre: "Café Mocca", precioVenta: 4.5, costo: 3.5, cantidad: 2, subtotal: 9 },
+              ],
+            }),
+          },
+          {
+            id: "tx_2",
+            data: () => ({
+              type: "INGRESO",
+              amount: 13.5,
+              amountBs: 1080,
+              bcvRate: 80,
+              concept: "Venta directa - María",
+              paymentMethod: "PUNTO",
+              date: "2026-08-14T15:30:00",
+              createdBy: "admin",
+              ganancia: 3,
+              items: [
+                { productId: "prod_2", nombre: "Merengada", precioVenta: 4.5, costo: 3.5, cantidad: 1, subtotal: 4.5 },
+                { productId: "prod_1", nombre: "Café Mocca", precioVenta: 4.5, costo: 3.5, cantidad: 1, subtotal: 4.5 },
+              ],
+            }),
+          },
+        ],
+      });
+
+      const resultado = await obtenerProductoMasVendidoSemana();
+      expect(resultado).toEqual({
+        nombre: "Café Mocca",
+        productId: "prod_1",
+        cantidad: 3,
+      });
+    });
+
+    it("ignora egresos y transacciones sin items", async () => {
+      firestoreMock.getDocs.mockResolvedValue({
+        docs: [
+          {
+            id: "tx_1",
+            data: () => ({
+              type: "EGRESO",
+              amount: 2,
+              amountBs: 160,
+              bcvRate: 80,
+              concept: "Compra leche",
+              paymentMethod: "EFECTIVO",
+              date: "2026-08-13T09:00:00",
+              createdBy: "admin",
+            }),
+          },
+          {
+            id: "tx_2",
+            data: () => ({
+              type: "INGRESO",
+              amount: 5,
+              amountBs: 400,
+              bcvRate: 80,
+              concept: "Venta directa",
+              paymentMethod: "EFECTIVO",
+              date: "2026-08-13T10:00:00",
+              createdBy: "admin",
+            }),
+          },
+        ],
+      });
+
+      const resultado = await obtenerProductoMasVendidoSemana();
+      expect(resultado).toBeNull();
+    });
+
+    it("agrupa items sin productId por nombre", async () => {
+      firestoreMock.getDocs.mockResolvedValue({
+        docs: [
+          {
+            id: "tx_1",
+            data: () => ({
+              type: "INGRESO",
+              amount: 5,
+              amountBs: 400,
+              bcvRate: 80,
+              concept: "Venta orden #12",
+              paymentMethod: "EFECTIVO",
+              date: "2026-08-13T10:00:00",
+              createdBy: "admin",
+              items: [
+                { nombre: "Proteína extra", precioVenta: 0.5, costo: 0.25, cantidad: 2, subtotal: 1 },
+              ],
+            }),
+          },
+        ],
+      });
+
+      const resultado = await obtenerProductoMasVendidoSemana();
+      expect(resultado).toEqual({
+        nombre: "Proteína extra",
+        productId: undefined,
+        cantidad: 2,
+      });
     });
   });
 });

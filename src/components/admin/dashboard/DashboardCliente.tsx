@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { DollarSign, TrendingUp, ReceiptText, ShoppingCart, Coffee, Package, Wallet } from "lucide-react";
+import { DollarSign, TrendingUp, ReceiptText, ShoppingCart, Coffee, Package, Wallet, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RegistrarVentaModal } from "@/components/admin/ventas/RegistrarVentaModal";
-import { obtenerResumenDiario } from "@/services/transactions";
+import { obtenerResumenDiario, obtenerProductoMasVendidoSemana, type ProductoMasVendido } from "@/services/transactions";
 import { obtenerProductosCompletos } from "@/services/products";
 import { obtenerFechaLocalISO, formatearUSD, formatearBs } from "@/lib/utils";
 import type { Producto } from "@/types/product";
@@ -22,11 +22,13 @@ export function DashboardCliente({
   const [tasaBCV, setTasaBCV] = useState(tasaBCVInicial);
   const [resumen, setResumen] = useState<ResumenDiario | null>(null);
   const [productos, setProductos] = useState<Producto[]>([]);
+  const [masVendido, setMasVendido] = useState<ProductoMasVendido | null>(null);
 
   useEffect(() => {
     const hoy = obtenerFechaLocalISO().slice(0, 10);
     obtenerResumenDiario(hoy).then(setResumen);
     obtenerProductosCompletos().then(setProductos);
+    obtenerProductoMasVendidoSemana().then(setMasVendido);
   }, []);
 
   const tarjetas = [
@@ -44,7 +46,7 @@ export function DashboardCliente({
     },
     {
       titulo: "Ventas del día",
-      valorUSD: resumen?.totalSales ?? 0,
+      contador: resumen?.totalSales ?? 0,
       icono: ReceiptText,
       color: "bg-sky-100 text-sky-700",
     },
@@ -77,15 +79,44 @@ export function DashboardCliente({
                 {tarjeta.titulo}
               </h2>
             </div>
-            <p className="mt-3 font-heading text-2xl font-bold text-brand-coffee">
-              {formatearUSD(tarjeta.valorUSD)}
-            </p>
-            <p className="mt-1 text-base text-muted-foreground">
-              {formatearBs(tarjeta.valorUSD * tasaBCV)}
-            </p>
+            {"contador" in tarjeta ? (
+              <p className="mt-3 font-heading text-2xl font-bold text-brand-coffee">
+                {tarjeta.contador}
+              </p>
+            ) : (
+              <>
+                <p className="mt-3 font-heading text-2xl font-bold text-brand-coffee">
+                  {formatearUSD(tarjeta.valorUSD)}
+                </p>
+                <p className="mt-1 text-base text-muted-foreground">
+                  {formatearBs(tarjeta.valorUSD * tasaBCV)}
+                </p>
+              </>
+            )}
           </div>
         ))}
       </div>
+
+      {masVendido && (
+        <div className="grid gap-4 sm:grid-cols-1">
+          <div className="rounded-2xl border border-border/60 bg-white p-5">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+                <Trophy className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <h2 className="font-heading text-base font-semibold uppercase tracking-wider text-muted-foreground">
+                Más vendido de la semana
+              </h2>
+            </div>
+            <p className="mt-3 font-heading text-2xl font-bold text-brand-coffee">
+              {masVendido.nombre}
+            </p>
+            <p className="mt-1 text-base text-muted-foreground">
+              {masVendido.cantidad} unidad{masVendido.cantidad !== 1 ? "es" : ""} vendida{masVendido.cantidad !== 1 ? "s" : ""}
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-2xl border border-border/60 bg-white p-6">

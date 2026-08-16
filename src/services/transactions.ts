@@ -313,6 +313,57 @@ export async function obtenerResumenDiario(
   };
 }
 
+export interface ProductoMasVendido {
+  nombre: string;
+  productId?: string;
+  cantidad: number;
+}
+
+export async function obtenerProductoMasVendidoSemana(
+  dias = 7
+): Promise<ProductoMasVendido | null> {
+  const fechaInicio = new Date();
+  fechaInicio.setDate(fechaInicio.getDate() - (dias - 1));
+  const inicioISO = obtenerFechaLocalISO(fechaInicio);
+
+  const consulta = query(
+    collection(db, COLECCION_TRANSACCIONES),
+    where("date", ">=", `${inicioISO}T00:00:00`),
+    orderBy("date", "desc"),
+    limit(500)
+  );
+  const snapshot = await getDocs(consulta);
+  const transacciones = snapshot.docs.map(transformarTransaccion);
+
+  const acumulados = new Map<string, ProductoMasVendido>();
+  for (const transaccion of transacciones) {
+    if (transaccion.type !== "INGRESO" || !Array.isArray(transaccion.items)) {
+      continue;
+    }
+    for (const item of transaccion.items) {
+      const clave = item.productId || item.nombre;
+      const existente = acumulados.get(clave);
+      if (existente) {
+        existente.cantidad += item.cantidad;
+      } else {
+        acumulados.set(clave, {
+          nombre: item.nombre,
+          productId: item.productId || undefined,
+          cantidad: item.cantidad,
+        });
+      }
+    }
+  }
+
+  let masVendido: ProductoMasVendido | null = null;
+  for (const candidato of acumulados.values()) {
+    if (!masVendido || candidato.cantidad > masVendido.cantidad) {
+      masVendido = candidato;
+    }
+  }
+  return masVendido;
+}
+
 const PREFIJO_PRODUCTO_PROMO = "promo-";
 
 async function resolverCostoOfertaPromo(
