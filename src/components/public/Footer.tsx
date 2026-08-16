@@ -9,6 +9,13 @@ const DATOS_CAFETERIA = {
   instagram: process.env.NEXT_PUBLIC_CAFE_INSTAGRAM || "https://www.instagram.com/renacer.drinks",
 };
 
+const DATOS_DESARROLLADOR = {
+  nombre: "Juan17md",
+  urlWhatsApp: `https://wa.me/584245323388?text=${encodeURIComponent(
+    "Hola Juan, vi tu trabajo en la web de Renacer Drinks & Coffe y me gustaría hablar contigo."
+  )}`,
+};
+
 export function Footer() {
   return (
     <footer className="border-t border-border/60 bg-[#f8f1ec]">
@@ -96,6 +103,15 @@ export function Footer() {
           >
             <UserCog className="h-3.5 w-3.5" aria-hidden="true" />
             Panel admin
+          </Link>
+          <span className="hidden sm:inline" aria-hidden="true">•</span>
+          <Link
+            href={DATOS_DESARROLLADOR.urlWhatsApp}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-8 items-center gap-1.5 text-xs font-small font-medium text-muted-foreground transition-colors hover:text-brand-rose-deep"
+          >
+            Developed by: {DATOS_DESARROLLADOR.nombre}
           </Link>
         </p>
       </div>
