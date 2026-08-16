@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Loader2, Minus, Plus, Search, Trash2 } from "lucide-react";
 import {
   Dialog,
@@ -26,10 +26,12 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { registrarVenta } from "@/services/transactions";
-import { METODOS_PAGO, type MetodoPago } from "@/types/transaction";
+import { obtenerMetodosPago } from "@/services/metodosPago";
+import { METODOS_PAGO } from "@/types/transaction";
 import { formatearUSD, convertirUSDaBs } from "@/lib/utils";
 import type { Producto } from "@/types/product";
 import type { ItemVenta } from "@/types/transaction";
+import type { MetodoPagoConfig } from "@/types/payment";
 
 interface RegistrarVentaModalProps {
   abierto: boolean;
@@ -46,19 +48,47 @@ export function RegistrarVentaModal({
   tasaBCV,
   onRegistrada,
 }: RegistrarVentaModalProps) {
-  const disponibles = useMemo(
-    () => productos.filter((producto) => producto.isAvailable),
-    [productos]
-  );
-
   const [cliente, setCliente] = useState("");
   const [items, setItems] = useState<ItemVenta[]>([]);
-  const [metodo, setMetodo] = useState<MetodoPago>("EFECTIVO");
+  const [metodo, setMetodo] = useState("EFECTIVO");
+  const [metodosPago, setMetodosPago] = useState<MetodoPagoConfig[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [montoEditable, setMontoEditable] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const [seleccionAbierta, setSeleccionAbierta] = useState(false);
+
+  const disponibles = useMemo(
+    () => productos.filter((producto) => producto.isAvailable),
+    [productos]
+  );
+
+  const opcionesMetodos = useMemo(() => {
+    const activos = metodosPago.filter((metodoPago) => metodoPago.activo);
+    if (activos.length > 0) return activos;
+    return METODOS_PAGO.map((metodoPago) => ({
+      id: metodoPago.valor,
+      label: metodoPago.label,
+      activo: true,
+      requiereComprobante: false,
+      datos: [],
+    }));
+  }, [metodosPago]);
+
+  useEffect(() => {
+    obtenerMetodosPago()
+      .then(setMetodosPago)
+      .catch(() => setMetodosPago([]));
+  }, []);
+
+  useEffect(() => {
+    if (
+      opcionesMetodos.length > 0 &&
+      !opcionesMetodos.some((metodoPago) => metodoPago.id === metodo)
+    ) {
+      setMetodo(opcionesMetodos[0].id);
+    }
+  }, [opcionesMetodos, metodo]);
 
   const totalCalculado = items.reduce(
     (total, item) => total + item.precioVenta * item.cantidad,
@@ -308,7 +338,7 @@ export function RegistrarVentaModal({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="venta-metodo">Método de pago</Label>
-              <Select value={metodo} onValueChange={(v) => setMetodo(v as MetodoPago)}>
+              <Select value={metodo} onValueChange={setMetodo}>
                 <SelectTrigger
                   id="venta-metodo"
                   className="h-12 w-full text-base"
@@ -316,10 +346,10 @@ export function RegistrarVentaModal({
                   <SelectValue placeholder="Selecciona..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {METODOS_PAGO.map((metodoPago) => (
+                  {opcionesMetodos.map((metodoPago) => (
                     <SelectItem
-                      key={metodoPago.valor}
-                      value={metodoPago.valor}
+                      key={metodoPago.id}
+                      value={metodoPago.id}
                       className="text-base"
                     >
                       {metodoPago.label}

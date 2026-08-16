@@ -89,6 +89,75 @@ describe("ProductsDataTable (catálogo)", () => {
     expect(screen.queryByText("Café Mocca Helado")).not.toBeInTheDocument();
     expect(screen.getByText("Capuchino")).toBeInTheDocument();
   });
+
+  it("pagina los productos de 30 en 30 y reinicia al buscar", () => {
+    const muchos = Array.from({ length: 65 }, (_, indice) => ({
+      id: `prod_${indice}`,
+      name: `Producto ${indice + 1}`,
+      description: `Descripción ${indice + 1}`,
+      price: 3 + indice,
+      costo: 2,
+      category: "bebidas-frias",
+      isAvailable: true,
+      destacado: false,
+      imageUrl: "",
+      imageId: "",
+      updatedAt: "2026-08-12T23:00:00Z",
+    }));
+
+    render(
+      <ProductsDataTable
+        productos={muchos}
+        categorias={categoriasMock}
+        onEditar={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("Página 1 de 3")).toBeInTheDocument();
+    expect(screen.getByText("Producto 1")).toBeInTheDocument();
+    expect(screen.queryByText("Producto 31")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /página anterior/i })
+    ).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: /página siguiente/i }));
+    expect(screen.getByText("Página 2 de 3")).toBeInTheDocument();
+    expect(screen.getByText("Producto 31")).toBeInTheDocument();
+    expect(screen.queryByText("Producto 1")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/buscar producto/i), {
+      target: { value: "Producto 40" },
+    });
+    expect(screen.queryByText(/página \d+ de \d+/i)).not.toBeInTheDocument();
+    expect(screen.getByText("Producto 40")).toBeInTheDocument();
+  });
+
+  it("oculta la paginación con 30 productos o menos", () => {
+    const treinta = Array.from({ length: 30 }, (_, indice) => ({
+      id: `prod_${indice}`,
+      name: `Producto ${indice + 1}`,
+      description: `Descripción ${indice + 1}`,
+      price: 3,
+      costo: 2,
+      category: "bebidas-frias",
+      isAvailable: true,
+      destacado: false,
+      imageUrl: "",
+      imageId: "",
+      updatedAt: "2026-08-12T23:00:00Z",
+    }));
+
+    render(
+      <ProductsDataTable
+        productos={treinta}
+        categorias={categoriasMock}
+        onEditar={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByText(/página \d+ de \d+/i)).not.toBeInTheDocument();
+    expect(screen.getByText("Producto 30")).toBeInTheDocument();
+  });
 });
 
 describe("CatalogoCliente", () => {

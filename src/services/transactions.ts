@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   query,
   orderBy,
@@ -19,7 +20,8 @@ import type {
   TipoTransaccion,
   ItemVenta,
 } from "@/types/transaction";
-import { obtenerFechaLocalISO } from "@/lib/utils";
+import { obtenerFechaLocalISO, generarSlug } from "@/lib/utils";
+import { obtenerTasaBCV } from "@/lib/bcv";
 
 const COLECCION_TRANSACCIONES = "financial_transactions";
 const COLECCION_RESUMENES = "daily_summaries";
@@ -197,6 +199,19 @@ export async function registrarIngresoPorOrden(
 ): Promise<void> {
   const refOrden = doc(db, "ordenes", ordenId);
 
+  const snapshotPrevia = await getDoc(refOrden);
+  const datosPrevia = snapshotPrevia.data();
+  const tasaDeOrden = Number(datosPrevia?.tasaBCV ?? datosPrevia?.bcvRate ?? 0);
+  let tasaBCV = tasaDeOrden;
+  if (tasaDeOrden <= 0) {
+    try {
+      const tasaActual = await obtenerTasaBCV();
+      tasaBCV = tasaActual.promedio;
+    } catch {
+      tasaBCV = 0;
+    }
+  }
+
   await runTransaction(db, async (transaccion) => {
     const snapshotOrden = await transaccion.get(refOrden);
     const datosOrden = snapshotOrden.data();
@@ -204,7 +219,6 @@ export async function registrarIngresoPorOrden(
     if (datosOrden?.registradoEnFinanzas) return;
 
     const fecha = obtenerFechaHoraLocalISO();
-    const tasaBCV = Number(datosOrden?.bcvRate ?? 0);
     const metodoPago =
       (datosOrden?.metodoPago as string | undefined) ?? "EFECTIVO";
     const itemsOrden = Array.isArray(datosOrden?.items)
@@ -299,6 +313,89 @@ export async function obtenerResumenDiario(
   };
 }
 
+export interface ProductoMasVendido {
+  nombre: string;
+  productId?: string;
+  cantidad: number;
+}
+
+export async function obtenerProductoMasVendidoSemana(
+  dias = 7
+): Promise<ProductoMasVendido | null> {
+  const fechaInicio = new Date();
+  fechaInicio.setDate(fechaInicio.getDate() - (dias - 1));
+  const inicioISO = obtenerFechaLocalISO(fechaInicio);
+
+  const consulta = query(
+    collection(db, COLECCION_TRANSACCIONES),
+    where("date", ">=", `${inicioISO}T00:00:00`),
+    orderBy("date", "desc"),
+    limit(500)
+  );
+  const snapshot = await getDocs(consulta);
+  const transacciones = snapshot.docs.map(transformarTransaccion);
+
+  const acumulados = new Map<string, ProductoMasVendido>();
+  for (const transaccion of transacciones) {
+    if (transaccion.type !== "INGRESO" || !Array.isArray(transaccion.items)) {
+      continue;
+    }
+    for (const item of transaccion.items) {
+      const clave = item.productId || item.nombre;
+      const existente = acumulados.get(clave);
+      if (existente) {
+        existente.cantidad += item.cantidad;
+      } else {
+        acumulados.set(clave, {
+          nombre: item.nombre,
+          productId: item.productId || undefined,
+          cantidad: item.cantidad,
+        });
+      }
+    }
+  }
+
+  let masVendido: ProductoMasVendido | null = null;
+  for (const candidato of acumulados.values()) {
+    if (!masVendido || candidato.cantidad > masVendido.cantidad) {
+      masVendido = candidato;
+    }
+  }
+  return masVendido;
+}
+
+const PREFIJO_PRODUCTO_PROMO = "promo-";
+
+async function resolverCostoOfertaPromo(
+  transaccion: Transaction,
+  productId: string
+): Promise<number> {
+  const resto = productId.slice(PREFIJO_PRODUCTO_PROMO.length);
+  const indiceGuion = resto.indexOf("-");
+  if (indiceGuion <= 0) return 0;
+
+  const promoId = resto.slice(0, indiceGuion);
+  const slug = resto.slice(indiceGuion + 1);
+
+  try {
+    const snapshot = await transaccion.get(doc(db, "promociones", promoId));
+    const ofertas = snapshot.data()?.ofertas;
+    if (!Array.isArray(ofertas)) return 0;
+
+    const oferta = ofertas.find(
+      (item: { nombre?: string }) =>
+        generarSlug(String(item.nombre ?? "")) === slug
+    );
+    return Number(oferta?.costo ?? 0);
+  } catch (error) {
+    console.error(
+      `Error al resolver el costo de la oferta ${productId}:`,
+      error
+    );
+    return 0;
+  }
+}
+
 async function calcularGananciaPorOrden(
   transaccion: Transaction,
   items: {
@@ -316,6 +413,10 @@ async function calcularGananciaPorOrden(
 
   const costos = new Map<string, number>();
   for (const id of ids) {
+    if (id.startsWith(PREFIJO_PRODUCTO_PROMO)) {
+      costos.set(id, await resolverCostoOfertaPromo(transaccion, id));
+      continue;
+    }
     try {
       const snapshot = await transaccion.get(doc(db, "products", id));
       costos.set(id, Number(snapshot.data()?.costo ?? 0));

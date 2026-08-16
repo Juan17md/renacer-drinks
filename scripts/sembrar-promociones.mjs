@@ -42,8 +42,8 @@ const PROMOCIONES = [
     horario: "Lunes a Sábado de 8AM a 12PM",
     descripcion: "Dos por el precio de uno en tus favoritas.",
     ofertas: [
-      { nombre: "2 Merengadas", precio: "$4.50" },
-      { nombre: "2 Especiales", precio: "$5.60" },
+      { nombre: "2 Merengadas", precio: 4.5, costo: 3.5 },
+      { nombre: "2 Especiales", precio: 5.6, costo: 4.6 },
     ],
     activo: true,
   },
@@ -52,7 +52,9 @@ const PROMOCIONES = [
     titulo: "Tarde de Poder",
     horario: "Por tiempo limitado",
     descripcion: "Añade extra de proteína a tu batido por $0.50.",
-    ofertas: [],
+    ofertas: [
+      { nombre: "Proteína extra", precio: 0.5, costo: 0.25, esProteina: true },
+    ],
     activo: true,
   },
 ];

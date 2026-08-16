@@ -1,6 +1,7 @@
 import "server-only";
 import { initializeApp, getApps, cert, type App } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 
 const enVercelProduccion = process.env.VERCEL_ENV === "production";
 const enVercelPreview = process.env.VERCEL_ENV === "preview";
@@ -79,4 +80,8 @@ function obtenerAppAdmin(): App {
 
 export function getAdminFirestore() {
   return getFirestore(obtenerAppAdmin());
+}
+
+export function getAdminAuth() {
+  return getAuth(obtenerAppAdmin());
 }

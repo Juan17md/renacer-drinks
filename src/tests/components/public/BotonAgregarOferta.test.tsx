@@ -12,7 +12,7 @@ describe("BotonAgregarOferta", () => {
     render(
       <BotonAgregarOferta
         promoId="happy_hours"
-        oferta={{ nombre: "2 Merengadas", precio: "$4.50" }}
+        oferta={{ nombre: "2 Merengadas", precio: 4.5, costo: 3.5 }}
       />
     );
 
@@ -32,7 +32,7 @@ describe("BotonAgregarOferta", () => {
     render(
       <BotonAgregarOferta
         promoId="happy_hours"
-        oferta={{ nombre: "2 Merengadas", precio: "$4.50" }}
+        oferta={{ nombre: "2 Merengadas", precio: 4.5, costo: 3.5 }}
       />
     );
 
@@ -49,7 +49,7 @@ describe("BotonAgregarOferta", () => {
     render(
       <BotonAgregarOferta
         promoId="happy_hours"
-        oferta={{ nombre: "2 Merengadas", precio: "$4.50" }}
+        oferta={{ nombre: "2 Merengadas", precio: 4.5, costo: 3.5 }}
       />
     );
     const boton = screen.getByRole("button", {
@@ -66,7 +66,7 @@ describe("BotonAgregarOferta", () => {
     render(
       <BotonAgregarOferta
         promoId="happy_hours"
-        oferta={{ nombre: "2 Merengadas", precio: "$4.50" }}
+        oferta={{ nombre: "2 Merengadas", precio: 4.5, costo: 3.5 }}
       />
     );
 

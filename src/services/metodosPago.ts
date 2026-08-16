@@ -6,7 +6,6 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { MetodoPagoConfig, DatoMetodoPago } from "@/types/payment";
-import type { MetodoPago } from "@/types/transaction";
 
 const COLECCION_METODOS = "metodos_pago";
 
@@ -78,7 +77,7 @@ function transformarMetodoPago(
     ? (datos.datos as DatoMetodoPago[])
     : [];
   return {
-    id: id as MetodoPago,
+    id,
     label: String(datos.label ?? ""),
     activo: Boolean(datos.activo ?? false),
     requiereComprobante: Boolean(datos.requiereComprobante ?? false),

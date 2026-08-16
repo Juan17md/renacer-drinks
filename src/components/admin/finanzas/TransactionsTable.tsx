@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { formatearUSD } from "@/lib/utils";
 import type {
   TransaccionFinanciera,
@@ -27,8 +28,11 @@ const FILTROS: { valor: "TODAS" | TipoTransaccion; label: string }[] = [
   { valor: "EGRESO", label: "Egresos" },
 ];
 
+const TRANSACCIONES_POR_PAGINA = 15;
+
 export function TransactionsTable({ transacciones }: TransactionsTableProps) {
   const [filtro, setFiltro] = useState<"TODAS" | TipoTransaccion>("TODAS");
+  const [pagina, setPagina] = useState(1);
 
   const filtradas = useMemo(
     () =>
@@ -37,6 +41,21 @@ export function TransactionsTable({ transacciones }: TransactionsTableProps) {
         : transacciones.filter((t) => t.type === filtro),
     [transacciones, filtro]
   );
+
+  const totalPaginas = Math.max(
+    1,
+    Math.ceil(filtradas.length / TRANSACCIONES_POR_PAGINA)
+  );
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const paginadas = filtradas.slice(
+    (paginaActual - 1) * TRANSACCIONES_POR_PAGINA,
+    paginaActual * TRANSACCIONES_POR_PAGINA
+  );
+
+  const manejarFiltro = (nuevoFiltro: "TODAS" | TipoTransaccion) => {
+    setFiltro(nuevoFiltro);
+    setPagina(1);
+  };
 
   return (
     <div className="rounded-2xl border border-border/60 bg-white p-5">
@@ -49,7 +68,7 @@ export function TransactionsTable({ transacciones }: TransactionsTableProps) {
             <button
               key={opcion.valor}
               type="button"
-              onClick={() => setFiltro(opcion.valor)}
+              onClick={() => manejarFiltro(opcion.valor)}
               className={`rounded-full px-3 py-1.5 text-base font-semibold transition-colors ${
                 filtro === opcion.valor
                   ? "bg-brand-rose text-white"
@@ -68,8 +87,9 @@ export function TransactionsTable({ transacciones }: TransactionsTableProps) {
           No hay transacciones registradas.
         </p>
       ) : (
-        <ul className="mt-4 divide-y divide-border/60">
-          {filtradas.map((transaccion) => (
+        <>
+          <ul className="mt-4 divide-y divide-border/60">
+            {paginadas.map((transaccion) => (
             <li
               key={transaccion.id}
               className="flex items-center gap-3 py-3"
@@ -121,6 +141,33 @@ export function TransactionsTable({ transacciones }: TransactionsTableProps) {
             </li>
           ))}
         </ul>
+
+        {totalPaginas > 1 && (
+          <div className="mt-4 flex items-center justify-center gap-4">
+            <Button
+              variant="outline"
+              className="h-10"
+              onClick={() => setPagina(paginaActual - 1)}
+              disabled={paginaActual === 1}
+              aria-label="Página anterior"
+            >
+              Anterior
+            </Button>
+            <p className="text-base font-medium text-muted-foreground">
+              Página {paginaActual} de {totalPaginas}
+            </p>
+            <Button
+              variant="outline"
+              className="h-10"
+              onClick={() => setPagina(paginaActual + 1)}
+              disabled={paginaActual === totalPaginas}
+              aria-label="Página siguiente"
+            >
+              Siguiente
+            </Button>
+          </div>
+        )}
+        </>
       )}
     </div>
   );

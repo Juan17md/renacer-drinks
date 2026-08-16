@@ -7,13 +7,19 @@ import { formatearBs } from "@/lib/utils";
 import type { ProductoPublico } from "@/types/product";
 import type { MetodoPagoConfig } from "@/types/payment";
 
-const { crearOrdenMock, metodosPagoMock } = vi.hoisted(() => ({
-  crearOrdenMock: vi.fn(),
-  metodosPagoMock: vi.fn(),
-}));
+const { crearOrdenMock, metodosPagoMock, obtenerPromocionesMock } =
+  vi.hoisted(() => ({
+    crearOrdenMock: vi.fn(),
+    metodosPagoMock: vi.fn(),
+    obtenerPromocionesMock: vi.fn(),
+  }));
 
 vi.mock("@/services/orders", () => ({
   crearOrden: crearOrdenMock,
+}));
+
+vi.mock("@/services/promotions", () => ({
+  obtenerPromocionesActivas: obtenerPromocionesMock,
 }));
 
 vi.mock("@/services/metodosPago", () => ({
@@ -84,6 +90,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   useCartStore.setState({ items: [] });
   localStorage.clear();
+  obtenerPromocionesMock.mockResolvedValue([]);
 });
 
 describe("CartDrawer", () => {
@@ -339,7 +346,7 @@ describe("CartDrawer", () => {
     fireEvent.click(screen.getByRole("button", { name: /pago móvil/i }));
 
     const botonCargar = screen.getByRole("button", {
-      name: /cargar comprobante/i,
+      name: /sube comprobante o referencia/i,
     });
     expect(botonCargar).toBeDisabled();
     expect(
@@ -397,7 +404,7 @@ describe("CartDrawer", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  it("envía directo con Efectivo sin comprobante y pago verificado", async () => {
+  it("envía directo con Efectivo sin comprobante y con pago pendiente", async () => {
     crearOrdenMock.mockResolvedValue({ id: "orden_2", numero: 13 });
     useCartStore.getState().agregarProducto(productoMock, 1);
 
@@ -425,7 +432,46 @@ describe("CartDrawer", () => {
         nombreCliente: "Pedro",
         metodoPago: "EFECTIVO",
         comprobanteUrl: undefined,
-        pagoVerificado: true,
+        pagoVerificado: false,
+      })
+    );
+  });
+
+  it("envía el pedido con referencia en lugar de comprobante", async () => {
+    crearOrdenMock.mockResolvedValue({ id: "orden_3", numero: 14 });
+    useCartStore.getState().agregarProducto(productoMock, 1);
+
+    render(
+      <>
+        <Toaster />
+        <CartDrawer abierto onOpenChange={onOpenChange} tasaBCV={764.35} />
+      </>
+    );
+
+    fireEvent.change(screen.getByLabelText(/tu nombre/i), {
+      target: { value: "María" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /pagar/i }));
+    fireEvent.click(screen.getByRole("button", { name: /pago móvil/i }));
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /continuar con referencia/i })
+    );
+
+    fireEvent.change(screen.getByLabelText(/referencia del pago/i), {
+      target: { value: "9876543210" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /enviar pedido/i }));
+
+    expect(await screen.findByText(/pedido #14 recibido/i)).toBeInTheDocument();
+    expect(crearOrdenMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nombreCliente: "María",
+        metodoPago: "PAGO_MOVIL",
+        comprobanteUrl: undefined,
+        referencia: "9876543210",
+        pagoVerificado: false,
       })
     );
   });
@@ -472,5 +518,90 @@ describe("CartDrawer", () => {
       await screen.findByText(/no se pudo enviar el pedido/i)
     ).toBeInTheDocument();
     expect(useCartStore.getState().items).toHaveLength(1);
+  });
+
+  it("muestra el botón de proteína extra cuando hay una promo activa con oferta esProteina", async () => {
+    obtenerPromocionesMock.mockResolvedValue([
+      {
+        id: "tarde_de_poder",
+        titulo: "Tarde de Poder",
+        horario: "Por tiempo limitado",
+        descripcion: "Añade extra de proteína a tu batido por $0.50.",
+        ofertas: [
+          { nombre: "Proteína extra", precio: 0.5, costo: 0.25, esProteina: true },
+        ],
+        activo: true,
+        updatedAt: "2026-08-16T00:00:00Z",
+      },
+    ]);
+    useCartStore.getState().agregarProducto(productoMock, 1);
+
+    render(
+      <CartDrawer abierto onOpenChange={onOpenChange} tasaBCV={764.35} />
+    );
+
+    expect(
+      await screen.findByRole("button", { name: /agregar proteína extra/i })
+    ).toBeInTheDocument();
+    expect(screen.getByText(/\$0\.50/)).toBeInTheDocument();
+  });
+
+  it("no muestra el botón de proteína si no hay promo activa con esProteina", async () => {
+    obtenerPromocionesMock.mockResolvedValue([
+      {
+        id: "happy_hours",
+        titulo: "Happy Hours",
+        horario: "Lunes a Sábado de 8AM a 12PM",
+        descripcion: "Dos por el precio de uno en tus favoritas.",
+        ofertas: [
+          { nombre: "2 Merengadas", precio: 4.5, costo: 3.5 },
+        ],
+        activo: true,
+        updatedAt: "2026-08-16T00:00:00Z",
+      },
+    ]);
+    useCartStore.getState().agregarProducto(productoMock, 1);
+
+    render(
+      <CartDrawer abierto onOpenChange={onOpenChange} tasaBCV={764.35} />
+    );
+
+    await waitFor(() => expect(obtenerPromocionesMock).toHaveBeenCalled());
+
+    expect(
+      screen.queryByRole("button", { name: /agregar proteína extra/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("agrega la proteína extra como item especial con el precio de la promo", async () => {
+    obtenerPromocionesMock.mockResolvedValue([
+      {
+        id: "tarde_de_poder",
+        titulo: "Tarde de Poder",
+        horario: "Por tiempo limitado",
+        descripcion: "Añade extra de proteína a tu batido por $0.50.",
+        ofertas: [
+          { nombre: "Proteína extra", precio: 0.5, costo: 0.25, esProteina: true },
+        ],
+        activo: true,
+        updatedAt: "2026-08-16T00:00:00Z",
+      },
+    ]);
+    useCartStore.getState().agregarProducto(productoMock, 1);
+
+    render(
+      <CartDrawer abierto onOpenChange={onOpenChange} tasaBCV={764.35} />
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: /agregar proteína extra/i })
+    );
+
+    const items = useCartStore.getState().items;
+    expect(items).toHaveLength(2);
+    expect(items[1].producto.name).toBe("Proteína extra");
+    expect(items[1].producto.price).toBe(0.5);
+    expect(items[1].producto.id).toBe("promo-tarde_de_poder-proteina-extra");
+    expect(items[1].cantidad).toBe(1);
   });
 });

@@ -11,6 +11,7 @@ import {
   Copy,
   Check,
   Upload,
+  Dumbbell,
 } from "lucide-react";
 import {
   Drawer,
@@ -27,20 +28,22 @@ import { toast } from "sonner";
 import { CartItem } from "@/components/cart/CartItem";
 import { CartSummary } from "@/components/cart/CartSummary";
 import { useCartStore } from "@/store/useCartStore";
-import { convertirUSDaBs, formatearBs } from "@/lib/utils";
+import { convertirUSDaBs, formatearBs, formatearUSD, generarSlug } from "@/lib/utils";
 import { autenticarImageKit } from "@/lib/imagekit-auth";
 import { crearOrden } from "@/services/orders";
 import { escucharMetodosPago } from "@/services/metodosPago";
+import { obtenerPromocionesActivas } from "@/services/promotions";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import type { MetodoPagoConfig, DatoMetodoPago } from "@/types/payment";
-import type { MetodoPago } from "@/types/transaction";
+import type { OfertaPromocion } from "@/types/promotion";
+import type { ProductoPublico } from "@/types/product";
 import { cn } from "@/lib/utils";
 
 const URL_ENDPOINT = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT ?? "";
 const CONSULTA_ESCRITORIO = "(min-width: 768px)";
 
 // Métodos que se pagan en bolívares y exigen indicar el monto al transferir
-const METODOS_CON_MONTO: MetodoPago[] = ["PAGO_MOVIL", "TRANSFERENCIA"];
+const METODOS_CON_MONTO: string[] = ["PAGO_MOVIL", "TRANSFERENCIA"];
 
 interface CartDrawerProps {
   abierto: boolean;
@@ -51,6 +54,7 @@ interface CartDrawerProps {
 export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) {
   const esEscritorio = useMediaQuery(CONSULTA_ESCRITORIO);
   const items = useCartStore((estado) => estado.items);
+  const agregarProducto = useCartStore((estado) => estado.agregarProducto);
   const actualizarCantidad = useCartStore((estado) => estado.actualizarCantidad);
   const eliminarProducto = useCartStore((estado) => estado.eliminarProducto);
   const vaciarCarrito = useCartStore((estado) => estado.vaciarCarrito);
@@ -63,8 +67,15 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
   const [metodoSeleccionado, setMetodoSeleccionado] =
     useState<MetodoPagoConfig | null>(null);
   const [comprobanteUrl, setComprobanteUrl] = useState("");
+  const [referencia, setReferencia] = useState("");
+  const [usarReferencia, setUsarReferencia] = useState(false);
   const [subiendo, setSubiendo] = useState(false);
   const [copiado, setCopiado] = useState<string | null>(null);
+  const [ofertaProteina, setOfertaProteina] = useState<{
+    promoId: string;
+    oferta: OfertaPromocion;
+  } | null>(null);
+  const [proteinaAgregada, setProteinaAgregada] = useState(false);
   const refBloquePago = useRef<HTMLDivElement>(null);
   const refDatosMetodo = useRef<HTMLDivElement>(null);
 
@@ -84,6 +95,52 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
     );
     return desuscribir;
   }, []);
+
+  useEffect(() => {
+    let activo = true;
+    obtenerPromocionesActivas()
+      .then((promociones) => {
+        if (!activo) return;
+        const promocionConProteina = promociones.find((promocion) =>
+          promocion.ofertas.some((oferta) => oferta.esProteina)
+        );
+        if (!promocionConProteina) return;
+        const oferta = promocionConProteina.ofertas.find(
+          (item) => item.esProteina
+        );
+        if (oferta) {
+          setOfertaProteina({
+            promoId: promocionConProteina.id,
+            oferta,
+          });
+        }
+      })
+      .catch(() => {
+        if (activo) setOfertaProteina(null);
+      });
+    return () => {
+      activo = false;
+    };
+  }, []);
+
+  const manejarAgregarProteina = () => {
+    if (!ofertaProteina) return;
+    const productoProteina: ProductoPublico = {
+      id: `promo-${ofertaProteina.promoId}-${generarSlug(ofertaProteina.oferta.nombre)}`,
+      name: ofertaProteina.oferta.nombre,
+      description: "",
+      price: ofertaProteina.oferta.precio,
+      category: "Promociones",
+      isAvailable: true,
+      destacado: false,
+      imageUrl: "",
+      imageId: "",
+      updatedAt: "",
+    };
+    agregarProducto(productoProteina);
+    setProteinaAgregada(true);
+    window.setTimeout(() => setProteinaAgregada(false), 1500);
+  };
 
   useEffect(() => {
     const viewportVisual = window.visualViewport;
@@ -177,8 +234,8 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
       setError("Selecciona un método de pago.");
       return;
     }
-    if (metodoSeleccionado.requiereComprobante && !comprobanteUrl) {
-      setError("Carga el comprobante de pago para enviar el pedido.");
+    if (metodoSeleccionado.requiereComprobante && !comprobanteUrl && !referencia.trim()) {
+      setError("Sube el comprobante de pago o escribe la referencia.");
       return;
     }
 
@@ -198,14 +255,22 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
         tasaBCV,
         metodoPago: metodoSeleccionado.id,
         comprobanteUrl:
-          metodoSeleccionado.requiereComprobante ? comprobanteUrl : undefined,
-        pagoVerificado: !metodoSeleccionado.requiereComprobante,
+          metodoSeleccionado.requiereComprobante && comprobanteUrl
+            ? comprobanteUrl
+            : undefined,
+        referencia:
+          metodoSeleccionado.requiereComprobante && referencia.trim()
+            ? referencia.trim()
+            : undefined,
+        pagoVerificado: false,
       });
 
       vaciarCarrito();
       setNombreCliente("");
       setMetodoSeleccionado(null);
       setComprobanteUrl("");
+      setReferencia("");
+      setUsarReferencia(false);
       onOpenChange(false);
       toast.success(
         `¡Pedido #${orden.numero} recibido! Espera tu aviso en la barra.`
@@ -219,7 +284,9 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
 
   const botonListoParaEnviar = Boolean(
     metodoSeleccionado &&
-      (!metodoSeleccionado.requiereComprobante || Boolean(comprobanteUrl))
+      (!metodoSeleccionado.requiereComprobante ||
+        Boolean(comprobanteUrl) ||
+        Boolean(referencia.trim()))
   );
 
   return (
@@ -270,6 +337,28 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                   />
                 ))}
               </ul>
+              {ofertaProteina && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={manejarAgregarProteina}
+                  className="h-12 w-full border-dashed border-brand-rose/50 text-base"
+                  aria-label={`Agregar ${ofertaProteina.oferta.nombre} al pedido`}
+                >
+                  {proteinaAgregada ? (
+                    <>
+                      <Check className="mr-2 h-5 w-5 text-emerald-600" aria-hidden="true" />
+                      Agregado
+                    </>
+                  ) : (
+                    <>
+                      <Dumbbell className="mr-2 h-5 w-5 text-brand-rose-deep" aria-hidden="true" />
+                      Agregar {ofertaProteina.oferta.nombre.toLowerCase()} +{" "}
+                      {formatearUSD(ofertaProteina.oferta.precio)}
+                    </>
+                  )}
+                </Button>
+              )}
               <CartSummary totalUSD={totalUSD} totalBs={totalBs} tasaBCV={tasaBCV} />
 
               <div className="space-y-2">
@@ -308,6 +397,8 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                         onClick={() => {
                           setMetodoSeleccionado(metodo);
                           setComprobanteUrl("");
+                          setReferencia("");
+                          setUsarReferencia(false);
                           setPagoVisible(true);
                           requestAnimationFrame(() =>
                             desplazarHacia(refDatosMetodo.current)
@@ -388,54 +479,93 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                           authenticator={autenticarImageKit}
                         >
                           <div className="space-y-2">
-                            <Label>Comprobante de pago *</Label>
-                            {comprobanteUrl ? (
-                              <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-white p-2">
-                                <Image
-                                  src={comprobanteUrl}
-                                  alt="Vista previa del comprobante"
-                                  width={64}
-                                  height={64}
-                                  className="h-16 w-16 rounded-lg object-cover"
+                            {usarReferencia ? (
+                              <div className="space-y-2">
+                                <Label htmlFor="referencia-pago">
+                                  Referencia del pago *
+                                </Label>
+                                <Input
+                                  id="referencia-pago"
+                                  value={referencia}
+                                  onChange={(evento) =>
+                                    setReferencia(evento.target.value)
+                                  }
+                                  placeholder="Ej. 1234567890"
+                                  autoComplete="off"
+                                  className="h-12 text-base"
+                                  maxLength={60}
                                 />
-                                <div className="min-w-0 flex-1">
-                                  <p className="flex items-center gap-1.5 text-base font-medium text-emerald-700">
-                                    <Check className="h-4 w-4" aria-hidden="true" />
-                                    Comprobante cargado
-                                  </p>
-                                  <button
-                                    type="button"
-                                    onClick={() => setComprobanteUrl("")}
-                                    className="text-sm font-small text-destructive underline"
-                                  >
-                                    Quitar y cargar otro
-                                  </button>
-                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setUsarReferencia(false);
+                                    setReferencia("");
+                                  }}
+                                  className="text-sm font-small text-brand-rose-deep underline"
+                                >
+                                  Prefiero subir la imagen del comprobante
+                                </button>
                               </div>
                             ) : (
-                              <label
-                                htmlFor="comprobante-pago"
-                                className={cn(
-                                  "flex h-28 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-white text-muted-foreground transition-colors hover:border-brand-rose hover:text-brand-rose-deep",
-                                  subiendo && "pointer-events-none opacity-60"
-                                )}
-                              >
-                                {subiendo ? (
-                                  <Loader2
-                                    className="h-5 w-5 animate-spin"
-                                    aria-hidden="true"
-                                  />
+                              <>
+                                <Label>Comprobante de pago *</Label>
+                                {comprobanteUrl ? (
+                                  <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-white p-2">
+                                    <Image
+                                      src={comprobanteUrl}
+                                      alt="Vista previa del comprobante"
+                                      width={64}
+                                      height={64}
+                                      className="h-16 w-16 rounded-lg object-cover"
+                                    />
+                                    <div className="min-w-0 flex-1">
+                                      <p className="flex items-center gap-1.5 text-base font-medium text-emerald-700">
+                                        <Check className="h-4 w-4" aria-hidden="true" />
+                                        Comprobante cargado
+                                      </p>
+                                      <button
+                                        type="button"
+                                        onClick={() => setComprobanteUrl("")}
+                                        className="text-sm font-small text-destructive underline"
+                                      >
+                                        Quitar y cargar otro
+                                      </button>
+                                    </div>
+                                  </div>
                                 ) : (
-                                  <Upload className="h-5 w-5" aria-hidden="true" />
+                                  <label
+                                    htmlFor="comprobante-pago"
+                                    className={cn(
+                                      "flex h-28 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-white text-muted-foreground transition-colors hover:border-brand-rose hover:text-brand-rose-deep",
+                                      subiendo && "pointer-events-none opacity-60"
+                                    )}
+                                  >
+                                    {subiendo ? (
+                                      <Loader2
+                                        className="h-5 w-5 animate-spin"
+                                        aria-hidden="true"
+                                      />
+                                    ) : (
+                                      <Upload className="h-5 w-5" aria-hidden="true" />
+                                    )}
+                                    <span className="text-sm font-medium">
+                                      {subiendo
+                                        ? "Cargando comprobante..."
+                                        : "Toca para cargar imagen"}
+                                    </span>
+                                  </label>
                                 )}
-                                <span className="text-sm font-medium">
-                                  {subiendo
-                                    ? "Cargando comprobante..."
-                                    : "Toca para cargar imagen"}
-                                </span>
-                              </label>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  className="h-10 w-full text-sm font-medium text-brand-coffee underline underline-offset-2 hover:text-brand-rose-deep"
+                                  onClick={() => setUsarReferencia(true)}
+                                >
+                                  Continuar con referencia
+                                </Button>
+                              </>
                             )}
-                            {!comprobanteUrl && (
+                            {!comprobanteUrl && !usarReferencia && (
                               <IKUpload
                                 id="comprobante-pago"
                                 fileName={`comprobante-${Date.now()}`}
@@ -494,7 +624,7 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                   disabled
                 >
                   <Upload className="mr-2 h-5 w-5" aria-hidden="true" />
-                  Cargar comprobante
+                  Sube comprobante o referencia
                 </Button>
               ) : (
                 <Button

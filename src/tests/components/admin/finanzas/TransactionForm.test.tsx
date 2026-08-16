@@ -6,12 +6,32 @@ vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
-const { registrarTransaccionMock } = vi.hoisted(() => ({
+const { registrarTransaccionMock, obtenerMetodosPagoMock } = vi.hoisted(() => ({
   registrarTransaccionMock: vi.fn(),
+  obtenerMetodosPagoMock: vi.fn().mockResolvedValue([
+    {
+      id: "EFECTIVO",
+      label: "Efectivo",
+      activo: true,
+      requiereComprobante: false,
+      datos: [],
+    },
+    {
+      id: "PAGO_MOVIL",
+      label: "Pago Móvil",
+      activo: true,
+      requiereComprobante: true,
+      datos: [],
+    },
+  ]),
 }));
 
 vi.mock("@/services/transactions", () => ({
   registrarTransaccion: registrarTransaccionMock,
+}));
+
+vi.mock("@/services/metodosPago", () => ({
+  obtenerMetodosPago: obtenerMetodosPagoMock,
 }));
 
 import { toast } from "sonner";

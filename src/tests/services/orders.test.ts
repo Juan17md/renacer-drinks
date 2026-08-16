@@ -107,6 +107,7 @@ describe("escucharOrdenes", () => {
             updatedAt: "2026-08-13T10:00:00",
             metodoPago: "PAGO_MOVIL",
             comprobanteUrl: "https://ik.imagekit.io/renacer/comprobante.jpg",
+            referencia: "1234567890",
             pagoVerificado: false,
           }),
         },
@@ -122,6 +123,7 @@ describe("escucharOrdenes", () => {
       expect.objectContaining({
         metodoPago: "PAGO_MOVIL",
         comprobanteUrl: "https://ik.imagekit.io/renacer/comprobante.jpg",
+        referencia: "1234567890",
         pagoVerificado: false,
       }),
     ]);
@@ -145,12 +147,12 @@ describe("actualizarEstadoOrden", () => {
   it("actualiza el estado y la fecha en Firestore", async () => {
     mocksFirestore.updateDoc.mockResolvedValue(undefined);
 
-    await actualizarEstadoOrden("abc123", "lista");
+    await actualizarEstadoOrden("abc123", "entregada");
 
     expect(mocksFirestore.updateDoc).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        estado: "lista",
+        estado: "entregada",
         updatedAt: expect.any(String),
       })
     );

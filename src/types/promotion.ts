@@ -1,6 +1,8 @@
 export interface OfertaPromocion {
   nombre: string;
-  precio: string;
+  precio: number;
+  costo: number;
+  esProteina?: boolean;
 }
 
 export interface Promocion {

@@ -27,8 +27,19 @@ function validarPromocion(datos: DatosPromocion): string | null {
   if (!Array.isArray(datos.ofertas)) return "Las ofertas deben ser una lista.";
   if (datos.ofertas.length > 10) return "Máximo 10 ofertas por promoción.";
   for (const oferta of datos.ofertas) {
-    if (!oferta.nombre.trim() || !oferta.precio.trim()) {
-      return "Cada oferta debe tener nombre y precio.";
+    if (!oferta.nombre.trim()) {
+      return "Cada oferta debe tener nombre.";
+    }
+    if (
+      !Number.isFinite(oferta.precio) ||
+      !Number.isFinite(oferta.costo) ||
+      oferta.precio < 0 ||
+      oferta.costo < 0
+    ) {
+      return "Cada oferta debe tener precio y costo válidos (mayores o iguales a 0).";
+    }
+    if (oferta.precio < oferta.costo) {
+      return `La oferta "${oferta.nombre}" tiene un costo mayor que su precio de venta.`;
     }
   }
   return null;
@@ -46,7 +57,9 @@ export async function crearPromocion(datos: DatosPromocion) {
       descripcion: datos.descripcion.trim(),
       ofertas: datos.ofertas.map((oferta) => ({
         nombre: oferta.nombre.trim(),
-        precio: oferta.precio.trim(),
+        precio: oferta.precio,
+        costo: oferta.costo,
+        ...(oferta.esProteina ? { esProteina: true } : {}),
       })),
       activo: datos.activo,
       updatedAt: FieldValue.serverTimestamp(),
@@ -73,7 +86,9 @@ export async function actualizarPromocion(id: string, datos: DatosPromocion) {
       descripcion: datos.descripcion.trim(),
       ofertas: datos.ofertas.map((oferta) => ({
         nombre: oferta.nombre.trim(),
-        precio: oferta.precio.trim(),
+        precio: oferta.precio,
+        costo: oferta.costo,
+        ...(oferta.esProteina ? { esProteina: true } : {}),
       })),
       activo: datos.activo,
       updatedAt: FieldValue.serverTimestamp(),

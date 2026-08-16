@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { DollarSign, TrendingUp, ReceiptText, ShoppingCart, Coffee, Package, Wallet } from "lucide-react";
+import { DollarSign, TrendingUp, ReceiptText, ShoppingCart, Coffee, Package, Wallet, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RegistrarVentaModal } from "@/components/admin/ventas/RegistrarVentaModal";
-import { obtenerResumenDiario } from "@/services/transactions";
+import { obtenerResumenDiario, obtenerProductoMasVendidoSemana, type ProductoMasVendido } from "@/services/transactions";
 import { obtenerProductosCompletos } from "@/services/products";
 import { obtenerFechaLocalISO, formatearUSD, formatearBs } from "@/lib/utils";
 import type { Producto } from "@/types/product";
@@ -22,11 +22,13 @@ export function DashboardCliente({
   const [tasaBCV, setTasaBCV] = useState(tasaBCVInicial);
   const [resumen, setResumen] = useState<ResumenDiario | null>(null);
   const [productos, setProductos] = useState<Producto[]>([]);
+  const [masVendido, setMasVendido] = useState<ProductoMasVendido | null>(null);
 
   useEffect(() => {
     const hoy = obtenerFechaLocalISO().slice(0, 10);
     obtenerResumenDiario(hoy).then(setResumen);
     obtenerProductosCompletos().then(setProductos);
+    obtenerProductoMasVendidoSemana().then(setMasVendido);
   }, []);
 
   const tarjetas = [
@@ -44,7 +46,7 @@ export function DashboardCliente({
     },
     {
       titulo: "Ventas del día",
-      valorUSD: resumen?.totalSales ?? 0,
+      contador: resumen?.totalSales ?? 0,
       icono: ReceiptText,
       color: "bg-sky-100 text-sky-700",
     },
@@ -61,49 +63,80 @@ export function DashboardCliente({
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         {tarjetas.map((tarjeta) => (
           <div
             key={tarjeta.titulo}
-            className="rounded-2xl border border-border/60 bg-white p-5"
+            className="rounded-2xl border border-border/60 bg-white p-4 sm:p-5"
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <span
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tarjeta.color}`}
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:h-10 sm:w-10 ${tarjeta.color}`}
               >
-                <tarjeta.icono className="h-5 w-5" aria-hidden="true" />
+                <tarjeta.icono className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
               </span>
-              <h2 className="font-heading text-base font-semibold uppercase tracking-wider text-muted-foreground">
+              <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-muted-foreground sm:text-base">
                 {tarjeta.titulo}
               </h2>
             </div>
-            <p className="mt-3 font-heading text-2xl font-bold text-brand-coffee">
-              {formatearUSD(tarjeta.valorUSD)}
-            </p>
-            <p className="mt-1 text-base text-muted-foreground">
-              {formatearBs(tarjeta.valorUSD * tasaBCV)}
-            </p>
+            {"contador" in tarjeta ? (
+              <p className="mt-3 font-heading text-xl font-bold text-brand-coffee sm:text-2xl">
+                {tarjeta.contador} venta{tarjeta.contador !== 1 ? "s" : ""}
+              </p>
+            ) : (
+              <>
+                <p className="mt-3 font-heading text-xl font-bold text-brand-coffee sm:text-2xl">
+                  {formatearUSD(tarjeta.valorUSD)}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground sm:text-base">
+                  {formatearBs(tarjeta.valorUSD * tasaBCV)}
+                </p>
+              </>
+            )}
           </div>
         ))}
-      </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-2xl border border-border/60 bg-white p-6">
-          <h2 className="font-heading text-base font-semibold uppercase tracking-wider text-muted-foreground">
+        <div
+          className={`rounded-2xl border border-border/60 bg-white p-4 sm:p-5 ${
+            masVendido
+              ? "sm:col-start-3 sm:row-start-2"
+              : "sm:col-span-3 sm:row-start-2"
+          }`}
+        >
+          <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-muted-foreground sm:text-base">
             Tasa BCV del día
           </h2>
           {tasaBCV > 0 ? (
-            <p className="mt-2 font-heading text-3xl font-bold text-brand-rose-deep">
+            <p className="mt-2 font-heading text-2xl font-bold text-brand-rose-deep sm:text-3xl">
               {formatearBs(tasaBCV)}
             </p>
           ) : (
-            <p className="mt-2 text-base text-muted-foreground">
+            <p className="mt-2 text-sm text-muted-foreground sm:text-base">
               No disponible en este momento
             </p>
           )}
         </div>
 
-        <div className="rounded-2xl border border-border/60 bg-white p-6">
+        {masVendido && (
+          <div className="col-span-2 rounded-2xl border border-border/60 bg-white p-4 sm:col-span-2 sm:p-5">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 sm:h-10 sm:w-10">
+                <Trophy className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
+              </span>
+              <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-muted-foreground sm:text-base">
+                Más vendido de la semana
+              </h2>
+            </div>
+            <p className="mt-3 font-heading text-xl font-bold text-brand-coffee sm:text-2xl">
+              {masVendido.nombre}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground sm:text-base">
+              {masVendido.cantidad} unidad{masVendido.cantidad !== 1 ? "es" : ""} vendida{masVendido.cantidad !== 1 ? "s" : ""}
+            </p>
+          </div>
+        )}
+
+        <div className="col-span-2 rounded-2xl border border-border/60 bg-white p-6 sm:col-span-3">
           <h2 className="font-heading text-base font-semibold uppercase tracking-wider text-muted-foreground">
             Accesos rápidos
           </h2>

@@ -33,7 +33,7 @@ export interface TransaccionFinanciera {
   amountBs: number;
   bcvRate: number;
   concept: string;
-  paymentMethod: MetodoPago;
+  paymentMethod: string;
   date: string;
   createdBy: string;
   customerName?: string;
@@ -45,14 +45,14 @@ export interface DatosTransaccion {
   type: TipoTransaccion;
   amount: number;
   concept: string;
-  paymentMethod: MetodoPago;
+  paymentMethod: string;
 }
 
 export interface DatosVenta {
   customerName: string;
   items: ItemVenta[];
   amount: number;
-  paymentMethod: MetodoPago;
+  paymentMethod: string;
 }
 
 export interface ResumenDiario {

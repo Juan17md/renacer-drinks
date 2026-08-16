@@ -1,11 +1,8 @@
-import type { MetodoPago } from "@/types/transaction";
-
-export type EstadoOrden = "recibida" | "lista" | "entregada" | "cancelada";
+export type EstadoOrden = "recibida" | "entregada" | "cancelada";
 
 export const ESTADOS_ORDEN = {
-  recibida: { label: "Recibida", siguiente: "lista", anterior: null },
-  lista: { label: "Lista", siguiente: "entregada", anterior: "recibida" },
-  entregada: { label: "Entregada", siguiente: null, anterior: "lista" },
+  recibida: { label: "Recibida", siguiente: "entregada", anterior: null },
+  entregada: { label: "Entregada", siguiente: null, anterior: "recibida" },
   cancelada: { label: "Cancelada", siguiente: null, anterior: null },
 } as const;
 
@@ -28,8 +25,9 @@ export interface Orden {
   estado: EstadoOrden;
   createdAt: string;
   updatedAt: string;
-  metodoPago?: MetodoPago;
+  metodoPago?: string;
   comprobanteUrl?: string;
+  referencia?: string;
   pagoVerificado?: boolean;
 }
 
@@ -41,7 +39,8 @@ export interface DatosNuevaOrden {
   totalUSD: number;
   totalBs: number;
   tasaBCV: number;
-  metodoPago?: MetodoPago;
+  metodoPago?: string;
   comprobanteUrl?: string;
+  referencia?: string;
   pagoVerificado?: boolean;
 }

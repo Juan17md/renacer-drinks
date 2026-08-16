@@ -4,6 +4,7 @@ const { firestoreMock } = vi.hoisted(() => ({
   firestoreMock: {
     collection: vi.fn(),
     getDocs: vi.fn(),
+    getDoc: vi.fn(),
     doc: vi.fn(),
     runTransaction: vi.fn(),
     query: vi.fn(),
@@ -17,8 +18,25 @@ const { firestoreMock } = vi.hoisted(() => ({
 vi.mock("firebase/firestore", () => firestoreMock);
 
 vi.mock("@/lib/firebase", () => ({ db: {} }));
+
+const { obtenerTasaBCVMock } = vi.hoisted(() => ({
+  obtenerTasaBCVMock: vi.fn(),
+}));
+
+vi.mock("@/lib/bcv", () => ({
+  obtenerTasaBCV: obtenerTasaBCVMock,
+}));
 vi.mock("@/lib/utils", () => ({
   obtenerFechaLocalISO: () => "2026-08-13",
+  generarSlug: (texto: string) =>
+    texto
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-"),
 }));
 
 import {
@@ -27,6 +45,7 @@ import {
   registrarVenta,
   obtenerTransacciones,
   obtenerResumenDiario,
+  obtenerProductoMasVendidoSemana,
 } from "@/services/transactions";
 
 // Localiza la escritura de la transacción financiera (payload con `type`),
@@ -43,6 +62,10 @@ function transaccionEscrita(set: ReturnType<typeof vi.fn>) {
   return (llamada?.[1] ?? {}) as Record<string, unknown>;
 }
 
+function mockearLecturaOrden(datos: Record<string, unknown>) {
+  firestoreMock.getDoc.mockResolvedValue({ data: () => datos });
+}
+
 describe("services/transactions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -57,7 +80,9 @@ describe("services/transactions", () => {
       })
     );
     firestoreMock.getDocs.mockResolvedValue({ docs: [] });
+    firestoreMock.getDoc.mockResolvedValue({ data: () => null });
     firestoreMock.updateDoc.mockResolvedValue(undefined);
+    obtenerTasaBCVMock.mockReset();
   });
 
   describe("registrarTransaccion", () => {
@@ -147,21 +172,23 @@ describe("services/transactions", () => {
     it("registra ingreso automático si la orden no está en finanzas", async () => {
       const set = vi.fn();
       const update = vi.fn();
+      const datosOrden = {
+        numero: 12,
+        totalUSD: 4.5,
+        bcvRate: 80,
+        estado: "entregada",
+        items: [],
+        createdAt: "2026-08-13T10:00:00",
+        updatedAt: "2026-08-13T10:00:00",
+      };
+      mockearLecturaOrden(datosOrden);
       firestoreMock.runTransaction.mockImplementation(
         async (_db: unknown, callback: (tx: unknown) => Promise<void>) => {
           await callback({
             get: vi.fn().mockImplementation((ref: { id?: string }) => {
               if (ref.id === "orden_1") {
                 return {
-                  data: () => ({
-                    numero: 12,
-                    totalUSD: 4.5,
-                    bcvRate: 80,
-                    estado: "entregada",
-                    items: [],
-                    createdAt: "2026-08-13T10:00:00",
-                    updatedAt: "2026-08-13T10:00:00",
-                  }),
+                  data: () => datosOrden,
                 };
               }
               return { data: () => null };
@@ -184,17 +211,19 @@ describe("services/transactions", () => {
     it("no registra dos veces si ya estaba registrada", async () => {
       const set = vi.fn();
       const update = vi.fn();
+      const datosOrden = {
+        numero: 13,
+        totalUSD: 3,
+        bcvRate: 80,
+        estado: "entregada",
+        registradoEnFinanzas: true,
+      };
+      mockearLecturaOrden(datosOrden);
       firestoreMock.runTransaction.mockImplementation(
         async (_db: unknown, callback: (tx: unknown) => Promise<void>) => {
           await callback({
             get: vi.fn().mockResolvedValue({
-              data: () => ({
-                numero: 13,
-                totalUSD: 3,
-                bcvRate: 80,
-                estado: "entregada",
-                registradoEnFinanzas: true,
-              }),
+              data: () => datosOrden,
             }),
             set,
             update,
@@ -211,22 +240,24 @@ describe("services/transactions", () => {
     it("usa el método de pago del cliente en la transacción", async () => {
       const set = vi.fn();
       const update = vi.fn();
+      const datosOrden = {
+        numero: 12,
+        totalUSD: 4.5,
+        bcvRate: 80,
+        estado: "entregada",
+        metodoPago: "PAGO_MOVIL",
+        items: [],
+        createdAt: "2026-08-13T10:00:00",
+        updatedAt: "2026-08-13T10:00:00",
+      };
+      mockearLecturaOrden(datosOrden);
       firestoreMock.runTransaction.mockImplementation(
         async (_db: unknown, callback: (tx: unknown) => Promise<void>) => {
           await callback({
             get: vi.fn().mockImplementation((ref: { id?: string }) => {
               if (ref.id === "orden_1") {
                 return {
-                  data: () => ({
-                    numero: 12,
-                    totalUSD: 4.5,
-                    bcvRate: 80,
-                    estado: "entregada",
-                    metodoPago: "PAGO_MOVIL",
-                    items: [],
-                    createdAt: "2026-08-13T10:00:00",
-                    updatedAt: "2026-08-13T10:00:00",
-                  }),
+                  data: () => datosOrden,
                 };
               }
               return { data: () => null };
@@ -245,29 +276,31 @@ describe("services/transactions", () => {
     it("calcula la ganancia real con el costo del catálogo al registrar la orden", async () => {
       const set = vi.fn();
       const update = vi.fn();
+      const datosOrden = {
+        numero: 12,
+        totalUSD: 9,
+        bcvRate: 80,
+        estado: "entregada",
+        items: [
+          {
+            productId: "prod_1",
+            nombre: "Café Mocca",
+            precio: 4.5,
+            cantidad: 2,
+            subtotal: 9,
+          },
+        ],
+        createdAt: "2026-08-13T10:00:00",
+        updatedAt: "2026-08-13T10:00:00",
+      };
+      mockearLecturaOrden(datosOrden);
       firestoreMock.runTransaction.mockImplementation(
         async (_db: unknown, callback: (tx: unknown) => Promise<void>) => {
           await callback({
             get: vi.fn().mockImplementation((ref: { id?: string }) => {
               if (ref.id === "orden_1") {
                 return {
-                  data: () => ({
-                    numero: 12,
-                    totalUSD: 9,
-                    bcvRate: 80,
-                    estado: "entregada",
-                    items: [
-                      {
-                        productId: "prod_1",
-                        nombre: "Café Mocca",
-                        precio: 4.5,
-                        cantidad: 2,
-                        subtotal: 9,
-                      },
-                    ],
-                    createdAt: "2026-08-13T10:00:00",
-                    updatedAt: "2026-08-13T10:00:00",
-                  }),
+                  data: () => datosOrden,
                 };
               }
               if (ref.id === "prod_1") {
@@ -292,6 +325,167 @@ describe("services/transactions", () => {
         costo: 3.5,
         cantidad: 2,
       });
+    });
+
+    it("calcula la ganancia de ofertas de promociones y proteína con su costo", async () => {
+      const set = vi.fn();
+      const update = vi.fn();
+      const datosOrden = {
+        numero: 12,
+        totalUSD: 5,
+        bcvRate: 80,
+        estado: "entregada",
+        items: [
+          {
+            productId: "promo-happy_hours-2-merengadas",
+            nombre: "2 Merengadas",
+            precio: 4.5,
+            cantidad: 1,
+            subtotal: 4.5,
+          },
+          {
+            productId: "promo-tarde_de_poder-proteina-extra",
+            nombre: "Proteína extra",
+            precio: 0.5,
+            cantidad: 1,
+            subtotal: 0.5,
+          },
+        ],
+        createdAt: "2026-08-13T10:00:00",
+        updatedAt: "2026-08-13T10:00:00",
+      };
+      mockearLecturaOrden(datosOrden);
+      firestoreMock.runTransaction.mockImplementation(
+        async (_db: unknown, callback: (tx: unknown) => Promise<void>) => {
+          await callback({
+            get: vi.fn().mockImplementation((ref: { id?: string }) => {
+              if (ref.id === "orden_1") {
+                return {
+                  data: () => datosOrden,
+                };
+              }
+              if (ref.id === "happy_hours") {
+                return {
+                  data: () => ({
+                    ofertas: [
+                      { nombre: "2 Merengadas", precio: 4.5, costo: 3.5 },
+                    ],
+                  }),
+                };
+              }
+              if (ref.id === "tarde_de_poder") {
+                return {
+                  data: () => ({
+                    ofertas: [
+                      {
+                        nombre: "Proteína extra",
+                        precio: 0.5,
+                        costo: 0.25,
+                        esProteina: true,
+                      },
+                    ],
+                  }),
+                };
+              }
+              return { data: () => null };
+            }),
+            set,
+            update,
+          });
+        }
+      );
+
+      await registrarIngresoPorOrden("orden_1", 5, "Venta orden #12");
+
+      const transaccion = transaccionEscrita(set);
+      expect(transaccion.ganancia).toBe(1.25);
+      const items = transaccion.items as Record<string, unknown>[];
+      expect(items[0]).toMatchObject({
+        productId: "promo-happy_hours-2-merengadas",
+        precioVenta: 4.5,
+        costo: 3.5,
+      });
+      expect(items[1]).toMatchObject({
+        productId: "promo-tarde_de_poder-proteina-extra",
+        precioVenta: 0.5,
+        costo: 0.25,
+      });
+    });
+
+    it("usa la tasaBCV real de la orden para amountBs y bcvRate", async () => {
+      const set = vi.fn();
+      const update = vi.fn();
+      const datosOrden = {
+        numero: 14,
+        totalUSD: 4.5,
+        tasaBCV: 80,
+        estado: "entregada",
+        items: [],
+        createdAt: "2026-08-13T10:00:00",
+        updatedAt: "2026-08-13T10:00:00",
+      };
+      mockearLecturaOrden(datosOrden);
+      firestoreMock.runTransaction.mockImplementation(
+        async (_db: unknown, callback: (tx: unknown) => Promise<void>) => {
+          await callback({
+            get: vi.fn().mockImplementation((ref: { id?: string }) => {
+              if (ref.id === "orden_1") {
+                return { data: () => datosOrden };
+              }
+              return { data: () => null };
+            }),
+            set,
+            update,
+          });
+        }
+      );
+
+      await registrarIngresoPorOrden("orden_1", 4.5, "Venta orden #14");
+
+      const transaccion = transaccionEscrita(set);
+      expect(transaccion.amountBs).toBe(360);
+      expect(transaccion.bcvRate).toBe(80);
+    });
+
+    it("usa la tasa BCV actual cuando la orden no trae tasa", async () => {
+      const set = vi.fn();
+      const update = vi.fn();
+      const datosOrden = {
+        numero: 15,
+        totalUSD: 4.5,
+        estado: "entregada",
+        items: [],
+        createdAt: "2026-08-13T10:00:00",
+        updatedAt: "2026-08-13T10:00:00",
+      };
+      obtenerTasaBCVMock.mockResolvedValue({
+        promedio: 90,
+        fechaActualizacion: "2026-08-16",
+        moneda: "Bolívar",
+        codigo: "VES",
+      });
+      mockearLecturaOrden(datosOrden);
+      firestoreMock.runTransaction.mockImplementation(
+        async (_db: unknown, callback: (tx: unknown) => Promise<void>) => {
+          await callback({
+            get: vi.fn().mockImplementation((ref: { id?: string }) => {
+              if (ref.id === "orden_1") {
+                return { data: () => datosOrden };
+              }
+              return { data: () => null };
+            }),
+            set,
+            update,
+          });
+        }
+      );
+
+      await registrarIngresoPorOrden("orden_1", 4.5, "Venta orden #15");
+
+      expect(obtenerTasaBCVMock).toHaveBeenCalledTimes(1);
+      const transaccion = transaccionEscrita(set);
+      expect(transaccion.amountBs).toBe(405);
+      expect(transaccion.bcvRate).toBe(90);
     });
   });
 
@@ -383,6 +577,123 @@ describe("services/transactions", () => {
       firestoreMock.getDocs.mockResolvedValue({ docs: [] });
       const resumen = await obtenerResumenDiario("2026-08-13");
       expect(resumen).toBeNull();
+    });
+  });
+
+  describe("obtenerProductoMasVendidoSemana", () => {
+    it("devuelve el producto con más unidades acumuladas de la semana", async () => {
+      firestoreMock.getDocs.mockResolvedValue({
+        docs: [
+          {
+            id: "tx_1",
+            data: () => ({
+              type: "INGRESO",
+              amount: 9,
+              amountBs: 720,
+              bcvRate: 80,
+              concept: "Venta orden #12",
+              paymentMethod: "EFECTIVO",
+              date: "2026-08-13T10:00:00",
+              createdBy: "admin",
+              ganancia: 2,
+              items: [
+                { productId: "prod_1", nombre: "Café Mocca", precioVenta: 4.5, costo: 3.5, cantidad: 2, subtotal: 9 },
+              ],
+            }),
+          },
+          {
+            id: "tx_2",
+            data: () => ({
+              type: "INGRESO",
+              amount: 13.5,
+              amountBs: 1080,
+              bcvRate: 80,
+              concept: "Venta directa - María",
+              paymentMethod: "PUNTO",
+              date: "2026-08-14T15:30:00",
+              createdBy: "admin",
+              ganancia: 3,
+              items: [
+                { productId: "prod_2", nombre: "Merengada", precioVenta: 4.5, costo: 3.5, cantidad: 1, subtotal: 4.5 },
+                { productId: "prod_1", nombre: "Café Mocca", precioVenta: 4.5, costo: 3.5, cantidad: 1, subtotal: 4.5 },
+              ],
+            }),
+          },
+        ],
+      });
+
+      const resultado = await obtenerProductoMasVendidoSemana();
+      expect(resultado).toEqual({
+        nombre: "Café Mocca",
+        productId: "prod_1",
+        cantidad: 3,
+      });
+    });
+
+    it("ignora egresos y transacciones sin items", async () => {
+      firestoreMock.getDocs.mockResolvedValue({
+        docs: [
+          {
+            id: "tx_1",
+            data: () => ({
+              type: "EGRESO",
+              amount: 2,
+              amountBs: 160,
+              bcvRate: 80,
+              concept: "Compra leche",
+              paymentMethod: "EFECTIVO",
+              date: "2026-08-13T09:00:00",
+              createdBy: "admin",
+            }),
+          },
+          {
+            id: "tx_2",
+            data: () => ({
+              type: "INGRESO",
+              amount: 5,
+              amountBs: 400,
+              bcvRate: 80,
+              concept: "Venta directa",
+              paymentMethod: "EFECTIVO",
+              date: "2026-08-13T10:00:00",
+              createdBy: "admin",
+            }),
+          },
+        ],
+      });
+
+      const resultado = await obtenerProductoMasVendidoSemana();
+      expect(resultado).toBeNull();
+    });
+
+    it("agrupa items sin productId por nombre", async () => {
+      firestoreMock.getDocs.mockResolvedValue({
+        docs: [
+          {
+            id: "tx_1",
+            data: () => ({
+              type: "INGRESO",
+              amount: 5,
+              amountBs: 400,
+              bcvRate: 80,
+              concept: "Venta orden #12",
+              paymentMethod: "EFECTIVO",
+              date: "2026-08-13T10:00:00",
+              createdBy: "admin",
+              items: [
+                { nombre: "Proteína extra", precioVenta: 0.5, costo: 0.25, cantidad: 2, subtotal: 1 },
+              ],
+            }),
+          },
+        ],
+      });
+
+      const resultado = await obtenerProductoMasVendidoSemana();
+      expect(resultado).toEqual({
+        nombre: "Proteína extra",
+        productId: undefined,
+        cantidad: 2,
+      });
     });
   });
 });

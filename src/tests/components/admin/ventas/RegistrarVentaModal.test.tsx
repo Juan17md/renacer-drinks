@@ -3,12 +3,32 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { RegistrarVentaModal } from "@/components/admin/ventas/RegistrarVentaModal";
 import { Toaster } from "@/components/ui/sonner";
 
-const { registrarVentaMock } = vi.hoisted(() => ({
+const { registrarVentaMock, obtenerMetodosPagoMock } = vi.hoisted(() => ({
   registrarVentaMock: vi.fn().mockResolvedValue({ id: "tx_1" }),
+  obtenerMetodosPagoMock: vi.fn().mockResolvedValue([
+    {
+      id: "EFECTIVO",
+      label: "Efectivo",
+      activo: true,
+      requiereComprobante: false,
+      datos: [],
+    },
+    {
+      id: "PAGO_MOVIL",
+      label: "Pago Móvil",
+      activo: true,
+      requiereComprobante: true,
+      datos: [],
+    },
+  ]),
 }));
 
 vi.mock("@/services/transactions", () => ({
   registrarVenta: registrarVentaMock,
+}));
+
+vi.mock("@/services/metodosPago", () => ({
+  obtenerMetodosPago: obtenerMetodosPagoMock,
 }));
 
 const productosMock = [

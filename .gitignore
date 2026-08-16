@@ -36,6 +36,9 @@ backups/
 scripts/sembrar-operaciones-prueba.mjs
 scripts/sembrar-materiales-prueba.mjs
 
+# Scripts de mantenimiento local (no subir)
+scripts/recuperar-ingresos-ordenes.mjs
+
 # Documento para el cliente (no es parte del repositorio)
 Explicacion_para_el_cliente.txt
 

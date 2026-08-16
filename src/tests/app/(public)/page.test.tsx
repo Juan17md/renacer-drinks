@@ -16,7 +16,9 @@ describe("Página de Inicio (Landing)", () => {
     render(elemento);
 
     expect(
-      screen.getByText(/cada día es una nueva oportunidad/i)
+      screen.getByRole("heading", {
+        name: /cada día es una nueva oportunidad para renacer/i,
+      })
     ).toBeInTheDocument();
     expect(
       screen.getByText(/un lugar donde cada taza cuenta una historia/i)

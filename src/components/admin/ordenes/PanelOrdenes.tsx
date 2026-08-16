@@ -6,15 +6,14 @@ import {
   ReceiptText,
   Loader2,
   CheckCheck,
-  UtensilsCrossed,
-  ChevronRight,
+  PackageCheck,
   User,
   Clock,
   RefreshCw,
   XCircle,
+  Trash2,
   CreditCard,
   ImageIcon,
-  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,16 +42,21 @@ import {
   verificarPagoOrden,
 } from "@/services/orders";
 import { registrarIngresoPorOrden } from "@/services/transactions";
+import { escucharMetodosPago } from "@/services/metodosPago";
+import { eliminarOrden } from "@/actions/ordenes";
+import { useAuth } from "@/hooks/useAuth";
 import { ESTADOS_ORDEN, type Orden, type EstadoOrden } from "@/types/order";
 import { METODOS_PAGO } from "@/types/transaction";
+import type { MetodoPagoConfig } from "@/types/payment";
 import { formatearUSD, formatearBs, obtenerFechaLocalISO } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
-const ORDEN_POR_ESTADO: EstadoOrden[] = ["recibida", "lista", "entregada", "cancelada"];
+const ORDEN_POR_ESTADO: EstadoOrden[] = ["recibida", "entregada", "cancelada"];
+
+const ORDENES_POR_PAGINA = 15;
 
 const COLOR_ESTADO: Record<EstadoOrden, string> = {
   recibida: "bg-amber-100 text-amber-800",
-  lista: "bg-emerald-100 text-emerald-800",
   entregada: "bg-muted text-muted-foreground",
   cancelada: "bg-red-100 text-red-700",
 };
@@ -67,24 +71,53 @@ function formatearHora(iso: string): string {
   });
 }
 
-function obtenerLabelMetodoPago(metodoPago?: string): string {
+function obtenerLabelMetodoPago(
+  metodoPago?: string,
+  metodos?: MetodoPagoConfig[]
+): string {
   if (!metodoPago) return "";
+  const metodoReal = metodos?.find((metodo) => metodo.id === metodoPago);
+  if (metodoReal?.label) return metodoReal.label;
   return (
     METODOS_PAGO.find((metodo) => metodo.valor === metodoPago)?.label ??
     metodoPago
   );
 }
 
+const METODOS_CON_COMPROBANTE = new Set([
+  "PAGO_MOVIL",
+  "TRANSFERENCIA",
+  "BINANCE",
+  "ZELLE",
+]);
+
+function obtenerEtiquetaAccionPago(
+  metodoPago?: string,
+  metodos?: MetodoPagoConfig[]
+): string {
+  const metodoReal = metodos?.find((metodo) => metodo.id === metodoPago);
+  if (metodoReal) {
+    return metodoReal.requiereComprobante ? "Validar pago" : "Procesar pago";
+  }
+  return metodoPago && METODOS_CON_COMPROBANTE.has(metodoPago)
+    ? "Validar pago"
+    : "Procesar pago";
+}
+
 export function PanelOrdenes() {
+  const { usuario, esAdmin } = useAuth();
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
+  const [metodosPago, setMetodosPago] = useState<MetodoPagoConfig[]>([]);
   const [filtro, setFiltro] = useState<EstadoOrden | "todas">("recibida");
   const [cargando, setCargando] = useState(true);
   const [cambiando, setCambiando] = useState<string | null>(null);
   const [cancelando, setCancelando] = useState<string | null>(null);
-  const [verificando, setVerificando] = useState<string | null>(null);
+  const [procesando, setProcesando] = useState<string | null>(null);
+  const [eliminando, setEliminando] = useState<string | null>(null);
   const [comprobanteVisible, setComprobanteVisible] = useState<Orden | null>(
     null
   );
+  const [pagina, setPagina] = useState(1);
 
   useEffect(() => {
     const desuscribir = escucharOrdenes(
@@ -101,45 +134,67 @@ export function PanelOrdenes() {
     return desuscribir;
   }, []);
 
+  useEffect(() => {
+    const desuscribir = escucharMetodosPago(setMetodosPago);
+    return desuscribir;
+  }, []);
+
+  useEffect(() => {
+    setPagina(1);
+  }, [filtro]);
+
   const ordenesVisibles =
     filtro === "todas"
       ? ordenes
       : ordenes.filter((orden) => orden.estado === filtro);
+
+  const totalPaginas = Math.max(
+    1,
+    Math.ceil(ordenesVisibles.length / ORDENES_POR_PAGINA)
+  );
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const ordenesPaginadas = ordenesVisibles.slice(
+    (paginaActual - 1) * ORDENES_POR_PAGINA,
+    paginaActual * ORDENES_POR_PAGINA
+  );
 
   const avisarError = useCallback((error: unknown) => {
     console.error("Error al actualizar orden:", error);
     toast.error("No se pudo actualizar el estado de la orden");
   }, []);
 
-  const manejarAvanzar = async (orden: Orden) => {
-    const estadoActual = ESTADOS_ORDEN[orden.estado];
-    if (!estadoActual?.siguiente) return;
-
-    setCambiando(orden.id);
+  const manejarValidarPago = async (orden: Orden) => {
+    setProcesando(orden.id);
     try {
-      await actualizarEstadoOrden(orden.id, estadoActual.siguiente);
-      toast.success(
-        `Orden #${orden.numero} → ${ESTADOS_ORDEN[estadoActual.siguiente].label}`
-      );
-
-      if (estadoActual.siguiente === "entregada") {
-        try {
-          await registrarIngresoPorOrden(
-            orden.id,
-            orden.totalUSD,
-            `Venta orden #${orden.numero}`
-          );
-          toast.success(
-            `Ingreso de ${formatearUSD(orden.totalUSD)} registrado en finanzas`
-          );
-        } catch {
-          toast.error("La orden se entregó pero no se registró el ingreso");
-        }
-      }
+      await verificarPagoOrden(orden.id);
+      toast.success(`Pago de la orden #${orden.numero} validado`);
     } catch (error) {
-      avisarError(error);
+      console.error("Error al validar el pago:", error);
+      toast.error("No se pudo validar el pago de la orden");
     } finally {
-      setCambiando(null);
+      setProcesando(null);
+    }
+  };
+
+  const manejarEntregar = async (orden: Orden) => {
+    setProcesando(orden.id);
+    try {
+      await actualizarEstadoOrden(orden.id, "entregada");
+      await registrarIngresoPorOrden(
+        orden.id,
+        orden.totalUSD,
+        `Venta orden #${orden.numero}`
+      );
+      toast.success(
+        `Orden #${orden.numero} entregada y ${formatearUSD(
+          orden.totalUSD
+        )} registrados en finanzas`
+      );
+    } catch (error) {
+      console.error("Error al entregar la orden:", error);
+      toast.error("No se pudo entregar la orden");
+    } finally {
+      setProcesando(null);
     }
   };
 
@@ -173,20 +228,22 @@ export function PanelOrdenes() {
     }
   };
 
-  const manejarVerificarPago = async (orden: Orden) => {
-    setVerificando(orden.id);
+  const manejarEliminar = async (orden: Orden) => {
+    if (!usuario) return;
+    setEliminando(orden.id);
     try {
-      await verificarPagoOrden(orden.id);
-      toast.success(
-        `Pago de la orden #${orden.numero} verificado (${obtenerLabelMetodoPago(
-          orden.metodoPago
-        )})`
-      );
+      const idToken = await usuario.getIdToken();
+      const resultado = await eliminarOrden(orden.id, idToken);
+      if (resultado.ok) {
+        toast.success(`Orden #${orden.numero} eliminada`);
+      } else {
+        toast.error(resultado.error);
+      }
     } catch (error) {
-      console.error("Error al verificar pago:", error);
-      toast.error("No se pudo verificar el pago");
+      console.error("Error al eliminar la orden:", error);
+      toast.error("No se pudo eliminar la orden");
     } finally {
-      setVerificando(null);
+      setEliminando(null);
     }
   };
 
@@ -248,7 +305,7 @@ export function PanelOrdenes() {
         </div>
       ) : (
         <ul className="grid gap-4 lg:grid-cols-2">
-          {ordenesVisibles.map((orden) => {
+          {ordenesPaginadas.map((orden) => {
             const estado = ESTADOS_ORDEN[orden.estado];
             const hora = formatearHora(orden.createdAt);
             const hoy = obtenerFechaLocalISO().slice(0, 10);
@@ -309,7 +366,7 @@ export function PanelOrdenes() {
                         className="h-4 w-4 text-muted-foreground"
                         aria-hidden="true"
                       />
-                      {obtenerLabelMetodoPago(orden.metodoPago)}
+                      {obtenerLabelMetodoPago(orden.metodoPago, metodosPago)}
                     </span>
                     {orden.pagoVerificado ? (
                       <Badge className="bg-emerald-100 text-emerald-800">
@@ -332,28 +389,17 @@ export function PanelOrdenes() {
                         Ver comprobante
                       </Button>
                     )}
-                    {orden.pagoVerificado === false && (
-                      <Button
-                        size="sm"
-                        className="h-8"
-                        onClick={() => manejarVerificarPago(orden)}
-                        disabled={verificando === orden.id}
-                        aria-label={`Verificar pago de la orden ${orden.numero}`}
-                      >
-                        {verificando === orden.id ? (
-                          <Loader2
-                            className="mr-1.5 h-3.5 w-3.5 animate-spin"
-                            aria-hidden="true"
-                          />
-                        ) : (
-                          <ShieldCheck
-                            className="mr-1.5 h-3.5 w-3.5"
-                            aria-hidden="true"
-                          />
-                        )}
-                        Verificar pago
-                      </Button>
-                    )}
+                  </div>
+                )}
+
+                {orden.referencia && (
+                  <div className="mt-3 flex items-start gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-2">
+                    <span className="shrink-0 text-sm font-small text-muted-foreground">
+                      Referencia:
+                    </span>
+                    <span className="break-all text-base font-medium text-brand-coffee">
+                      {orden.referencia}
+                    </span>
                   </div>
                 )}
 
@@ -368,6 +414,49 @@ export function PanelOrdenes() {
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {orden.estado === "recibida" && (
+                      <>
+                        {orden.pagoVerificado !== true && (
+                          <Button
+                            size="sm"
+                            className="h-10"
+                            onClick={() => manejarValidarPago(orden)}
+                            disabled={procesando === orden.id}
+                            aria-label={`${obtenerEtiquetaAccionPago(
+                              orden.metodoPago,
+                              metodosPago
+                            )} de la orden ${orden.numero}`}
+                          >
+                            {procesando === orden.id ? (
+                              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
+                            ) : (
+                              <CheckCheck className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                            )}
+                            {obtenerEtiquetaAccionPago(
+                              orden.metodoPago,
+                              metodosPago
+                            )}
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          className="h-10"
+                          onClick={() => manejarEntregar(orden)}
+                          disabled={
+                            procesando === orden.id ||
+                            orden.pagoVerificado !== true
+                          }
+                          aria-label={`Entregar orden ${orden.numero}`}
+                        >
+                          {procesando === orden.id ? (
+                            <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
+                          ) : (
+                            <PackageCheck className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                          )}
+                          Entregar
+                        </Button>
+                      </>
+                    )}
                     {estado.anterior && (
                       <Button
                         variant="outline"
@@ -381,38 +470,7 @@ export function PanelOrdenes() {
                         {ESTADOS_ORDEN[estado.anterior].label}
                       </Button>
                     )}
-                    {estado.siguiente && (
-                      <Button
-                        size="sm"
-                        className="h-10"
-                        onClick={() => manejarAvanzar(orden)}
-                        disabled={
-                          cambiando === orden.id ||
-                          (estado.siguiente === "lista" &&
-                            orden.pagoVerificado === false)
-                        }
-                        title={
-                          estado.siguiente === "lista" &&
-                          orden.pagoVerificado === false
-                            ? "Verifica el pago antes de avanzar"
-                            : undefined
-                        }
-                        aria-label={`Marcar orden ${orden.numero} como ${ESTADOS_ORDEN[estado.siguiente].label}`}
-                      >
-                        {cambiando === orden.id ? (
-                          <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
-                        ) : estado.siguiente === "entregada" ? (
-                          <CheckCheck className="mr-1.5 h-4 w-4" aria-hidden="true" />
-                        ) : (
-                          <UtensilsCrossed className="mr-1.5 h-4 w-4" aria-hidden="true" />
-                        )}
-                        {ESTADOS_ORDEN[estado.siguiente].label}
-                        {estado.siguiente !== "entregada" && (
-                          <ChevronRight className="h-4 w-4" aria-hidden="true" />
-                        )}
-                      </Button>
-                    )}
-                    {(orden.estado === "recibida" || orden.estado === "lista") && (
+                    {orden.estado === "recibida" && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
@@ -450,12 +508,84 @@ export function PanelOrdenes() {
                         </AlertDialogContent>
                       </AlertDialog>
                     )}
+                    {esAdmin && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-10 w-10 text-muted-foreground hover:bg-red-50 hover:text-destructive"
+                            disabled={
+                              cambiando === orden.id ||
+                              cancelando === orden.id ||
+                              eliminando === orden.id
+                            }
+                            aria-label={`Eliminar orden ${orden.numero}`}
+                          >
+                            <Trash2 className="h-4 w-4" aria-hidden="true" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              ¿Eliminar la orden #{orden.numero}?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              La orden de {orden.nombreCliente} se eliminará
+                              permanentemente
+                              {orden.estado === "entregada"
+                                ? ", junto con su registro en finanzas"
+                                : ""}
+                              . Esta acción no se puede deshacer.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Volver</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => manejarEliminar(orden)}
+                              disabled={eliminando === orden.id}
+                              className="bg-destructive text-white hover:bg-destructive/90"
+                            >
+                              {eliminando === orden.id
+                                ? "Eliminando..."
+                                : "Eliminar orden"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </div>
                 </div>
               </li>
             );
           })}
         </ul>
+      )}
+
+      {totalPaginas > 1 && (
+        <div className="flex items-center justify-center gap-4">
+          <Button
+            variant="outline"
+            className="h-10"
+            onClick={() => setPagina(paginaActual - 1)}
+            disabled={paginaActual === 1}
+            aria-label="Página anterior"
+          >
+            Anterior
+          </Button>
+          <p className="text-base font-medium text-muted-foreground">
+            Página {paginaActual} de {totalPaginas}
+          </p>
+          <Button
+            variant="outline"
+            className="h-10"
+            onClick={() => setPagina(paginaActual + 1)}
+            disabled={paginaActual === totalPaginas}
+            aria-label="Página siguiente"
+          >
+            Siguiente
+          </Button>
+        </div>
       )}
 
       <Dialog
@@ -472,10 +602,10 @@ export function PanelOrdenes() {
             </DialogTitle>
             <DialogDescription>
               Pago de {comprobanteVisible?.nombreCliente} por{" "}
-              {obtenerLabelMetodoPago(comprobanteVisible?.metodoPago)}.
+              {obtenerLabelMetodoPago(comprobanteVisible?.metodoPago, metodosPago)}.
             </DialogDescription>
           </DialogHeader>
-          {comprobanteVisible?.comprobanteUrl && (
+          {comprobanteVisible?.comprobanteUrl ? (
             <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/30">
               <Image
                 src={comprobanteVisible.comprobanteUrl}
@@ -485,29 +615,46 @@ export function PanelOrdenes() {
                 className="h-auto w-full object-contain"
               />
             </div>
-          )}
-          {comprobanteVisible && comprobanteVisible.pagoVerificado === false && (
-            <Button
-              type="button"
-              className="mt-4 w-full"
-              onClick={() => {
-                manejarVerificarPago(comprobanteVisible);
-                setComprobanteVisible(null);
-              }}
-              disabled={verificando === comprobanteVisible.id}
-              aria-label={`Verificar pago de la orden ${comprobanteVisible.numero}`}
-            >
-              {verificando === comprobanteVisible.id ? (
-                <Loader2
-                  className="mr-1.5 h-4 w-4 animate-spin"
-                  aria-hidden="true"
-                />
-              ) : (
-                <ShieldCheck className="mr-1.5 h-4 w-4" aria-hidden="true" />
-              )}
-              Verificar pago
-            </Button>
-          )}
+          ) : comprobanteVisible?.referencia ? (
+            <div className="rounded-xl border border-border/60 bg-muted/30 px-4 py-3">
+              <p className="text-sm font-small text-muted-foreground">
+                Referencia del pago
+              </p>
+              <p className="mt-1 break-all text-base font-medium text-brand-coffee">
+                {comprobanteVisible.referencia}
+              </p>
+            </div>
+          ) : null}
+          {comprobanteVisible &&
+            comprobanteVisible.estado === "recibida" &&
+            comprobanteVisible.pagoVerificado !== true && (
+              <Button
+                type="button"
+                className="mt-4 w-full"
+                onClick={() => {
+                  manejarValidarPago(comprobanteVisible);
+                  setComprobanteVisible(null);
+                }}
+                disabled={procesando === comprobanteVisible.id}
+                aria-label={`${obtenerEtiquetaAccionPago(
+                  comprobanteVisible.metodoPago,
+                  metodosPago
+                )} de la orden ${comprobanteVisible.numero}`}
+              >
+                {procesando === comprobanteVisible.id ? (
+                  <Loader2
+                    className="mr-1.5 h-4 w-4 animate-spin"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <CheckCheck className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                )}
+                {obtenerEtiquetaAccionPago(
+                  comprobanteVisible.metodoPago,
+                  metodosPago
+                )}
+              </Button>
+            )}
         </DialogContent>
       </Dialog>
     </div>

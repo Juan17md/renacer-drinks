@@ -37,8 +37,8 @@ const promocionesMock = [
     horario: "Lunes a Sábado de 8AM a 12PM",
     descripcion: "Dos por el precio de uno en tus favoritas.",
     ofertas: [
-      { nombre: "2 Merengadas", precio: "$4.50" },
-      { nombre: "2 Especiales", precio: "$5.60" },
+      { nombre: "2 Merengadas", precio: 4.5, costo: 3.5 },
+      { nombre: "2 Especiales", precio: 5.6, costo: 4.6 },
     ],
     activo: true,
     updatedAt: "2026-08-14T00:00:00Z",
@@ -48,7 +48,9 @@ const promocionesMock = [
     titulo: "Tarde de Poder",
     horario: "Por tiempo limitado",
     descripcion: "Añade extra de proteína a tu batido por $0.50.",
-    ofertas: [],
+    ofertas: [
+      { nombre: "Proteína extra", precio: 0.5, costo: 0.25, esProteina: true },
+    ],
     activo: false,
     updatedAt: "2026-08-14T00:00:00Z",
   },
@@ -67,10 +69,12 @@ describe("PaginaPromociones", () => {
       await screen.findByRole("heading", { name: "Happy Hours" })
     ).toBeInTheDocument();
     expect(screen.getByText("2 Merengadas")).toBeInTheDocument();
-    expect(screen.getByText("$4.50")).toBeInTheDocument();
+    expect(screen.getByText("Venta: $4.50")).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Tarde de Poder" })
     ).toBeInTheDocument();
+    expect(screen.getByText("Proteína extra")).toBeInTheDocument();
+    expect(screen.getByText("Venta: $0.50")).toBeInTheDocument();
   });
 
   it("crea una promoción nueva", async () => {
@@ -91,8 +95,11 @@ describe("PaginaPromociones", () => {
     fireEvent.change(screen.getByLabelText("Nombre de la oferta 1"), {
       target: { value: "1 Batido Proteico" },
     });
-    fireEvent.change(screen.getByLabelText("Precio de la oferta 1"), {
-      target: { value: "$3.90" },
+    fireEvent.change(screen.getByLabelText("Precio de venta de la oferta 1"), {
+      target: { value: "3.90" },
+    });
+    fireEvent.change(screen.getByLabelText("Costo de la oferta 1"), {
+      target: { value: "2.50" },
     });
 
     fireEvent.click(
@@ -104,7 +111,9 @@ describe("PaginaPromociones", () => {
         titulo: "Martes de Oferta",
         horario: "Martes 2PM a 5PM",
         descripcion: "Descuento en batidos.",
-        ofertas: [{ nombre: "1 Batido Proteico", precio: "$3.90" }],
+        ofertas: [
+          { nombre: "1 Batido Proteico", precio: 3.9, costo: 2.5, esProteina: false },
+        ],
         activo: true,
       });
     });
@@ -145,6 +154,50 @@ describe("PaginaPromociones", () => {
     expect(
       screen.getByLabelText("Nombre de la oferta 2")
     ).toBeInTheDocument();
+  });
+
+  it("marca una oferta como proteína extra y muestra su ganancia", async () => {
+    render(<PaginaPromociones />);
+    await screen.findByRole("heading", { name: "Tarde de Poder" });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Editar promoción Tarde de Poder" })
+    );
+
+    const costo = await screen.findByLabelText("Costo de la oferta 1");
+    fireEvent.change(costo, { target: { value: "0.30" } });
+
+    const precio = screen.getByLabelText("Precio de venta de la oferta 1");
+    fireEvent.change(precio, { target: { value: "0.50" } });
+
+    expect(
+      screen
+        .getAllByText((contenido, elemento) =>
+          Boolean(elemento?.textContent?.includes("Ganancia:")) &&
+          Boolean(elemento?.textContent?.includes("$0.20"))
+        )
+        .length
+    ).toBeGreaterThan(0);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Guardar cambios" })
+    );
+
+    await waitFor(() => {
+      expect(actualizarPromocionMock).toHaveBeenCalledWith(
+        "tarde_de_poder",
+        expect.objectContaining({
+          ofertas: [
+            expect.objectContaining({
+              nombre: "Proteína extra",
+              precio: 0.5,
+              costo: 0.3,
+              esProteina: true,
+            }),
+          ],
+        })
+      );
+    });
   });
 
   it("elimina una promoción tras confirmar", async () => {

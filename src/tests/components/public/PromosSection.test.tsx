@@ -11,8 +11,8 @@ const { promocionesMock } = vi.hoisted(() => ({
       horario: "Lunes a Sábado de 8AM a 12PM",
       descripcion: "Dos por el precio de uno en tus favoritas.",
       ofertas: [
-        { nombre: "2 Merengadas", precio: "$4.50" },
-        { nombre: "2 Especiales", precio: "$5.60" },
+        { nombre: "2 Merengadas", precio: 4.5, costo: 3.5 },
+        { nombre: "2 Especiales", precio: 5.6, costo: 4.6 },
       ],
       activo: true,
       updatedAt: "2026-08-14T00:00:00Z",
@@ -22,7 +22,9 @@ const { promocionesMock } = vi.hoisted(() => ({
       titulo: "Tarde de Poder",
       horario: "Por tiempo limitado",
       descripcion: "Añade extra de proteína a tu batido por $0.50.",
-      ofertas: [],
+      ofertas: [
+        { nombre: "Proteína extra", precio: 0.5, costo: 0.25, esProteina: true },
+      ],
       activo: true,
       updatedAt: "2026-08-14T00:00:00Z",
     },
@@ -48,6 +50,8 @@ describe("PromosSection", () => {
     expect(screen.getByText("$4.50")).toBeInTheDocument();
     expect(screen.getByText("2 Especiales")).toBeInTheDocument();
     expect(screen.getByText("$5.60")).toBeInTheDocument();
+    expect(screen.getByText("Proteína extra")).toBeInTheDocument();
+    expect(screen.getByText("$0.50")).toBeInTheDocument();
 
     expect(
       screen.getByRole("heading", { name: "Tarde de Poder" })
