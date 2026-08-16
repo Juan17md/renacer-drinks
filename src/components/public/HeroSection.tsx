@@ -21,8 +21,11 @@ export function HeroSection() {
             Café artesanal en Barquisimeto
           </span>
           <h1 className="font-heading text-[2.5rem] font-bold leading-tight tracking-tight text-brand-coffee sm:text-5xl lg:text-[3.5rem]">
-            Cada día es una nueva oportunidad para{" "}
-            <span className="text-brand-rose-deep">renacer</span>
+            Cada día es una{" "}
+            <br />
+            {" "}nueva oportunidad{" "}
+            <br />
+            {" "}para <span className="text-brand-rose-deep">renacer</span>
           </h1>
           <p className="max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg">
             Bebidas frías y calientes preparadas con granos seleccionados,
