@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   query,
   orderBy,
@@ -20,6 +21,7 @@ import type {
   ItemVenta,
 } from "@/types/transaction";
 import { obtenerFechaLocalISO, generarSlug } from "@/lib/utils";
+import { obtenerTasaBCV } from "@/lib/bcv";
 
 const COLECCION_TRANSACCIONES = "financial_transactions";
 const COLECCION_RESUMENES = "daily_summaries";
@@ -197,6 +199,19 @@ export async function registrarIngresoPorOrden(
 ): Promise<void> {
   const refOrden = doc(db, "ordenes", ordenId);
 
+  const snapshotPrevia = await getDoc(refOrden);
+  const datosPrevia = snapshotPrevia.data();
+  const tasaDeOrden = Number(datosPrevia?.tasaBCV ?? datosPrevia?.bcvRate ?? 0);
+  let tasaBCV = tasaDeOrden;
+  if (tasaDeOrden <= 0) {
+    try {
+      const tasaActual = await obtenerTasaBCV();
+      tasaBCV = tasaActual.promedio;
+    } catch {
+      tasaBCV = 0;
+    }
+  }
+
   await runTransaction(db, async (transaccion) => {
     const snapshotOrden = await transaccion.get(refOrden);
     const datosOrden = snapshotOrden.data();
@@ -204,7 +219,6 @@ export async function registrarIngresoPorOrden(
     if (datosOrden?.registradoEnFinanzas) return;
 
     const fecha = obtenerFechaHoraLocalISO();
-    const tasaBCV = Number(datosOrden?.bcvRate ?? 0);
     const metodoPago =
       (datosOrden?.metodoPago as string | undefined) ?? "EFECTIVO";
     const itemsOrden = Array.isArray(datosOrden?.items)
