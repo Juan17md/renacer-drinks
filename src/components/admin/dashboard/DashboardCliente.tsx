@@ -81,7 +81,7 @@ export function DashboardCliente({
             </div>
             {"contador" in tarjeta ? (
               <p className="mt-3 font-heading text-xl font-bold text-brand-coffee sm:text-2xl">
-                {tarjeta.contador}
+                {tarjeta.contador} venta{tarjeta.contador !== 1 ? "s" : ""}
               </p>
             ) : (
               <>

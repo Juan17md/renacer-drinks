@@ -52,7 +52,7 @@ describe("DashboardCliente", () => {
     expect(screen.getByText("$100.00")).toBeInTheDocument();
     expect(screen.getByText("$25.00")).toBeInTheDocument();
     // "Ventas del día" es un contador puro: no muestra precios ni USD/Bs.
-    expect(screen.getByText("12")).toBeInTheDocument();
+    expect(screen.getByText("12 ventas")).toBeInTheDocument();
   });
 
   it("muestra el producto más vendido de la semana con sus unidades", async () => {
