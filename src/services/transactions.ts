@@ -19,7 +19,7 @@ import type {
   TipoTransaccion,
   ItemVenta,
 } from "@/types/transaction";
-import { obtenerFechaLocalISO } from "@/lib/utils";
+import { obtenerFechaLocalISO, generarSlug } from "@/lib/utils";
 
 const COLECCION_TRANSACCIONES = "financial_transactions";
 const COLECCION_RESUMENES = "daily_summaries";
@@ -299,6 +299,38 @@ export async function obtenerResumenDiario(
   };
 }
 
+const PREFIJO_PRODUCTO_PROMO = "promo-";
+
+async function resolverCostoOfertaPromo(
+  transaccion: Transaction,
+  productId: string
+): Promise<number> {
+  const resto = productId.slice(PREFIJO_PRODUCTO_PROMO.length);
+  const indiceGuion = resto.indexOf("-");
+  if (indiceGuion <= 0) return 0;
+
+  const promoId = resto.slice(0, indiceGuion);
+  const slug = resto.slice(indiceGuion + 1);
+
+  try {
+    const snapshot = await transaccion.get(doc(db, "promociones", promoId));
+    const ofertas = snapshot.data()?.ofertas;
+    if (!Array.isArray(ofertas)) return 0;
+
+    const oferta = ofertas.find(
+      (item: { nombre?: string }) =>
+        generarSlug(String(item.nombre ?? "")) === slug
+    );
+    return Number(oferta?.costo ?? 0);
+  } catch (error) {
+    console.error(
+      `Error al resolver el costo de la oferta ${productId}:`,
+      error
+    );
+    return 0;
+  }
+}
+
 async function calcularGananciaPorOrden(
   transaccion: Transaction,
   items: {
@@ -316,6 +348,10 @@ async function calcularGananciaPorOrden(
 
   const costos = new Map<string, number>();
   for (const id of ids) {
+    if (id.startsWith(PREFIJO_PRODUCTO_PROMO)) {
+      costos.set(id, await resolverCostoOfertaPromo(transaccion, id));
+      continue;
+    }
     try {
       const snapshot = await transaccion.get(doc(db, "products", id));
       costos.set(id, Number(snapshot.data()?.costo ?? 0));

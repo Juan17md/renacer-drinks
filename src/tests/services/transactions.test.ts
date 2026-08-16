@@ -19,6 +19,15 @@ vi.mock("firebase/firestore", () => firestoreMock);
 vi.mock("@/lib/firebase", () => ({ db: {} }));
 vi.mock("@/lib/utils", () => ({
   obtenerFechaLocalISO: () => "2026-08-13",
+  generarSlug: (texto: string) =>
+    texto
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-"),
 }));
 
 import {
@@ -291,6 +300,89 @@ describe("services/transactions", () => {
         precioVenta: 4.5,
         costo: 3.5,
         cantidad: 2,
+      });
+    });
+
+    it("calcula la ganancia de ofertas de promociones y proteína con su costo", async () => {
+      const set = vi.fn();
+      const update = vi.fn();
+      firestoreMock.runTransaction.mockImplementation(
+        async (_db: unknown, callback: (tx: unknown) => Promise<void>) => {
+          await callback({
+            get: vi.fn().mockImplementation((ref: { id?: string }) => {
+              if (ref.id === "orden_1") {
+                return {
+                  data: () => ({
+                    numero: 12,
+                    totalUSD: 5,
+                    bcvRate: 80,
+                    estado: "entregada",
+                    items: [
+                      {
+                        productId: "promo-happy_hours-2-merengadas",
+                        nombre: "2 Merengadas",
+                        precio: 4.5,
+                        cantidad: 1,
+                        subtotal: 4.5,
+                      },
+                      {
+                        productId: "promo-tarde_de_poder-proteina-extra",
+                        nombre: "Proteína extra",
+                        precio: 0.5,
+                        cantidad: 1,
+                        subtotal: 0.5,
+                      },
+                    ],
+                    createdAt: "2026-08-13T10:00:00",
+                    updatedAt: "2026-08-13T10:00:00",
+                  }),
+                };
+              }
+              if (ref.id === "happy_hours") {
+                return {
+                  data: () => ({
+                    ofertas: [
+                      { nombre: "2 Merengadas", precio: 4.5, costo: 3.5 },
+                    ],
+                  }),
+                };
+              }
+              if (ref.id === "tarde_de_poder") {
+                return {
+                  data: () => ({
+                    ofertas: [
+                      {
+                        nombre: "Proteína extra",
+                        precio: 0.5,
+                        costo: 0.25,
+                        esProteina: true,
+                      },
+                    ],
+                  }),
+                };
+              }
+              return { data: () => null };
+            }),
+            set,
+            update,
+          });
+        }
+      );
+
+      await registrarIngresoPorOrden("orden_1", 5, "Venta orden #12");
+
+      const transaccion = transaccionEscrita(set);
+      expect(transaccion.ganancia).toBe(1.25);
+      const items = transaccion.items as Record<string, unknown>[];
+      expect(items[0]).toMatchObject({
+        productId: "promo-happy_hours-2-merengadas",
+        precioVenta: 4.5,
+        costo: 3.5,
+      });
+      expect(items[1]).toMatchObject({
+        productId: "promo-tarde_de_poder-proteina-extra",
+        precioVenta: 0.5,
+        costo: 0.25,
       });
     });
   });

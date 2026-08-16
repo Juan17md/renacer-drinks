@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ShoppingBag, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/store/useCartStore";
-import { generarSlug, precioOfertaANumero } from "@/lib/utils";
+import { generarSlug } from "@/lib/utils";
 import type { OfertaPromocion } from "@/types/promotion";
 import type { ProductoPublico } from "@/types/product";
 
@@ -24,7 +24,7 @@ export function BotonAgregarOferta({
     id: `promo-${promoId}-${generarSlug(oferta.nombre)}`,
     name: oferta.nombre,
     description: "",
-    price: precioOfertaANumero(oferta.precio),
+    price: oferta.precio,
     category: "Promociones",
     isAvailable: true,
     destacado: false,

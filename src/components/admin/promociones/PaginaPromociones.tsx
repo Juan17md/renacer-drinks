@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Pencil, Save, Trash2, X } from "lucide-react";
+import { Loader2, Plus, Pencil, Save, Trash2, X, Dumbbell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +31,7 @@ import {
   actualizarPromocion,
   eliminarPromocion,
 } from "@/actions/promotions";
+import { formatearUSD } from "@/lib/utils";
 import type { Promocion, OfertaPromocion } from "@/types/promotion";
 
 interface EstadoFormulario {
@@ -45,8 +46,15 @@ const FORMULARIO_VACIO: EstadoFormulario = {
   titulo: "",
   horario: "",
   descripcion: "",
-  ofertas: [{ nombre: "", precio: "" }],
+  ofertas: [{ nombre: "", precio: 0, costo: 0, esProteina: false }],
   activo: true,
+};
+
+const OFERTA_VACIA: OfertaPromocion = {
+  nombre: "",
+  precio: 0,
+  costo: 0,
+  esProteina: false,
 };
 
 export function PaginaPromociones() {
@@ -83,7 +91,7 @@ export function PaginaPromociones() {
       ofertas:
         promocion.ofertas.length > 0
           ? promocion.ofertas.map((oferta) => ({ ...oferta }))
-          : [{ nombre: "", precio: "" }],
+          : [{ ...OFERTA_VACIA }],
       activo: promocion.activo,
     });
     setError("");
@@ -216,11 +224,25 @@ export function PaginaPromociones() {
                   {promocion.ofertas.map((oferta) => (
                     <li
                       key={oferta.nombre}
-                      className="flex items-center justify-between rounded-lg bg-muted/30 px-3 py-2 text-sm"
+                      className="flex items-center justify-between gap-2 rounded-lg bg-muted/30 px-3 py-2 text-sm"
                     >
-                      <span className="text-brand-coffee">{oferta.nombre}</span>
-                      <span className="font-medium text-brand-rose-deep">
-                        {oferta.precio}
+                      <span className="flex items-center gap-2 text-brand-coffee">
+                        {oferta.esProteina && (
+                          <Dumbbell
+                            className="h-4 w-4 shrink-0 text-brand-rose-deep"
+                            aria-hidden="true"
+                          />
+                        )}
+                        {oferta.nombre}
+                      </span>
+                      <span className="text-right">
+                        <span className="block font-medium text-brand-rose-deep">
+                          Venta: {formatearUSD(oferta.precio)}
+                        </span>
+                        <span className="block text-muted-foreground">
+                          Costo: {formatearUSD(oferta.costo)} · Ganancia:{" "}
+                          {formatearUSD(oferta.precio - oferta.costo)}
+                        </span>
                       </span>
                     </li>
                   ))}
@@ -325,10 +347,7 @@ export function PaginaPromociones() {
                   size="sm"
                   onClick={() =>
                     actualizarFormulario({
-                      ofertas: [
-                        ...formulario.ofertas,
-                        { nombre: "", precio: "" },
-                      ],
+                      ofertas: [...formulario.ofertas, { ...OFERTA_VACIA }],
                     })
                   }
                   aria-label="Agregar oferta"
@@ -340,45 +359,86 @@ export function PaginaPromociones() {
               {formulario.ofertas.map((oferta, indice) => (
                 <div
                   key={indice}
-                  className="flex items-center gap-2 rounded-xl border border-border/60 bg-muted/20 p-2"
+                  className="space-y-2 rounded-xl border border-border/60 bg-muted/20 p-3"
                 >
-                  <Input
-                    value={oferta.nombre}
-                    onChange={(evento) =>
-                      actualizarOferta(indice, {
-                        nombre: evento.target.value,
-                      })
-                    }
-                    placeholder="Nombre (Ej: 2 Merengadas)"
-                    aria-label={`Nombre de la oferta ${indice + 1}`}
-                  />
-                  <Input
-                    value={oferta.precio}
-                    onChange={(evento) =>
-                      actualizarOferta(indice, { precio: evento.target.value })
-                    }
-                    placeholder="Precio (Ej: $4.50)"
-                    className="w-32"
-                    aria-label={`Precio de la oferta ${indice + 1}`}
-                  />
-                  {formulario.ofertas.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9 shrink-0 text-destructive"
-                      onClick={() =>
-                        actualizarFormulario({
-                          ofertas: formulario.ofertas.filter(
-                            (_, i) => i !== indice
-                          ),
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={oferta.nombre}
+                      onChange={(evento) =>
+                        actualizarOferta(indice, {
+                          nombre: evento.target.value,
                         })
                       }
-                      aria-label={`Quitar oferta ${indice + 1}`}
-                    >
-                      <X className="h-4 w-4" aria-hidden="true" />
-                    </Button>
-                  )}
+                      placeholder="Nombre (Ej: 2 Merengadas)"
+                      aria-label={`Nombre de la oferta ${indice + 1}`}
+                    />
+                    {formulario.ofertas.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 shrink-0 text-destructive"
+                        onClick={() =>
+                          actualizarFormulario({
+                            ofertas: formulario.ofertas.filter(
+                              (_, i) => i !== indice
+                            ),
+                          })
+                        }
+                        aria-label={`Quitar oferta ${indice + 1}`}
+                      >
+                        <X className="h-4 w-4" aria-hidden="true" />
+                      </Button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={oferta.precio}
+                      onChange={(evento) =>
+                        actualizarOferta(indice, {
+                          precio: Number(evento.target.value) || 0,
+                        })
+                      }
+                      placeholder="Precio venta"
+                      className="w-full"
+                      aria-label={`Precio de venta de la oferta ${indice + 1}`}
+                    />
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={oferta.costo}
+                      onChange={(evento) =>
+                        actualizarOferta(indice, {
+                          costo: Number(evento.target.value) || 0,
+                        })
+                      }
+                      placeholder="Costo"
+                      className="w-full"
+                      aria-label={`Costo de la oferta ${indice + 1}`}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-small text-muted-foreground">
+                      Ganancia:{" "}
+                      <span className="font-medium text-brand-coffee">
+                        {formatearUSD(oferta.precio - oferta.costo)}
+                      </span>
+                    </p>
+                    <label className="flex cursor-pointer items-center gap-2 text-sm font-small text-brand-coffee">
+                      <span>Proteína extra (botón en el pedido)</span>
+                      <Switch
+                        checked={Boolean(oferta.esProteina)}
+                        onCheckedChange={(esProteina) =>
+                          actualizarOferta(indice, { esProteina })
+                        }
+                        aria-label={`Oferta de proteína extra ${indice + 1}`}
+                      />
+                    </label>
+                  </div>
                 </div>
               ))}
             </div>

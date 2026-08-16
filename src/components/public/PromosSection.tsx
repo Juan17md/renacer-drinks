@@ -1,6 +1,7 @@
 import { Clock, Zap, PartyPopper, Sparkles, type LucideIcon } from "lucide-react";
 import { obtenerPromocionesActivas } from "@/services/promotions";
 import { BotonAgregarOferta } from "@/components/public/BotonAgregarOferta";
+import { formatearUSD } from "@/lib/utils";
 import type { Promocion } from "@/types/promotion";
 
 const ICONOS_POR_INDICE: LucideIcon[] = [PartyPopper, Zap, Sparkles];
@@ -86,7 +87,7 @@ export async function PromosSection() {
                             {oferta.nombre}
                           </span>
                           <span className="font-heading text-lg font-bold text-brand-rose-deep">
-                            {oferta.precio}
+                            {formatearUSD(oferta.precio)}
                           </span>
                         </div>
                         <BotonAgregarOferta promoId={promo.id} oferta={oferta} />

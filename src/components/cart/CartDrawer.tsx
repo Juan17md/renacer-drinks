@@ -11,6 +11,7 @@ import {
   Copy,
   Check,
   Upload,
+  Dumbbell,
 } from "lucide-react";
 import {
   Drawer,
@@ -27,13 +28,16 @@ import { toast } from "sonner";
 import { CartItem } from "@/components/cart/CartItem";
 import { CartSummary } from "@/components/cart/CartSummary";
 import { useCartStore } from "@/store/useCartStore";
-import { convertirUSDaBs, formatearBs } from "@/lib/utils";
+import { convertirUSDaBs, formatearBs, formatearUSD, generarSlug } from "@/lib/utils";
 import { autenticarImageKit } from "@/lib/imagekit-auth";
 import { crearOrden } from "@/services/orders";
 import { escucharMetodosPago } from "@/services/metodosPago";
+import { obtenerPromocionesActivas } from "@/services/promotions";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import type { MetodoPagoConfig, DatoMetodoPago } from "@/types/payment";
 import type { MetodoPago } from "@/types/transaction";
+import type { OfertaPromocion } from "@/types/promotion";
+import type { ProductoPublico } from "@/types/product";
 import { cn } from "@/lib/utils";
 
 const URL_ENDPOINT = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT ?? "";
@@ -51,6 +55,7 @@ interface CartDrawerProps {
 export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) {
   const esEscritorio = useMediaQuery(CONSULTA_ESCRITORIO);
   const items = useCartStore((estado) => estado.items);
+  const agregarProducto = useCartStore((estado) => estado.agregarProducto);
   const actualizarCantidad = useCartStore((estado) => estado.actualizarCantidad);
   const eliminarProducto = useCartStore((estado) => estado.eliminarProducto);
   const vaciarCarrito = useCartStore((estado) => estado.vaciarCarrito);
@@ -65,6 +70,11 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
   const [comprobanteUrl, setComprobanteUrl] = useState("");
   const [subiendo, setSubiendo] = useState(false);
   const [copiado, setCopiado] = useState<string | null>(null);
+  const [ofertaProteina, setOfertaProteina] = useState<{
+    promoId: string;
+    oferta: OfertaPromocion;
+  } | null>(null);
+  const [proteinaAgregada, setProteinaAgregada] = useState(false);
   const refBloquePago = useRef<HTMLDivElement>(null);
   const refDatosMetodo = useRef<HTMLDivElement>(null);
 
@@ -84,6 +94,52 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
     );
     return desuscribir;
   }, []);
+
+  useEffect(() => {
+    let activo = true;
+    obtenerPromocionesActivas()
+      .then((promociones) => {
+        if (!activo) return;
+        const promocionConProteina = promociones.find((promocion) =>
+          promocion.ofertas.some((oferta) => oferta.esProteina)
+        );
+        if (!promocionConProteina) return;
+        const oferta = promocionConProteina.ofertas.find(
+          (item) => item.esProteina
+        );
+        if (oferta) {
+          setOfertaProteina({
+            promoId: promocionConProteina.id,
+            oferta,
+          });
+        }
+      })
+      .catch(() => {
+        if (activo) setOfertaProteina(null);
+      });
+    return () => {
+      activo = false;
+    };
+  }, []);
+
+  const manejarAgregarProteina = () => {
+    if (!ofertaProteina) return;
+    const productoProteina: ProductoPublico = {
+      id: `promo-${ofertaProteina.promoId}-${generarSlug(ofertaProteina.oferta.nombre)}`,
+      name: ofertaProteina.oferta.nombre,
+      description: "",
+      price: ofertaProteina.oferta.precio,
+      category: "Promociones",
+      isAvailable: true,
+      destacado: false,
+      imageUrl: "",
+      imageId: "",
+      updatedAt: "",
+    };
+    agregarProducto(productoProteina);
+    setProteinaAgregada(true);
+    window.setTimeout(() => setProteinaAgregada(false), 1500);
+  };
 
   useEffect(() => {
     const viewportVisual = window.visualViewport;
@@ -270,6 +326,28 @@ export function CartDrawer({ abierto, onOpenChange, tasaBCV }: CartDrawerProps) 
                   />
                 ))}
               </ul>
+              {ofertaProteina && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={manejarAgregarProteina}
+                  className="h-12 w-full border-dashed border-brand-rose/50 text-base"
+                  aria-label={`Agregar ${ofertaProteina.oferta.nombre} al pedido`}
+                >
+                  {proteinaAgregada ? (
+                    <>
+                      <Check className="mr-2 h-5 w-5 text-emerald-600" aria-hidden="true" />
+                      Agregado
+                    </>
+                  ) : (
+                    <>
+                      <Dumbbell className="mr-2 h-5 w-5 text-brand-rose-deep" aria-hidden="true" />
+                      Agregar {ofertaProteina.oferta.nombre.toLowerCase()} +{" "}
+                      {formatearUSD(ofertaProteina.oferta.precio)}
+                    </>
+                  )}
+                </Button>
+              )}
               <CartSummary totalUSD={totalUSD} totalBs={totalBs} tasaBCV={tasaBCV} />
 
               <div className="space-y-2">

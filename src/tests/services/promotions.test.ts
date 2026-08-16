@@ -36,8 +36,8 @@ const promocionDatos = {
   horario: "Lunes a Sábado de 8AM a 12PM",
   descripcion: "Dos por el precio de uno en tus favoritas.",
   ofertas: [
-    { nombre: "2 Merengadas", precio: "$4.50" },
-    { nombre: "2 Especiales", precio: "$5.60" },
+    { nombre: "2 Merengadas", precio: 4.5, costo: 3.5 },
+    { nombre: "2 Especiales", precio: 5.6, costo: 4.6 },
   ],
   activo: true,
   updatedAt: new Date("2026-08-14T00:00:00Z"),
@@ -63,8 +63,8 @@ describe("obtenerPromociones", () => {
       activo: true,
     });
     expect(promociones[0].ofertas).toEqual([
-      { nombre: "2 Merengadas", precio: "$4.50" },
-      { nombre: "2 Especiales", precio: "$5.60" },
+      { nombre: "2 Merengadas", precio: 4.5, costo: 3.5 },
+      { nombre: "2 Especiales", precio: 5.6, costo: 4.6 },
     ]);
     expect(promociones[0].updatedAt).toBe("2026-08-14T00:00:00.000Z");
   });
