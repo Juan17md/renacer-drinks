@@ -63,7 +63,7 @@ export function DashboardCliente({
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         {tarjetas.map((tarjeta) => (
           <div
             key={tarjeta.titulo}
@@ -95,11 +95,30 @@ export function DashboardCliente({
             )}
           </div>
         ))}
-      </div>
 
-      {masVendido && (
-        <div className="grid gap-4 sm:grid-cols-1">
-          <div className="rounded-2xl border border-border/60 bg-white p-5">
+        <div
+          className={`rounded-2xl border border-border/60 bg-white p-5 ${
+            masVendido
+              ? "sm:col-start-3 sm:row-start-2"
+              : "sm:col-span-3 sm:row-start-2"
+          }`}
+        >
+          <h2 className="font-heading text-base font-semibold uppercase tracking-wider text-muted-foreground">
+            Tasa BCV del día
+          </h2>
+          {tasaBCV > 0 ? (
+            <p className="mt-2 font-heading text-3xl font-bold text-brand-rose-deep">
+              {formatearBs(tasaBCV)}
+            </p>
+          ) : (
+            <p className="mt-2 text-base text-muted-foreground">
+              No disponible en este momento
+            </p>
+          )}
+        </div>
+
+        {masVendido && (
+          <div className="col-span-2 rounded-2xl border border-border/60 bg-white p-5 sm:col-span-2">
             <div className="flex items-center gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
                 <Trophy className="h-5 w-5" aria-hidden="true" />
@@ -115,26 +134,9 @@ export function DashboardCliente({
               {masVendido.cantidad} unidad{masVendido.cantidad !== 1 ? "es" : ""} vendida{masVendido.cantidad !== 1 ? "s" : ""}
             </p>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-2xl border border-border/60 bg-white p-6">
-          <h2 className="font-heading text-base font-semibold uppercase tracking-wider text-muted-foreground">
-            Tasa BCV del día
-          </h2>
-          {tasaBCV > 0 ? (
-            <p className="mt-2 font-heading text-3xl font-bold text-brand-rose-deep">
-              {formatearBs(tasaBCV)}
-            </p>
-          ) : (
-            <p className="mt-2 text-base text-muted-foreground">
-              No disponible en este momento
-            </p>
-          )}
-        </div>
-
-        <div className="rounded-2xl border border-border/60 bg-white p-6">
+        <div className="col-span-2 rounded-2xl border border-border/60 bg-white p-6 sm:col-span-3">
           <h2 className="font-heading text-base font-semibold uppercase tracking-wider text-muted-foreground">
             Accesos rápidos
           </h2>
