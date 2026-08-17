@@ -233,7 +233,108 @@ export function PaginaMetodosPago() {
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-border/60 bg-white">
+        <>
+          <div className="space-y-3 md:hidden">
+            {metodos.map((metodo) => (
+              <div
+                key={metodo.id}
+                className="rounded-2xl border border-border/60 bg-white p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <p className="font-medium text-brand-coffee">{metodo.label}</p>
+                  <Switch
+                    checked={metodo.activo}
+                    onCheckedChange={(activo) =>
+                      manejarToggleActivo(metodo.id, activo)
+                    }
+                    disabled={guardando === metodo.id}
+                    aria-label={`Habilitar o deshabilitar ${metodo.label}`}
+                  />
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-base text-muted-foreground">
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      "h-6 px-2.5 text-xs font-semibold",
+                      metodo.activo
+                        ? "bg-[#588157] text-white"
+                        : "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {metodo.activo ? "Activo" : "Inactivo"}
+                  </Badge>
+                  <span>
+                    Requiere comprobante:{" "}
+                    {metodo.requiereComprobante ? "Sí" : "No"}
+                  </span>
+                  <span>
+                    {metodo.datos.length}{" "}
+                    {metodo.datos.length === 1 ? "dato" : "datos"}
+                  </span>
+                </div>
+
+                <div className="mt-4 flex flex-col gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-10 w-full"
+                    onClick={() => abrirEditar(metodo)}
+                    aria-label={`Editar método ${metodo.label}`}
+                  >
+                    <Pencil className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                    Editar
+                  </Button>
+                  {esAdmin && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-10 w-full text-muted-foreground hover:bg-red-50 hover:text-destructive"
+                          disabled={eliminando === metodo.id}
+                          aria-label={`Eliminar método de pago ${metodo.label}`}
+                        >
+                          {eliminando === metodo.id ? (
+                            <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
+                          ) : (
+                            <Trash2 className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                          )}
+                          Eliminar
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            ¿Eliminar el método {metodo.label}?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Las órdenes y transacciones que ya lo usan
+                            conservarán su registro. Esta acción no se puede
+                            deshacer.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Volver</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => manejarEliminar(metodo.id)}
+                            disabled={eliminando === metodo.id}
+                            className="bg-destructive text-white hover:bg-destructive/90"
+                          >
+                            {eliminando === metodo.id
+                              ? "Eliminando..."
+                              : "Eliminar método"}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden overflow-x-auto rounded-2xl border border-border/60 bg-white md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -341,7 +442,8 @@ export function PaginaMetodosPago() {
               ))}
             </TableBody>
           </Table>
-        </div>
+          </div>
+        </>
       )}
 
       <Dialog open={modalAbierto} onOpenChange={setModalAbierto}>

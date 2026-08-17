@@ -11,7 +11,7 @@ export function BcvRateIndicator({ tasaBCV }: BcvRateIndicatorProps) {
   const disponible = tasaBCV > 0;
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border/60 bg-white p-5">
+    <div className="flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-white p-5 sm:w-auto">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-rose-light">
         <RefreshCw className="h-5 w-5 text-brand-rose-deep" aria-hidden="true" />
       </span>

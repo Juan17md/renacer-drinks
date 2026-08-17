@@ -51,6 +51,7 @@ function transformarTransaccion(
     date: String(datos?.date ?? ""),
     createdBy: String(datos?.createdBy ?? ""),
     customerName: datos?.customerName ? String(datos.customerName) : undefined,
+    ordenId: datos?.ordenId ? String(datos.ordenId) : undefined,
     ganancia: Number(datos?.ganancia ?? 0),
     items: Array.isArray(datos?.items) ? (datos.items as ItemVenta[]) : undefined,
   };

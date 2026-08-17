@@ -8,7 +8,6 @@ import { TransactionForm } from "./TransactionForm";
 import { BcvRateIndicator } from "./BcvRateIndicator";
 import { FinancialKPIs } from "./FinancialKPIs";
 import { SalesChart, type DatoPunto } from "./SalesChart";
-import { TransactionsTable } from "./TransactionsTable";
 
 const DIAS_VENTANA = 14;
 
@@ -80,7 +79,7 @@ export function PaginaFinanzasCliente() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-heading text-2xl font-bold text-brand-coffee sm:text-3xl">
             Finanzas
@@ -106,7 +105,6 @@ export function PaginaFinanzasCliente() {
             <SalesChart datos={datosGrafico} />
             <TransactionForm tasaBCV={tasaBCV} onRegistrada={cargarDatos} />
           </div>
-          <TransactionsTable transacciones={transacciones} />
         </>
       )}
     </div>

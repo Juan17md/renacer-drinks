@@ -61,11 +61,13 @@ vi.mock("imagekitio-react", () => ({
     onSuccess?: (respuesta: { url?: string }) => void;
     onError?: () => void;
     id?: string;
+    folder?: string;
   }) => (
     <input
       type="file"
       id={props.id}
       data-testid="ik-upload"
+      data-folder={props.folder}
       onChange={() => props.onSuccess?.({ url: "https://ik.imagekit.io/renacer/comprobante.jpg" })}
     />
   ),
@@ -373,6 +375,7 @@ describe("CartDrawer", () => {
     fireEvent.click(screen.getByRole("button", { name: /pago móvil/i }));
 
     const inputComprobante = screen.getByTestId("ik-upload");
+    expect(inputComprobante).toHaveAttribute("data-folder", "/Renacer/comprobantes");
     fireEvent.change(inputComprobante, {
       target: { files: [new File([""], "comprobante.jpg", { type: "image/jpeg" })] },
     });

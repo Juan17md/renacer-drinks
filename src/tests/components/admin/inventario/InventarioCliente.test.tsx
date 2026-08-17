@@ -47,10 +47,10 @@ describe("InventarioCliente (materiales)", () => {
   it("muestra los materiales con su unidad y cantidad", async () => {
     render(<InventarioCliente />);
 
-    expect(await screen.findByText("Leche entera")).toBeInTheDocument();
-    expect(screen.getByText("Café en grano")).toBeInTheDocument();
-    expect(screen.getByText("L")).toBeInTheDocument();
-    expect(screen.getByText("kg")).toBeInTheDocument();
+    expect(await screen.findAllByText("Leche entera")).toHaveLength(2);
+    expect(screen.getAllByText("Café en grano")).toHaveLength(2);
+    expect(screen.getAllByText("L")).toHaveLength(2);
+    expect(screen.getAllByText("kg")).toHaveLength(2);
     expect(screen.getByText(/2 materiales registrados/i)).toBeInTheDocument();
   });
 
@@ -59,8 +59,9 @@ describe("InventarioCliente (materiales)", () => {
     render(<InventarioCliente />);
 
     expect(
-      await screen.findByText(/no hay materiales registrados todavía/i)
-    ).toBeInTheDocument();
+      (await screen.findAllByText(/no hay materiales registrados todavía/i))
+        .length
+    ).toBeGreaterThan(0);
   });
 
   it("abre el modal de creación al hacer clic en agregar material", async () => {
@@ -77,10 +78,10 @@ describe("InventarioCliente (materiales)", () => {
 
   it("abre el modal de edición con los datos del material", async () => {
     render(<InventarioCliente />);
-    await screen.findByRole("button", { name: /editar leche entera/i });
+    await screen.findAllByRole("button", { name: /editar leche entera/i });
 
     fireEvent.click(
-      screen.getByRole("button", { name: /editar leche entera/i })
+      screen.getAllByRole("button", { name: /editar leche entera/i })[0]
     );
 
     const dialogo = await screen.findByRole("dialog", {
@@ -137,7 +138,7 @@ describe("InventarioCliente (materiales)", () => {
     expect(
       await screen.findByText("Página 1 de 3")
     ).toBeInTheDocument();
-    expect(screen.getByText("Material 1")).toBeInTheDocument();
+    expect(screen.getAllByText("Material 1")).toHaveLength(2);
     expect(screen.queryByText("Material 31")).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /página anterior/i })
@@ -145,7 +146,7 @@ describe("InventarioCliente (materiales)", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /página siguiente/i }));
     expect(screen.getByText("Página 2 de 3")).toBeInTheDocument();
-    expect(screen.getByText("Material 31")).toBeInTheDocument();
+    expect(screen.getAllByText("Material 31")).toHaveLength(2);
     expect(screen.queryByText("Material 1")).not.toBeInTheDocument();
   });
 });

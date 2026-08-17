@@ -1,8 +1,22 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import { eliminarTransaccion } from "@/actions/transacciones";
+import { useAuth } from "@/hooks/useAuth";
 import { formatearUSD } from "@/lib/utils";
 import type {
   TransaccionFinanciera,
@@ -11,6 +25,7 @@ import type {
 
 interface TransactionsTableProps {
   transacciones: TransaccionFinanciera[];
+  onEliminada?: () => void;
 }
 
 function formatearFechaHora(fechaISO: string): string {
@@ -30,9 +45,14 @@ const FILTROS: { valor: "TODAS" | TipoTransaccion; label: string }[] = [
 
 const TRANSACCIONES_POR_PAGINA = 15;
 
-export function TransactionsTable({ transacciones }: TransactionsTableProps) {
+export function TransactionsTable({
+  transacciones,
+  onEliminada,
+}: TransactionsTableProps) {
+  const { usuario, esAdmin } = useAuth();
   const [filtro, setFiltro] = useState<"TODAS" | TipoTransaccion>("TODAS");
   const [pagina, setPagina] = useState(1);
+  const [eliminando, setEliminando] = useState<string | null>(null);
 
   const filtradas = useMemo(
     () =>
@@ -55,6 +75,26 @@ export function TransactionsTable({ transacciones }: TransactionsTableProps) {
   const manejarFiltro = (nuevoFiltro: "TODAS" | TipoTransaccion) => {
     setFiltro(nuevoFiltro);
     setPagina(1);
+  };
+
+  const manejarEliminar = async (transaccion: TransaccionFinanciera) => {
+    if (!usuario) return;
+    setEliminando(transaccion.id);
+    try {
+      const idToken = await usuario.getIdToken();
+      const resultado = await eliminarTransaccion(transaccion.id, idToken);
+      if (resultado.ok) {
+        toast.success("Operación eliminada");
+        onEliminada?.();
+      } else {
+        toast.error(resultado.error);
+      }
+    } catch (error) {
+      console.error("Error al eliminar la transacción:", error);
+      toast.error("No se pudo eliminar la operación");
+    } finally {
+      setEliminando(null);
+    }
   };
 
   return (
@@ -112,6 +152,13 @@ export function TransactionsTable({ transacciones }: TransactionsTableProps) {
                 <p className="truncate text-base font-semibold text-brand-coffee">
                   {transaccion.concept || "Sin concepto"}
                 </p>
+                {Array.isArray(transaccion.items) && transaccion.items.length > 0 && (
+                  <p className="truncate text-base text-muted-foreground">
+                    {transaccion.items
+                      .map((item) => `${item.cantidad}× ${item.nombre}`)
+                      .join(" · ")}
+                  </p>
+                )}
                 <p className="text-base text-muted-foreground">
                   {formatearFechaHora(transaccion.date)}
                   {transaccion.paymentMethod ? ` · ${transaccion.paymentMethod.replaceAll("_", " ")}` : ""}
@@ -138,6 +185,50 @@ export function TransactionsTable({ transacciones }: TransactionsTableProps) {
                     : "—"}
                 </p>
               </div>
+
+              {esAdmin && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 shrink-0 text-muted-foreground hover:bg-red-50 hover:text-destructive"
+                      disabled={eliminando === transaccion.id}
+                      aria-label={`Eliminar operación ${transaccion.concept}`}
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        ¿Eliminar esta operación?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {transaccion.concept || "Sin concepto"} por{" "}
+                        {formatearUSD(transaccion.amount)} se eliminará
+                        permanentemente
+                        {transaccion.ordenId
+                          ? ", y su orden quedará sin registro en finanzas"
+                          : ""}
+                        . Esta acción no se puede deshacer.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Volver</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => manejarEliminar(transaccion)}
+                        disabled={eliminando === transaccion.id}
+                        className="bg-destructive text-white hover:bg-destructive/90"
+                      >
+                        {eliminando === transaccion.id
+                          ? "Eliminando..."
+                          : "Eliminar operación"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </li>
           ))}
         </ul>

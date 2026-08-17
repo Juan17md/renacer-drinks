@@ -68,9 +68,9 @@ describe("ProductsDataTable (catálogo)", () => {
       />
     );
 
-    expect(screen.getByText("$4.50")).toBeInTheDocument();
-    expect(screen.getByText("$3.50")).toBeInTheDocument();
-    expect(screen.getAllByText("$1.00")).toHaveLength(2);
+    expect(screen.getAllByText("$4.50")).toHaveLength(2);
+    expect(screen.getAllByText("$3.50")).toHaveLength(2);
+    expect(screen.getAllByText("$1.00")).toHaveLength(4);
   });
 
   it("filtra productos por la búsqueda global", () => {
@@ -87,7 +87,7 @@ describe("ProductsDataTable (catálogo)", () => {
     });
 
     expect(screen.queryByText("Café Mocca Helado")).not.toBeInTheDocument();
-    expect(screen.getByText("Capuchino")).toBeInTheDocument();
+    expect(screen.getAllByText("Capuchino")).toHaveLength(2);
   });
 
   it("pagina los productos de 30 en 30 y reinicia al buscar", () => {
@@ -114,7 +114,7 @@ describe("ProductsDataTable (catálogo)", () => {
     );
 
     expect(screen.getByText("Página 1 de 3")).toBeInTheDocument();
-    expect(screen.getByText("Producto 1")).toBeInTheDocument();
+    expect(screen.getAllByText("Producto 1")).toHaveLength(2);
     expect(screen.queryByText("Producto 31")).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /página anterior/i })
@@ -122,14 +122,14 @@ describe("ProductsDataTable (catálogo)", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /página siguiente/i }));
     expect(screen.getByText("Página 2 de 3")).toBeInTheDocument();
-    expect(screen.getByText("Producto 31")).toBeInTheDocument();
+    expect(screen.getAllByText("Producto 31")).toHaveLength(2);
     expect(screen.queryByText("Producto 1")).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/buscar producto/i), {
       target: { value: "Producto 40" },
     });
     expect(screen.queryByText(/página \d+ de \d+/i)).not.toBeInTheDocument();
-    expect(screen.getByText("Producto 40")).toBeInTheDocument();
+    expect(screen.getAllByText("Producto 40")).toHaveLength(2);
   });
 
   it("oculta la paginación con 30 productos o menos", () => {
@@ -156,7 +156,7 @@ describe("ProductsDataTable (catálogo)", () => {
     );
 
     expect(screen.queryByText(/página \d+ de \d+/i)).not.toBeInTheDocument();
-    expect(screen.getByText("Producto 30")).toBeInTheDocument();
+    expect(screen.getAllByText("Producto 30")).toHaveLength(2);
   });
 });
 
@@ -178,7 +178,7 @@ describe("CatalogoCliente", () => {
     );
 
     fireEvent.click(
-      screen.getByRole("button", { name: /editar café mocca helado/i })
+      screen.getAllByRole("button", { name: /editar café mocca helado/i })[0]
     );
 
     const dialogo = await screen.findByRole("dialog", {
