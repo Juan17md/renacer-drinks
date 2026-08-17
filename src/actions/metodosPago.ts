@@ -100,6 +100,28 @@ export async function guardarMetodoPago(
   }
 }
 
+export async function cambiarEstadoMetodoPago(id: string, activo: boolean) {
+  if (!PATRON_SLUG.test(id)) {
+    return { ok: false as const, error: "Método de pago no válido." };
+  }
+
+  try {
+    const db = getAdminFirestore();
+    await db.doc(`${COLECCION_METODOS}/${id}`).set(
+      { activo: Boolean(activo) },
+      { merge: true }
+    );
+    return { ok: true as const };
+  } catch (error) {
+    Sentry.captureException(error);
+    console.error(`Error al cambiar el estado del método de pago ${id}:`, error);
+    return {
+      ok: false as const,
+      error: "No se pudo cambiar el estado del método",
+    };
+  }
+}
+
 export async function eliminarMetodoPago(id: string, idToken: string) {
   if (!PATRON_SLUG.test(id)) {
     return { ok: false as const, error: "Método de pago no válido." };

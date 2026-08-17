@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   crearMetodoPago,
   guardarMetodoPago,
+  cambiarEstadoMetodoPago,
   eliminarMetodoPago,
   sembrarMetodosPagoPorDefecto,
 } from "@/actions/metodosPago";
@@ -158,6 +159,36 @@ describe("guardarMetodoPago", () => {
 
     expect(resultado).toEqual({ ok: false, error: "Método de pago no válido." });
     expect(setMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("cambiarEstadoMetodoPago", () => {
+  it("actualiza solo el estado activo en modo merge", async () => {
+    const { setMock } = configurarDb();
+
+    const resultado = await cambiarEstadoMetodoPago("pago-en-bolivares", false);
+
+    expect(resultado).toEqual({ ok: true });
+    expect(setMock).toHaveBeenCalledWith({ activo: false }, { merge: true });
+  });
+
+  it("rechaza ids que no son slugs válidos", async () => {
+    const { setMock } = configurarDb();
+
+    const resultado = await cambiarEstadoMetodoPago("Pago Movil", true);
+
+    expect(resultado).toEqual({ ok: false, error: "Método de pago no válido." });
+    expect(setMock).not.toHaveBeenCalled();
+  });
+
+  it("devuelve error si falla la escritura", async () => {
+    const { setMock } = configurarDb();
+    setMock.mockRejectedValue(new Error("sin conexión"));
+
+    const resultado = await cambiarEstadoMetodoPago("efectivo", false);
+
+    expect(resultado.ok).toBe(false);
+    expect(mocksAdmin.captureException).toHaveBeenCalled();
   });
 });
 
