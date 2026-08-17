@@ -234,7 +234,89 @@ export function ProductsDataTable({
         />
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-border/60 bg-white">
+      <div className="grid gap-3 md:hidden">
+        {filasPaginadas.length > 0 ? (
+          filasPaginadas.map((fila) => {
+            const producto = fila.original;
+            const categoria = categorias.find(
+              (c) => c.slug === producto.category
+            );
+            return (
+              <div
+                key={fila.id}
+                className="rounded-2xl border border-border/60 bg-white p-4"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-brand-rose-light">
+                    {producto.imageUrl ? (
+                      <Image
+                        src={producto.imageUrl}
+                        alt={producto.name}
+                        fill
+                        sizes="48px"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <span className="text-lg" aria-hidden="true">☕</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-brand-coffee">
+                      {producto.name}
+                    </p>
+                    <Badge
+                      variant="secondary"
+                      className="mt-1 whitespace-nowrap"
+                    >
+                      {categoria?.name ?? producto.category}
+                    </Badge>
+                  </div>
+                  <ToggleDisponibilidad producto={producto} />
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                  <span className="text-muted-foreground">
+                    Venta:{" "}
+                    <span className="font-semibold text-brand-rose-deep">
+                      {formatearUSD(producto.price)}
+                    </span>
+                  </span>
+                  <span className="text-muted-foreground">
+                    Costo:{" "}
+                    <span className="text-muted-foreground">
+                      {formatearUSD(producto.costo)}
+                    </span>
+                  </span>
+                  <span className="font-semibold text-emerald-600">
+                    Ganancia:{" "}
+                    <span>{formatearUSD(producto.price - producto.costo)}</span>
+                  </span>
+                </div>
+                <div className="mt-4 flex flex-col gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-11 w-full"
+                    onClick={() => onEditar(producto)}
+                    aria-label={`Editar ${producto.name}`}
+                  >
+                    <Pencil className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                    Editar
+                  </Button>
+                  <EliminarProducto producto={producto} expandido />
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="rounded-2xl border border-border/60 bg-white p-6 text-center text-muted-foreground">
+            No hay productos que coincidan con la búsqueda.
+          </div>
+        )}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-2xl border border-border/60 bg-white md:block">
         <Table>
           <TableHeader>
             {tabla.getHeaderGroups().map((grupoCabecera) => (
@@ -348,7 +430,13 @@ function ToggleDisponibilidad({ producto }: { producto: Producto }) {
   );
 }
 
-function EliminarProducto({ producto }: { producto: Producto }) {
+function EliminarProducto({
+  producto,
+  expandido = false,
+}: {
+  producto: Producto;
+  expandido?: boolean;
+}) {
   const [eliminando, setEliminando] = useState(false);
 
   const manejarEliminar = async () => {
@@ -368,14 +456,26 @@ function EliminarProducto({ producto }: { producto: Producto }) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-10 w-10 text-muted-foreground hover:text-destructive"
-          aria-label={`Eliminar ${producto.name}`}
-        >
-          <Trash2 className="h-4 w-4" aria-hidden="true" />
-        </Button>
+        {expandido ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 w-full text-destructive hover:text-destructive"
+            aria-label={`Eliminar ${producto.name}`}
+          >
+            <Trash2 className="mr-1.5 h-4 w-4" aria-hidden="true" />
+            Eliminar
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 text-muted-foreground hover:text-destructive"
+            aria-label={`Eliminar ${producto.name}`}
+          >
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        )}
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>

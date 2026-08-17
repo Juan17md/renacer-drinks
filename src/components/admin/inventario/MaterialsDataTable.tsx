@@ -51,7 +51,48 @@ export function MaterialsDataTable({
 
   return (
     <div className="space-y-4">
-      <div className="overflow-x-auto rounded-2xl border border-border/60 bg-white">
+      <div className="grid gap-3 md:hidden">
+        {materialesPaginados.length > 0 ? (
+          materialesPaginados.map((material) => (
+            <div
+              key={material.id}
+              className="rounded-2xl border border-border/60 bg-white p-4"
+            >
+              <p className="font-medium text-brand-coffee">{material.nombre}</p>
+              <div className="mt-2 flex items-center gap-2">
+                <Badge variant="secondary" className="whitespace-nowrap">
+                  {material.unidad}
+                </Badge>
+                <span className="text-sm text-muted-foreground">
+                  Cantidad:{" "}
+                  <span className="font-semibold text-brand-coffee">
+                    {material.cantidad}
+                  </span>
+                </span>
+              </div>
+              <div className="mt-4 flex flex-col gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 w-full"
+                  onClick={() => onEditar(material)}
+                  aria-label={`Editar ${material.nombre}`}
+                >
+                  <Pencil className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                  Editar
+                </Button>
+                <EliminarMaterial material={material} expandido />
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="rounded-2xl border border-border/60 bg-white p-6 text-center text-muted-foreground">
+            No hay materiales registrados todavía.
+          </div>
+        )}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-2xl border border-border/60 bg-white md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -139,7 +180,13 @@ export function MaterialsDataTable({
   );
 }
 
-function EliminarMaterial({ material }: { material: Material }) {
+function EliminarMaterial({
+  material,
+  expandido = false,
+}: {
+  material: Material;
+  expandido?: boolean;
+}) {
   const [eliminando, setEliminando] = useState(false);
 
   const manejarEliminar = async () => {
@@ -159,14 +206,26 @@ function EliminarMaterial({ material }: { material: Material }) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-10 w-10 text-muted-foreground hover:text-destructive"
-          aria-label={`Eliminar ${material.nombre}`}
-        >
-          <Trash2 className="h-4 w-4" aria-hidden="true" />
-        </Button>
+        {expandido ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 w-full text-destructive hover:text-destructive"
+            aria-label={`Eliminar ${material.nombre}`}
+          >
+            <Trash2 className="mr-1.5 h-4 w-4" aria-hidden="true" />
+            Eliminar
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 text-muted-foreground hover:text-destructive"
+            aria-label={`Eliminar ${material.nombre}`}
+          >
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        )}
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
