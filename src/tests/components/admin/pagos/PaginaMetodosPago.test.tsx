@@ -227,7 +227,7 @@ describe("PaginaMetodosPago", () => {
     render(<PaginaMetodosPago />);
     await screen.findAllByText("Pago Móvil");
 
-    expect(screen.getAllByText("Activo")).toHaveLength(4);
+    expect(screen.getAllByText("Activo")).toHaveLength(8);
 
     fireEvent.click(
       screen.getAllByRole("switch", {
@@ -242,7 +242,7 @@ describe("PaginaMetodosPago", () => {
     expect(toastMock.success).toHaveBeenCalledWith(
       "Método deshabilitado"
     );
-    expect(screen.getAllByText("Inactivo")).toHaveLength(2);
+    expect(screen.getAllByText("Inactivo")).toHaveLength(4);
   });
 
   it("habilita un método con guardado automático al tocar el switch", async () => {
@@ -253,7 +253,7 @@ describe("PaginaMetodosPago", () => {
     render(<PaginaMetodosPago />);
     await screen.findAllByText("Efectivo");
 
-    expect(screen.getAllByText("Inactivo")).toHaveLength(2);
+    expect(screen.getAllByText("Inactivo")).toHaveLength(4);
 
     fireEvent.click(
       screen.getAllByRole("switch", {
@@ -266,7 +266,7 @@ describe("PaginaMetodosPago", () => {
     });
     expect(guardarMetodoMock).not.toHaveBeenCalled();
     expect(toastMock.success).toHaveBeenCalledWith("Método habilitado");
-    expect(screen.getAllByText("Activo")).toHaveLength(2);
+    expect(screen.getAllByText("Activo")).toHaveLength(4);
   });
 
   it("revierte el switch si falla el guardado automático", async () => {
@@ -290,7 +290,7 @@ describe("PaginaMetodosPago", () => {
         "No se pudo cambiar el estado del método"
       );
     });
-    expect(screen.getAllByText("Activo")).toHaveLength(4);
+    expect(screen.getAllByText("Activo")).toHaveLength(8);
     expect(screen.queryAllByText("Inactivo")).toHaveLength(0);
   });
 

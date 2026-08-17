@@ -166,7 +166,7 @@ export function ProductsDataTable({
       id: "acciones",
       header: "Acciones",
       cell: ({ row }) => (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center justify-end gap-1">
           <Button
             variant="ghost"
             size="icon"
@@ -316,13 +316,19 @@ export function ProductsDataTable({
         )}
       </div>
 
-      <div className="hidden overflow-x-auto rounded-2xl border border-border/60 bg-white md:block">
+      <div className="hidden overflow-hidden rounded-2xl border border-border/60 bg-white md:block">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-brand-rose-light/40">
             {tabla.getHeaderGroups().map((grupoCabecera) => (
-              <TableRow key={grupoCabecera.id}>
+              <TableRow
+                key={grupoCabecera.id}
+                className="border-border/60 hover:bg-transparent"
+              >
                 {grupoCabecera.headers.map((cabecera) => (
-                  <TableHead key={cabecera.id}>
+                  <TableHead
+                    key={cabecera.id}
+                    className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                  >
                     {cabecera.isPlaceholder
                       ? null
                       : flexRender(
@@ -337,9 +343,12 @@ export function ProductsDataTable({
           <TableBody>
             {filasPaginadas.length > 0 ? (
               filasPaginadas.map((fila) => (
-                <TableRow key={fila.id}>
+                <TableRow
+                  key={fila.id}
+                  className="border-border/60 transition-colors hover:bg-brand-rose-light/30"
+                >
                   {fila.getVisibleCells().map((celda) => (
-                    <TableCell key={celda.id}>
+                    <TableCell key={celda.id} className="px-5 py-4">
                       {flexRender(
                         celda.column.columnDef.cell,
                         celda.getContext()
