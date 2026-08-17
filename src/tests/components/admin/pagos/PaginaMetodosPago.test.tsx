@@ -101,22 +101,40 @@ describe("PaginaMetodosPago", () => {
 
     render(<PaginaMetodosPago />);
 
-    expect(await screen.findByText("Pago Móvil")).toBeInTheDocument();
-    expect(screen.getByText("Efectivo")).toBeInTheDocument();
-    expect(screen.getByText("1 dato")).toBeInTheDocument();
-    expect(screen.getByText("0 datos")).toBeInTheDocument();
-    expect(screen.getByText("Sí")).toBeInTheDocument();
-    expect(screen.getByText("No")).toBeInTheDocument();
+    expect(await screen.findAllByText("Pago Móvil")).toHaveLength(2);
+    expect(screen.getAllByText("Efectivo")).toHaveLength(2);
+    expect(screen.getAllByText("1 dato")).toHaveLength(2);
+    expect(screen.getAllByText("0 datos")).toHaveLength(2);
+    expect(screen.getAllByText("Sí")).not.toHaveLength(0);
+    expect(screen.getAllByText("No")).not.toHaveLength(0);
+  });
+
+  it("muestra las tarjetas para móvil con nombre, estado y acciones al pie", async () => {
+    obtenerMetodosMock.mockResolvedValue(metodosMock);
+
+    render(<PaginaMetodosPago />);
+    await screen.findAllByText("Pago Móvil");
+
+    expect(screen.getByText("Requiere comprobante: Sí")).toBeInTheDocument();
+    expect(screen.getByText("Requiere comprobante: No")).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: /editar método/i })
+    ).toHaveLength(4);
+    expect(
+      screen.getAllByRole("switch", {
+        name: /habilitar o deshabilitar/i,
+      })
+    ).toHaveLength(4);
   });
 
   it("abre el modal de edición con los datos del método precargados", async () => {
     obtenerMetodosMock.mockResolvedValue(metodosMock);
 
     render(<PaginaMetodosPago />);
-    await screen.findByText("Pago Móvil");
+    await screen.findAllByText("Pago Móvil");
 
     fireEvent.click(
-      screen.getByRole("button", { name: /editar método pago móvil/i })
+      screen.getAllByRole("button", { name: /editar método pago móvil/i })[0]
     );
 
     expect(screen.getByText("Editar método de pago")).toBeInTheDocument();
@@ -131,10 +149,10 @@ describe("PaginaMetodosPago", () => {
     obtenerMetodosMock.mockResolvedValue(metodosMock);
 
     render(<PaginaMetodosPago />);
-    await screen.findByText("Pago Móvil");
+    await screen.findAllByText("Pago Móvil");
 
     fireEvent.click(
-      screen.getByRole("button", { name: /editar método pago móvil/i })
+      screen.getAllByRole("button", { name: /editar método pago móvil/i })[0]
     );
 
     const inputTelefono = screen.getByDisplayValue("0414-1234567");
@@ -158,10 +176,10 @@ describe("PaginaMetodosPago", () => {
     obtenerMetodosMock.mockResolvedValue([metodosMock[1]]);
 
     render(<PaginaMetodosPago />);
-    await screen.findByText("Efectivo");
+    await screen.findAllByText("Efectivo");
 
     fireEvent.click(
-      screen.getByRole("button", { name: /editar método efectivo/i })
+      screen.getAllByRole("button", { name: /editar método efectivo/i })[0]
     );
     fireEvent.click(screen.getByRole("button", { name: /agregar dato/i }));
 
@@ -204,14 +222,14 @@ describe("PaginaMetodosPago", () => {
     obtenerMetodosMock.mockResolvedValue(metodosMock);
 
     render(<PaginaMetodosPago />);
-    await screen.findByText("Pago Móvil");
+    await screen.findAllByText("Pago Móvil");
 
-    expect(screen.getAllByText("Activo")).toHaveLength(2);
+    expect(screen.getAllByText("Activo")).toHaveLength(4);
 
     fireEvent.click(
-      screen.getByRole("switch", {
+      screen.getAllByRole("switch", {
         name: /habilitar o deshabilitar pago móvil/i,
-      })
+      })[0]
     );
 
     await waitFor(() => {
@@ -225,7 +243,7 @@ describe("PaginaMetodosPago", () => {
     expect(toastMock.success).toHaveBeenCalledWith(
       "Método deshabilitado"
     );
-    expect(screen.getByText("Inactivo")).toBeInTheDocument();
+    expect(screen.getAllByText("Inactivo")).toHaveLength(2);
   });
 
   it("habilita un método con guardado automático al tocar el switch", async () => {
@@ -234,14 +252,14 @@ describe("PaginaMetodosPago", () => {
     ]);
 
     render(<PaginaMetodosPago />);
-    await screen.findByText("Efectivo");
+    await screen.findAllByText("Efectivo");
 
-    expect(screen.getByText("Inactivo")).toBeInTheDocument();
+    expect(screen.getAllByText("Inactivo")).toHaveLength(2);
 
     fireEvent.click(
-      screen.getByRole("switch", {
+      screen.getAllByRole("switch", {
         name: /habilitar o deshabilitar efectivo/i,
-      })
+      })[0]
     );
 
     await waitFor(() => {
@@ -253,7 +271,7 @@ describe("PaginaMetodosPago", () => {
       });
     });
     expect(toastMock.success).toHaveBeenCalledWith("Método habilitado");
-    expect(screen.getByText("Activo")).toBeInTheDocument();
+    expect(screen.getAllByText("Activo")).toHaveLength(2);
   });
 
   it("revierte el switch si falla el guardado automático", async () => {
@@ -264,12 +282,12 @@ describe("PaginaMetodosPago", () => {
     });
 
     render(<PaginaMetodosPago />);
-    await screen.findByText("Pago Móvil");
+    await screen.findAllByText("Pago Móvil");
 
     fireEvent.click(
-      screen.getByRole("switch", {
+      screen.getAllByRole("switch", {
         name: /habilitar o deshabilitar pago móvil/i,
-      })
+      })[0]
     );
 
     await waitFor(() => {
@@ -277,15 +295,15 @@ describe("PaginaMetodosPago", () => {
         "No se pudo guardar el método de pago"
       );
     });
-    expect(screen.getAllByText("Activo")).toHaveLength(2);
-    expect(screen.queryByText("Inactivo")).not.toBeInTheDocument();
+    expect(screen.getAllByText("Activo")).toHaveLength(4);
+    expect(screen.queryAllByText("Inactivo")).toHaveLength(0);
   });
 
   it("abre el modal para crear un método nuevo", async () => {
     obtenerMetodosMock.mockResolvedValue(metodosMock);
 
     render(<PaginaMetodosPago />);
-    await screen.findByText("Pago Móvil");
+    await screen.findAllByText("Pago Móvil");
 
     fireEvent.click(screen.getByRole("button", { name: /agregar método/i }));
 
@@ -299,7 +317,7 @@ describe("PaginaMetodosPago", () => {
     obtenerMetodosMock.mockResolvedValue(metodosMock);
 
     render(<PaginaMetodosPago />);
-    await screen.findByText("Pago Móvil");
+    await screen.findAllByText("Pago Móvil");
 
     fireEvent.click(screen.getByRole("button", { name: /agregar método/i }));
     fireEvent.change(screen.getByLabelText(/nombre \*/i), {
@@ -331,7 +349,7 @@ describe("PaginaMetodosPago", () => {
     });
 
     render(<PaginaMetodosPago />);
-    await screen.findByText("Pago Móvil");
+    await screen.findAllByText("Pago Móvil");
 
     fireEvent.click(screen.getByRole("button", { name: /agregar método/i }));
     fireEvent.change(screen.getByLabelText(/nombre \*/i), {
@@ -350,12 +368,12 @@ describe("PaginaMetodosPago", () => {
     obtenerMetodosMock.mockResolvedValue(metodosMock);
 
     render(<PaginaMetodosPago />);
-    await screen.findByText("Pago Móvil");
+    await screen.findAllByText("Pago Móvil");
 
     fireEvent.click(
-      screen.getByRole("button", {
+      screen.getAllByRole("button", {
         name: /eliminar método de pago pago móvil/i,
-      })
+      })[0]
     );
 
     expect(
@@ -380,12 +398,12 @@ describe("PaginaMetodosPago", () => {
     });
 
     render(<PaginaMetodosPago />);
-    await screen.findByText("Pago Móvil");
+    await screen.findAllByText("Pago Móvil");
 
     fireEvent.click(
-      screen.getByRole("button", {
+      screen.getAllByRole("button", {
         name: /eliminar método de pago pago móvil/i,
-      })
+      })[0]
     );
     fireEvent.click(
       screen.getByRole("button", { name: /^eliminar método$/i })
@@ -403,7 +421,7 @@ describe("PaginaMetodosPago", () => {
     obtenerMetodosMock.mockResolvedValue(metodosMock);
 
     render(<PaginaMetodosPago />);
-    await screen.findByText("Pago Móvil");
+    await screen.findAllByText("Pago Móvil");
 
     expect(
       screen.queryByRole("button", { name: /eliminar método de pago/i })
