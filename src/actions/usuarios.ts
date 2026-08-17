@@ -15,6 +15,22 @@ function normalizarEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
+function mensajeErrorCrearUsuario(error: unknown): string {
+  const codigo = (error as { code?: string }).code;
+  switch (codigo) {
+    case "auth/email-already-exists":
+      return "Ya existe un usuario con ese correo.";
+    case "auth/invalid-email":
+      return "El correo electrónico no es válido.";
+    case "auth/weak-password":
+      return "La contraseña debe tener al menos 6 caracteres.";
+    case "auth/invalid-password":
+      return "La contraseña no es válida.";
+    default:
+      return "No se pudo crear el usuario";
+  }
+}
+
 export async function crearUsuario(datos: DatosNuevoUsuario) {
   try {
     const email = normalizarEmail(datos.email);
@@ -46,7 +62,7 @@ export async function crearUsuario(datos: DatosNuevoUsuario) {
   } catch (error) {
     Sentry.captureException(error);
     console.error("Error al crear usuario:", error);
-    return { ok: false as const, error: "No se pudo crear el usuario" };
+    return { ok: false as const, error: mensajeErrorCrearUsuario(error) };
   }
 }
 
