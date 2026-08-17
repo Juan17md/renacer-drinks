@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Package, Pencil, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -92,37 +92,53 @@ export function MaterialsDataTable({
         )}
       </div>
 
-      <div className="hidden overflow-x-auto rounded-2xl border border-border/60 bg-white md:block">
+      <div className="hidden overflow-hidden rounded-2xl border border-border/60 bg-white md:block">
         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Material</TableHead>
-              <TableHead>Unidad</TableHead>
-              <TableHead>Cantidad</TableHead>
-              <TableHead>Acciones</TableHead>
+          <TableHeader className="bg-brand-rose-light/40">
+            <TableRow className="border-border/60 hover:bg-transparent">
+              <TableHead className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Material
+              </TableHead>
+              <TableHead className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Unidad
+              </TableHead>
+              <TableHead className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Cantidad
+              </TableHead>
+              <TableHead className="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Acciones
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {materialesPaginados.length > 0 ? (
               materialesPaginados.map((material) => (
-                <TableRow key={material.id}>
-                  <TableCell>
-                    <span className="font-medium text-brand-coffee">
-                      {material.nombre}
-                    </span>
+                <TableRow
+                  key={material.id}
+                  className="border-border/60 transition-colors hover:bg-brand-rose-light/30"
+                >
+                  <TableCell className="px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-rose-light">
+                        <Package className="h-5 w-5 text-brand-rose-deep" aria-hidden="true" />
+                      </span>
+                      <span className="font-semibold text-brand-coffee">
+                        {material.nombre}
+                      </span>
+                    </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="px-5 py-4">
                     <Badge variant="secondary" className="whitespace-nowrap">
                       {material.unidad}
                     </Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="px-5 py-4">
                     <span className="font-semibold text-brand-coffee">
                       {material.cantidad}
                     </span>
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
+                  <TableCell className="px-5 py-4">
+                    <div className="flex items-center justify-end gap-1">
                       <Button
                         variant="ghost"
                         size="icon"
