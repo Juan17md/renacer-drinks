@@ -147,6 +147,28 @@ describe("guardarMetodoPago", () => {
     );
   });
 
+  it("guarda los métodos sembrados con ids en mayúsculas", async () => {
+    const { setMock } = configurarDb();
+
+    const resultado = await guardarMetodoPago("PAGO_MOVIL", {
+      label: "Pago Móvil",
+      activo: true,
+      requiereComprobante: true,
+      datos: [],
+    });
+
+    expect(resultado).toEqual({ ok: true });
+    expect(setMock).toHaveBeenCalledWith(
+      {
+        label: "Pago Móvil",
+        activo: true,
+        requiereComprobante: true,
+        datos: [],
+      },
+      { merge: true }
+    );
+  });
+
   it("rechaza ids que no son slugs válidos", async () => {
     const { setMock } = configurarDb();
 
@@ -170,6 +192,20 @@ describe("cambiarEstadoMetodoPago", () => {
 
     expect(resultado).toEqual({ ok: true });
     expect(setMock).toHaveBeenCalledWith({ activo: false }, { merge: true });
+  });
+
+  it("acepta los ids de los métodos sembrados con mayúsculas y guion bajo", async () => {
+    const { setMock } = configurarDb();
+
+    const desactivarPagoMovil = await cambiarEstadoMetodoPago(
+      "PAGO_MOVIL",
+      false
+    );
+    const desactivarEfectivo = await cambiarEstadoMetodoPago("EFECTIVO", false);
+
+    expect(desactivarPagoMovil).toEqual({ ok: true });
+    expect(desactivarEfectivo).toEqual({ ok: true });
+    expect(setMock).toHaveBeenCalledTimes(2);
   });
 
   it("rechaza ids que no son slugs válidos", async () => {

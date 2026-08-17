@@ -9,7 +9,7 @@ import { generarSlug } from "@/lib/utils";
 
 const COLECCION_METODOS = "metodos_pago";
 const COLECCION_USUARIOS = "usuarios";
-const PATRON_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const PATRON_SLUG = /^[a-zA-Z0-9]+(?:[_-][a-zA-Z0-9]+)*$/;
 
 function validarDatosMetodoPago(
   datos: MetodoPagoDatosGuardado
