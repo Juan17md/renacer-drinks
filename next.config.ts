@@ -13,8 +13,9 @@ const nextConfig: NextConfig = {
 };
 
 export default withSentryConfig(nextConfig, {
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
+  org: "juan17md",
+  project: "renacer-drinks",
+  tunnelRoute: "/monitoring",
   silent: !process.env.CI,
   sourcemaps: {
     disable: true,

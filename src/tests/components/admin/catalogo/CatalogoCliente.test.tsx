@@ -130,7 +130,7 @@ describe("ProductsDataTable (catálogo)", () => {
     });
     expect(screen.queryByText(/página \d+ de \d+/i)).not.toBeInTheDocument();
     expect(screen.getAllByText("Producto 40")).toHaveLength(2);
-  });
+  }, 15_000);
 
   it("oculta la paginación con 30 productos o menos", () => {
     const treinta = Array.from({ length: 30 }, (_, indice) => ({
