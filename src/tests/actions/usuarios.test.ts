@@ -3,6 +3,7 @@ import { crearUsuario } from "@/actions/usuarios";
 
 const mocksAdmin = vi.hoisted(() => ({
   getAdminFirestore: vi.fn(),
+  getAdminAuth: vi.fn(),
   createUser: vi.fn(),
   captureException: vi.fn(),
 }));
@@ -17,12 +18,9 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
-vi.mock("firebase-admin/auth", () => ({
-  getAuth: () => ({ createUser: mocksAdmin.createUser }),
-}));
-
 vi.mock("@/lib/firebaseAdmin", () => ({
   getAdminFirestore: mocksAdmin.getAdminFirestore,
+  getAdminAuth: () => ({ createUser: mocksAdmin.createUser }),
 }));
 
 function configurarDb() {

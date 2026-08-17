@@ -1,8 +1,7 @@
 "use server";
 
 import "server-only";
-import { getAuth } from "firebase-admin/auth";
-import { getAdminFirestore } from "@/lib/firebaseAdmin";
+import { getAdminFirestore, getAdminAuth } from "@/lib/firebaseAdmin";
 import { revalidatePath } from "next/cache";
 import * as Sentry from "@sentry/nextjs";
 import type { DatosNuevoUsuario, DatosEditarUsuario, RolUsuario } from "@/types/usuario";
@@ -41,7 +40,7 @@ export async function crearUsuario(datos: DatosNuevoUsuario) {
       return { ok: false as const, error: "Rol inválido" };
     }
 
-    const auth = getAuth();
+    const auth = getAdminAuth();
     const usuarioCreado = await auth.createUser({
       email,
       password: datos.password,
@@ -78,7 +77,7 @@ export async function editarUsuario(uid: string, datos: DatosEditarUsuario) {
       rol: datos.rol,
     });
 
-    await getAuth().updateUser(uid, {
+    await getAdminAuth().updateUser(uid, {
       displayName: datos.nombre.trim(),
     });
 
@@ -96,7 +95,7 @@ export async function bloquearUsuario(uid: string, bloquear: boolean) {
     const db = getAdminFirestore();
     await db.doc(`usuarios/${uid}`).update({ bloqueado: bloquear });
 
-    await getAuth().updateUser(uid, { disabled: bloquear });
+    await getAdminAuth().updateUser(uid, { disabled: bloquear });
 
     revalidatePath("/admin/usuarios");
     return { ok: true as const };
@@ -112,7 +111,7 @@ export async function eliminarUsuario(uid: string) {
     const db = getAdminFirestore();
     await db.doc(`usuarios/${uid}`).delete();
 
-    await getAuth().deleteUser(uid);
+    await getAdminAuth().deleteUser(uid);
 
     revalidatePath("/admin/usuarios");
     return { ok: true as const };
