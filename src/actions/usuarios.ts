@@ -1,8 +1,7 @@
 "use server";
 
 import "server-only";
-import { getAuth } from "firebase-admin/auth";
-import { getAdminFirestore } from "@/lib/firebaseAdmin";
+import { getAdminFirestore, getAdminAuth } from "@/lib/firebaseAdmin";
 import { revalidatePath } from "next/cache";
 import * as Sentry from "@sentry/nextjs";
 import type { DatosNuevoUsuario, DatosEditarUsuario, RolUsuario } from "@/types/usuario";
@@ -15,6 +14,22 @@ function normalizarEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
+function mensajeErrorCrearUsuario(error: unknown): string {
+  const codigo = (error as { code?: string }).code;
+  switch (codigo) {
+    case "auth/email-already-exists":
+      return "Ya existe un usuario con ese correo.";
+    case "auth/invalid-email":
+      return "El correo electrónico no es válido.";
+    case "auth/weak-password":
+      return "La contraseña debe tener al menos 6 caracteres.";
+    case "auth/invalid-password":
+      return "La contraseña no es válida.";
+    default:
+      return "No se pudo crear el usuario";
+  }
+}
+
 export async function crearUsuario(datos: DatosNuevoUsuario) {
   try {
     const email = normalizarEmail(datos.email);
@@ -25,7 +40,7 @@ export async function crearUsuario(datos: DatosNuevoUsuario) {
       return { ok: false as const, error: "Rol inválido" };
     }
 
-    const auth = getAuth();
+    const auth = getAdminAuth();
     const usuarioCreado = await auth.createUser({
       email,
       password: datos.password,
@@ -46,7 +61,7 @@ export async function crearUsuario(datos: DatosNuevoUsuario) {
   } catch (error) {
     Sentry.captureException(error);
     console.error("Error al crear usuario:", error);
-    return { ok: false as const, error: "No se pudo crear el usuario" };
+    return { ok: false as const, error: mensajeErrorCrearUsuario(error) };
   }
 }
 
@@ -62,7 +77,7 @@ export async function editarUsuario(uid: string, datos: DatosEditarUsuario) {
       rol: datos.rol,
     });
 
-    await getAuth().updateUser(uid, {
+    await getAdminAuth().updateUser(uid, {
       displayName: datos.nombre.trim(),
     });
 
@@ -80,7 +95,7 @@ export async function bloquearUsuario(uid: string, bloquear: boolean) {
     const db = getAdminFirestore();
     await db.doc(`usuarios/${uid}`).update({ bloqueado: bloquear });
 
-    await getAuth().updateUser(uid, { disabled: bloquear });
+    await getAdminAuth().updateUser(uid, { disabled: bloquear });
 
     revalidatePath("/admin/usuarios");
     return { ok: true as const };
@@ -96,7 +111,7 @@ export async function eliminarUsuario(uid: string) {
     const db = getAdminFirestore();
     await db.doc(`usuarios/${uid}`).delete();
 
-    await getAuth().deleteUser(uid);
+    await getAdminAuth().deleteUser(uid);
 
     revalidatePath("/admin/usuarios");
     return { ok: true as const };
