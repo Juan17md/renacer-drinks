@@ -51,7 +51,7 @@ const ENLACES_ADMIN = [
   },
   {
     href: "/admin/transacciones",
-    label: "Transacciones",
+    label: "Historial",
     icono: History,
   },
   {
