@@ -5,6 +5,7 @@ import { PaginaMetodosPago } from "@/components/admin/pagos/PaginaMetodosPago";
 const {
   obtenerMetodosMock,
   guardarMetodoMock,
+  cambiarEstadoMock,
   crearMetodoMock,
   eliminarMetodoMock,
   sembrarMetodosMock,
@@ -13,6 +14,7 @@ const {
 } = vi.hoisted(() => ({
   obtenerMetodosMock: vi.fn(),
   guardarMetodoMock: vi.fn().mockResolvedValue({ ok: true }),
+  cambiarEstadoMock: vi.fn().mockResolvedValue({ ok: true }),
   crearMetodoMock: vi.fn().mockResolvedValue({ ok: true, id: "pago-bolivares" }),
   eliminarMetodoMock: vi.fn().mockResolvedValue({ ok: true }),
   sembrarMetodosMock: vi.fn().mockResolvedValue({ ok: true }),
@@ -26,6 +28,7 @@ vi.mock("@/services/metodosPago", () => ({
 
 vi.mock("@/actions/metodosPago", () => ({
   guardarMetodoPago: guardarMetodoMock,
+  cambiarEstadoMetodoPago: cambiarEstadoMock,
   crearMetodoPago: crearMetodoMock,
   eliminarMetodoPago: eliminarMetodoMock,
   sembrarMetodosPagoPorDefecto: sembrarMetodosMock,
@@ -233,13 +236,9 @@ describe("PaginaMetodosPago", () => {
     );
 
     await waitFor(() => {
-      expect(guardarMetodoMock).toHaveBeenCalledWith("PAGO_MOVIL", {
-        label: "Pago Móvil",
-        activo: false,
-        requiereComprobante: true,
-        datos: [{ etiqueta: "Teléfono", valor: "0414-1234567" }],
-      });
+      expect(cambiarEstadoMock).toHaveBeenCalledWith("PAGO_MOVIL", false);
     });
+    expect(guardarMetodoMock).not.toHaveBeenCalled();
     expect(toastMock.success).toHaveBeenCalledWith(
       "Método deshabilitado"
     );
@@ -263,22 +262,18 @@ describe("PaginaMetodosPago", () => {
     );
 
     await waitFor(() => {
-      expect(guardarMetodoMock).toHaveBeenCalledWith("EFECTIVO", {
-        label: "Efectivo",
-        activo: true,
-        requiereComprobante: false,
-        datos: [],
-      });
+      expect(cambiarEstadoMock).toHaveBeenCalledWith("EFECTIVO", true);
     });
+    expect(guardarMetodoMock).not.toHaveBeenCalled();
     expect(toastMock.success).toHaveBeenCalledWith("Método habilitado");
     expect(screen.getAllByText("Activo")).toHaveLength(2);
   });
 
   it("revierte el switch si falla el guardado automático", async () => {
     obtenerMetodosMock.mockResolvedValue(metodosMock);
-    guardarMetodoMock.mockResolvedValueOnce({
+    cambiarEstadoMock.mockResolvedValueOnce({
       ok: false,
-      error: "No se pudo guardar el método de pago",
+      error: "No se pudo cambiar el estado del método",
     });
 
     render(<PaginaMetodosPago />);
@@ -292,7 +287,7 @@ describe("PaginaMetodosPago", () => {
 
     await waitFor(() => {
       expect(toastMock.error).toHaveBeenCalledWith(
-        "No se pudo guardar el método de pago"
+        "No se pudo cambiar el estado del método"
       );
     });
     expect(screen.getAllByText("Activo")).toHaveLength(4);

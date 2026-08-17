@@ -45,6 +45,7 @@ import { obtenerMetodosPago } from "@/services/metodosPago";
 import {
   crearMetodoPago,
   guardarMetodoPago,
+  cambiarEstadoMetodoPago,
   eliminarMetodoPago,
   sembrarMetodosPagoPorDefecto,
 } from "@/actions/metodosPago";
@@ -162,12 +163,7 @@ export function PaginaMetodosPago() {
       actuales.map((m) => (m.id === id ? { ...m, activo } : m))
     );
     setGuardando(id);
-    const resultado = await guardarMetodoPago(id, {
-      label: metodo.label,
-      activo,
-      requiereComprobante: metodo.requiereComprobante,
-      datos: metodo.datos,
-    });
+    const resultado = await cambiarEstadoMetodoPago(id, activo);
     setGuardando(null);
     if (resultado.ok) {
       toast.success(activo ? "Método habilitado" : "Método deshabilitado");
@@ -242,17 +238,6 @@ export function PaginaMetodosPago() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <p className="font-medium text-brand-coffee">{metodo.label}</p>
-                  <Switch
-                    checked={metodo.activo}
-                    onCheckedChange={(activo) =>
-                      manejarToggleActivo(metodo.id, activo)
-                    }
-                    disabled={guardando === metodo.id}
-                    aria-label={`Habilitar o deshabilitar ${metodo.label}`}
-                  />
-                </div>
-
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-base text-muted-foreground">
                   <Badge
                     variant="secondary"
                     className={cn(
@@ -264,6 +249,9 @@ export function PaginaMetodosPago() {
                   >
                     {metodo.activo ? "Activo" : "Inactivo"}
                   </Badge>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-base text-muted-foreground">
                   <span>
                     Requiere comprobante:{" "}
                     {metodo.requiereComprobante ? "Sí" : "No"}
@@ -275,6 +263,19 @@ export function PaginaMetodosPago() {
                 </div>
 
                 <div className="mt-4 flex flex-col gap-2">
+                  <div className="flex h-11 items-center justify-between rounded-lg border border-border/60 px-4">
+                    <span className="text-base font-medium text-brand-coffee">
+                      Habilitado
+                    </span>
+                    <Switch
+                      checked={metodo.activo}
+                      onCheckedChange={(activo) =>
+                        manejarToggleActivo(metodo.id, activo)
+                      }
+                      disabled={guardando === metodo.id}
+                      aria-label={`Habilitar o deshabilitar ${metodo.label}`}
+                    />
+                  </div>
                   <Button
                     variant="outline"
                     size="sm"
@@ -352,27 +353,17 @@ export function PaginaMetodosPago() {
                     {metodo.label}
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant="secondary"
-                        className={cn(
-                          "h-6 px-2.5 text-xs font-semibold",
-                          metodo.activo
-                            ? "bg-[#588157] text-white"
-                            : "bg-muted text-muted-foreground"
-                        )}
-                      >
-                        {metodo.activo ? "Activo" : "Inactivo"}
-                      </Badge>
-                      <Switch
-                        checked={metodo.activo}
-                        onCheckedChange={(activo) =>
-                          manejarToggleActivo(metodo.id, activo)
-                        }
-                        disabled={guardando === metodo.id}
-                        aria-label={`Habilitar o deshabilitar ${metodo.label}`}
-                      />
-                    </div>
+                    <Badge
+                      variant="secondary"
+                      className={cn(
+                        "h-6 px-2.5 text-xs font-semibold",
+                        metodo.activo
+                          ? "bg-[#588157] text-white"
+                          : "bg-muted text-muted-foreground"
+                      )}
+                    >
+                      {metodo.activo ? "Activo" : "Inactivo"}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     {metodo.requiereComprobante ? "Sí" : "No"}
@@ -383,6 +374,14 @@ export function PaginaMetodosPago() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
+                      <Switch
+                        checked={metodo.activo}
+                        onCheckedChange={(activo) =>
+                          manejarToggleActivo(metodo.id, activo)
+                        }
+                        disabled={guardando === metodo.id}
+                        aria-label={`Habilitar o deshabilitar ${metodo.label}`}
+                      />
                       <Button
                         variant="outline"
                         size="sm"
