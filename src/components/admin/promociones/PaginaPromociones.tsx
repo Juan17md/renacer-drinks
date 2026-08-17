@@ -148,9 +148,9 @@ export function PaginaPromociones() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-brand-coffee">
+          <h1 className="font-heading text-2xl font-bold text-brand-coffee sm:text-3xl">
             Promociones
           </h1>
           <p className="mt-1 text-base text-muted-foreground">
@@ -158,10 +158,7 @@ export function PaginaPromociones() {
             día&quot; de la landing.
           </p>
         </div>
-        <Button
-          type="button"
-          onClick={abrirNueva}
-        >
+        <Button type="button" onClick={abrirNueva} className="h-12 sm:self-end">
           <Plus className="mr-1.5 h-4 w-4" aria-hidden="true" />
           Nueva promoción
         </Button>
