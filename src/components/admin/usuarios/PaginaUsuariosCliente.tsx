@@ -164,7 +164,10 @@ export function PaginaUsuariosCliente() {
             Gestiona los usuarios activos del panel administrativo.
           </p>
         </div>
-        <Button onClick={() => setCrearAbierto(true)}>
+        <Button
+          onClick={() => setCrearAbierto(true)}
+          className="h-12 sm:self-end"
+        >
           <UserPlus className="mr-2 h-4 w-4" aria-hidden="true" />
           Nuevo usuario
         </Button>
