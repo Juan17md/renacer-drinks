@@ -403,7 +403,7 @@ export function PanelOrdenes() {
                   </div>
                 )}
 
-                <div className="mt-4 flex items-center justify-between border-t border-dashed border-border/60 pt-3">
+                <div className="mt-4 flex flex-col gap-3 border-t border-dashed border-border/60 pt-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="font-heading text-lg font-bold text-brand-coffee">
                       {formatearUSD(orden.totalUSD)}
@@ -413,13 +413,13 @@ export function PanelOrdenes() {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
                     {orden.estado === "recibida" && (
                       <>
                         {orden.pagoVerificado !== true && (
                           <Button
                             size="sm"
-                            className="h-10"
+                            className="h-10 w-full sm:w-auto"
                             onClick={() => manejarValidarPago(orden)}
                             disabled={procesando === orden.id}
                             aria-label={`${obtenerEtiquetaAccionPago(
@@ -440,7 +440,7 @@ export function PanelOrdenes() {
                         )}
                         <Button
                           size="sm"
-                          className="h-10"
+                          className="h-10 w-full sm:w-auto"
                           onClick={() => manejarEntregar(orden)}
                           disabled={
                             procesando === orden.id ||
@@ -461,7 +461,7 @@ export function PanelOrdenes() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-10"
+                        className="h-10 w-full sm:w-auto"
                         onClick={() => manejarRegresar(orden)}
                         disabled={cambiando === orden.id}
                         aria-label={`Regresar orden ${orden.numero} a ${ESTADOS_ORDEN[estado.anterior].label}`}
@@ -470,7 +470,8 @@ export function PanelOrdenes() {
                         {ESTADOS_ORDEN[estado.anterior].label}
                       </Button>
                     )}
-                    {orden.estado === "recibida" && (
+                    <div className="flex items-center gap-2 sm:gap-1">
+                      {orden.estado === "recibida" && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
@@ -554,6 +555,7 @@ export function PanelOrdenes() {
                         </AlertDialogContent>
                       </AlertDialog>
                     )}
+                    </div>
                   </div>
                 </div>
               </li>
