@@ -1,8 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { obtenerTransacciones } from "@/services/transactions";
 import type { TransaccionFinanciera } from "@/types/transaction";
 import { TransactionsTable } from "./TransactionsTable";
@@ -34,13 +32,6 @@ export function PaginaTransaccionesCliente() {
             Todas las operaciones registradas en finanzas.
           </p>
         </div>
-        <Link
-          href="/admin/finanzas"
-          className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-white px-4 py-2 text-base font-semibold text-brand-coffee transition-colors hover:bg-brand-cream"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Volver a finanzas
-        </Link>
       </div>
 
       {cargando ? (

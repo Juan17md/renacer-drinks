@@ -66,12 +66,4 @@ describe("PaginaTransaccionesCliente", () => {
     expect(screen.getByText("Compra de leche")).toBeInTheDocument();
     expect(mocksServicios.obtenerTransacciones).toHaveBeenCalledWith(200);
   });
-
-  it("enlaza de vuelta a la página de finanzas", async () => {
-    render(<PaginaTransaccionesCliente />);
-
-    expect(
-      await screen.findByRole("link", { name: /volver a finanzas/i })
-    ).toHaveAttribute("href", "/admin/finanzas");
-  });
 });
