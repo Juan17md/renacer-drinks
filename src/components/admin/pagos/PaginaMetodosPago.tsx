@@ -2,11 +2,19 @@
 
 import { useEffect, useState } from "react";
 import {
+  Banknote,
+  Bitcoin,
+  CreditCard,
+  Landmark,
   Loader2,
+  Mail,
   Plus,
   Pencil,
-  Trash2,
+  Smartphone,
   Sparkles,
+  Trash2,
+  Wallet,
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,6 +72,15 @@ const FORMULARIO_VACIO: EstadoFormulario = {
   activo: true,
   requiereComprobante: false,
   datos: [],
+};
+
+const ICONOS_METODO: Record<string, LucideIcon> = {
+  PAGO_MOVIL: Smartphone,
+  ZELLE: Mail,
+  TRANSFERENCIA: Landmark,
+  BINANCE: Bitcoin,
+  PUNTO: CreditCard,
+  EFECTIVO: Banknote,
 };
 
 export function PaginaMetodosPago() {
@@ -335,63 +352,103 @@ export function PaginaMetodosPago() {
             ))}
           </div>
 
-          <div className="hidden overflow-x-auto rounded-2xl border border-border/60 bg-white md:block">
+          <div className="hidden overflow-hidden rounded-2xl border border-border/60 bg-white md:block">
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Requiere comprobante</TableHead>
-                <TableHead>Datos</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
+            <TableHeader className="bg-brand-rose-light/40">
+              <TableRow className="border-border/60 hover:bg-transparent">
+                <TableHead className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Nombre
+                </TableHead>
+                <TableHead className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Estado
+                </TableHead>
+                <TableHead className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Requiere comprobante
+                </TableHead>
+                <TableHead className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Datos
+                </TableHead>
+                <TableHead className="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Acciones
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {metodos.map((metodo) => (
-                <TableRow key={metodo.id}>
-                  <TableCell className="font-medium text-brand-coffee">
-                    {metodo.label}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="secondary"
-                      className={cn(
-                        "h-6 px-2.5 text-xs font-semibold",
-                        metodo.activo
-                          ? "bg-[#588157] text-white"
-                          : "bg-muted text-muted-foreground"
-                      )}
-                    >
-                      {metodo.activo ? "Activo" : "Inactivo"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {metodo.requiereComprobante ? "Sí" : "No"}
-                  </TableCell>
-                  <TableCell>
-                    {metodo.datos.length}{" "}
-                    {metodo.datos.length === 1 ? "dato" : "datos"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Switch
-                        checked={metodo.activo}
-                        onCheckedChange={(activo) =>
-                          manejarToggleActivo(metodo.id, activo)
-                        }
-                        disabled={guardando === metodo.id}
-                        aria-label={`Habilitar o deshabilitar ${metodo.label}`}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-9"
-                        onClick={() => abrirEditar(metodo)}
-                        aria-label={`Editar método ${metodo.label}`}
+              {metodos.map((metodo) => {
+                const IconoMetodo = ICONOS_METODO[metodo.id] ?? Wallet;
+                return (
+                  <TableRow
+                    key={metodo.id}
+                    className="border-border/60 transition-colors hover:bg-brand-rose-light/30"
+                  >
+                    <TableCell className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-rose-light">
+                          <IconoMetodo
+                            className="h-5 w-5 text-brand-rose-deep"
+                            aria-hidden="true"
+                          />
+                        </span>
+                        <span className="font-semibold text-brand-coffee">
+                          {metodo.label}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-5 py-4">
+                      <Badge
+                        variant="secondary"
+                        className={cn(
+                          "h-6 px-2.5 text-xs font-semibold",
+                          metodo.activo
+                            ? "bg-[#588157] text-white"
+                            : "bg-muted text-muted-foreground"
+                        )}
                       >
-                        <Pencil className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-                        Editar
-                      </Button>
+                        {metodo.activo ? "Activo" : "Inactivo"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-5 py-4">
+                      <Badge
+                        variant="secondary"
+                        className={cn(
+                          "h-6 px-2.5 text-xs font-semibold",
+                          metodo.requiereComprobante
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-muted text-muted-foreground"
+                        )}
+                      >
+                        {metodo.requiereComprobante ? "Sí" : "No"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-5 py-4">
+                      <Badge
+                        variant="secondary"
+                        className="h-6 px-2.5 text-xs font-semibold text-muted-foreground"
+                      >
+                        {metodo.datos.length}{" "}
+                        {metodo.datos.length === 1 ? "dato" : "datos"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-5 py-4">
+                      <div className="flex items-center justify-end gap-2">
+                        <Switch
+                          checked={metodo.activo}
+                          onCheckedChange={(activo) =>
+                            manejarToggleActivo(metodo.id, activo)
+                          }
+                          disabled={guardando === metodo.id}
+                          aria-label={`Habilitar o deshabilitar ${metodo.label}`}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-9"
+                          onClick={() => abrirEditar(metodo)}
+                          aria-label={`Editar método ${metodo.label}`}
+                        >
+                          <Pencil className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                          Editar
+                        </Button>
                       {esAdmin && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -438,7 +495,8 @@ export function PaginaMetodosPago() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
           </div>
