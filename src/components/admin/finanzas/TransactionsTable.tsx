@@ -152,6 +152,13 @@ export function TransactionsTable({
                 <p className="truncate text-base font-semibold text-brand-coffee">
                   {transaccion.concept || "Sin concepto"}
                 </p>
+                {Array.isArray(transaccion.items) && transaccion.items.length > 0 && (
+                  <p className="truncate text-base text-muted-foreground">
+                    {transaccion.items
+                      .map((item) => `${item.cantidad}× ${item.nombre}`)
+                      .join(" · ")}
+                  </p>
+                )}
                 <p className="text-base text-muted-foreground">
                   {formatearFechaHora(transaccion.date)}
                   {transaccion.paymentMethod ? ` · ${transaccion.paymentMethod.replaceAll("_", " ")}` : ""}

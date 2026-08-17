@@ -29,7 +29,11 @@ vi.mock("sonner", () => ({
 function transaccionMock(
   id: string,
   concept: string,
-  extras?: { type?: "INGRESO" | "EGRESO"; ordenId?: string }
+  extras?: {
+    type?: "INGRESO" | "EGRESO";
+    ordenId?: string;
+    items?: { productId: string; nombre: string; precioVenta: number; costo: number; cantidad: number; subtotal: number }[];
+  }
 ) {
   return {
     id,
@@ -43,6 +47,7 @@ function transaccionMock(
     createdBy: "admin",
     ganancia: 0,
     ...(extras?.ordenId ? { ordenId: extras.ordenId } : {}),
+    ...(extras?.items ? { items: extras.items } : {}),
   };
 }
 
@@ -62,6 +67,27 @@ describe("TransactionsTable", () => {
     expect(screen.getByText("Compra de leche")).toBeInTheDocument();
     expect(screen.getByText("+$4.50")).toBeInTheDocument();
     expect(screen.getByText("−$4.50")).toBeInTheDocument();
+  });
+
+  it("muestra los productos con su cantidad debajo del concepto", () => {
+    render(
+      <TransactionsTable
+        transacciones={[
+          transaccionMock("tx_3", "Venta orden #5", {
+            items: [
+              { productId: "p1", nombre: "Tropical", precioVenta: 3, costo: 1.5, cantidad: 2, subtotal: 6 },
+              { productId: "p2", nombre: "Capuchino", precioVenta: 3.5, costo: 2, cantidad: 1, subtotal: 3.5 },
+            ],
+          }),
+        ]}
+      />
+    );
+    expect(screen.getByText("2× Tropical · 1× Capuchino")).toBeInTheDocument();
+  });
+
+  it("no muestra productos cuando la operación no los tiene", () => {
+    render(<TransactionsTable transacciones={transacciones} />);
+    expect(screen.queryByText(/×/)).not.toBeInTheDocument();
   });
 
   it("filtra por tipo de transacción", () => {

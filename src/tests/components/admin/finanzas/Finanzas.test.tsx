@@ -73,11 +73,11 @@ describe("PaginaFinanzasCliente", () => {
     vi.clearAllMocks();
   });
 
-  it("enlaza al historial completo de transacciones", async () => {
+  it("carga las transacciones para los indicadores y el gráfico", async () => {
     render(<PaginaFinanzasCliente />);
     expect(
-      await screen.findByRole("link", { name: /ver historial completo/i })
-    ).toHaveAttribute("href", "/admin/transacciones");
+      await screen.findByText("Formulario de transacción")
+    ).toBeInTheDocument();
     expect(mocksServicios.obtenerTransacciones).toHaveBeenCalledWith(200);
   });
 });

@@ -72,13 +72,13 @@ export function SalesChart({ datos }: SalesChartProps) {
             />
             <Bar
               dataKey="ingresos"
-              fill="#e6396e"
+              fill="#059669"
               radius={[6, 6, 0, 0]}
               maxBarSize={28}
             />
             <Bar
               dataKey="egresos"
-              fill="#f5a0aa"
+              fill="#dc2626"
               radius={[6, 6, 0, 0]}
               maxBarSize={28}
             />
