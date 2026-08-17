@@ -83,6 +83,38 @@ const ICONOS_METODO: Record<string, LucideIcon> = {
   EFECTIVO: Banknote,
 };
 
+function SwitchEstado({
+  activo,
+  cambiando,
+  onCambio,
+  etiqueta,
+}: {
+  activo: boolean;
+  cambiando: boolean;
+  onCambio: (activo: boolean) => void;
+  etiqueta: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <Switch
+        checked={activo}
+        onCheckedChange={onCambio}
+        disabled={cambiando}
+        aria-label={`Habilitar o deshabilitar ${etiqueta}`}
+        className="data-checked:bg-[#588157]"
+      />
+      <span
+        className={cn(
+          "w-16 text-sm font-semibold",
+          activo ? "text-[#588157]" : "text-muted-foreground"
+        )}
+      >
+        {activo ? "Activo" : "Inactivo"}
+      </span>
+    </div>
+  );
+}
+
 export function PaginaMetodosPago() {
   const { usuario, esAdmin } = useAuth();
   const [metodos, setMetodos] = useState<MetodoPagoConfig[]>([]);
@@ -284,13 +316,11 @@ export function PaginaMetodosPago() {
                     <span className="text-base font-medium text-brand-coffee">
                       Habilitado
                     </span>
-                    <Switch
-                      checked={metodo.activo}
-                      onCheckedChange={(activo) =>
-                        manejarToggleActivo(metodo.id, activo)
-                      }
-                      disabled={guardando === metodo.id}
-                      aria-label={`Habilitar o deshabilitar ${metodo.label}`}
+                    <SwitchEstado
+                      activo={metodo.activo}
+                      cambiando={guardando === metodo.id}
+                      onCambio={(activo) => manejarToggleActivo(metodo.id, activo)}
+                      etiqueta={metodo.label}
                     />
                   </div>
                   <Button
@@ -431,13 +461,13 @@ export function PaginaMetodosPago() {
                     </TableCell>
                     <TableCell className="px-5 py-4">
                       <div className="flex items-center justify-end gap-2">
-                        <Switch
-                          checked={metodo.activo}
-                          onCheckedChange={(activo) =>
+                        <SwitchEstado
+                          activo={metodo.activo}
+                          cambiando={guardando === metodo.id}
+                          onCambio={(activo) =>
                             manejarToggleActivo(metodo.id, activo)
                           }
-                          disabled={guardando === metodo.id}
-                          aria-label={`Habilitar o deshabilitar ${metodo.label}`}
+                          etiqueta={metodo.label}
                         />
                         <Button
                           variant="outline"
