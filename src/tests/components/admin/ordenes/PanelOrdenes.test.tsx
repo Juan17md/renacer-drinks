@@ -373,6 +373,31 @@ describe("PanelOrdenes", () => {
     ).toBeInTheDocument();
   });
 
+  it("muestra el comprobante con área de scroll para imágenes grandes", () => {
+    render(<PanelOrdenes />);
+    emitir([
+      ordenMock("a", 12, "recibida", {
+        metodoPago: "PAGO_MOVIL",
+        comprobanteUrl: "https://ik.imagekit.io/renacer/comprobante.jpg",
+        pagoVerificado: false,
+      }),
+    ]);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /ver comprobante de la orden 12/i })
+    );
+
+    const imagen = screen.getByAltText(
+      /comprobante de pago de la orden #12/i
+    ) as HTMLImageElement;
+    expect(imagen).toHaveAttribute(
+      "src",
+      "https://ik.imagekit.io/renacer/comprobante.jpg"
+    );
+    expect(imagen.closest("div")).toHaveClass("max-h-[60vh]");
+    expect(imagen.closest("div")).toHaveClass("overflow-y-auto");
+  });
+
   it("muestra la referencia en el diálogo cuando no hay imagen", () => {
     render(<PanelOrdenes />);
     emitir([

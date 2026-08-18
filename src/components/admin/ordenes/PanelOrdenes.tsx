@@ -608,7 +608,7 @@ export function PanelOrdenes() {
             </DialogDescription>
           </DialogHeader>
           {comprobanteVisible?.comprobanteUrl ? (
-            <div className="overflow-hidden rounded-xl border border-border/60 bg-muted/30">
+            <div className="max-h-[60vh] overflow-y-auto rounded-xl border border-border/60 bg-muted/30">
               <Image
                 src={comprobanteVisible.comprobanteUrl}
                 alt={`Comprobante de pago de la orden #${comprobanteVisible.numero}`}
